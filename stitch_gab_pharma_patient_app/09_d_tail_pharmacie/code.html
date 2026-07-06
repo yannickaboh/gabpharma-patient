@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "secondary": "#206b3d",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed": "#a8f4b9",
+                        "on-background": "#111e19",
+                        "surface-bright": "#eefdf4",
+                        "surface-container": "#e2f1e9",
+                        "inverse-on-surface": "#e5f4ec",
+                        "surface-dim": "#ceded5",
+                        "surface-variant": "#d7e6de",
+                        "primary": "#004f26",
+                        "on-primary-fixed-variant": "#005228",
+                        "on-error": "#ffffff",
+                        "on-secondary-fixed": "#00210d",
+                        "tertiary-fixed-dim": "#ffbb18",
+                        "primary-container": "#006a35",
+                        "surface": "#eefdf4",
+                        "on-primary-fixed": "#00210c",
+                        "inverse-surface": "#26332e",
+                        "outline": "#6f7a6f",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed": "#ffdea7",
+                        "secondary-container": "#a8f4b9",
+                        "tertiary-container": "#785500",
+                        "on-tertiary-fixed": "#271900",
+                        "on-surface": "#111e19",
+                        "background": "#eefdf4",
+                        "surface-tint": "#076d38",
+                        "surface-container-highest": "#d7e6de",
+                        "primary-fixed": "#9df6b2",
+                        "surface-container-high": "#dcece3",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary": "#5a3f00",
+                        "on-secondary-fixed-variant": "#005229",
+                        "on-tertiary-container": "#ffcc6c",
+                        "surface-container-low": "#e8f7ef",
+                        "primary-fixed-dim": "#81d998",
+                        "error": "#ba1a1a",
+                        "inverse-primary": "#81d998",
+                        "on-surface-variant": "#3f4940",
+                        "on-primary-container": "#8fe7a5",
+                        "outline-variant": "#bec9bd",
+                        "secondary-fixed-dim": "#8cd79f",
+                        "on-secondary-container": "#287243",
+                        "on-tertiary-fixed-variant": "#5e4200",
+                        "on-primary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "xs": "4px",
+                        "sm": "8px",
+                        "md": "16px",
+                        "lg": "24px",
+                        "gutter": "16px",
+                        "base": "8px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "label-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "title-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "600"}],
+                        "label-sm": ["11px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                        "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "title-lg": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #eefdf4; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-surface">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-margin-mobile h-14 bg-surface dark:bg-background border-b border-outline-variant dark:border-outline">
+<div class="flex items-center gap-4">
+<button class="active:scale-95 transition-transform hover:bg-surface-container-low p-2 rounded-full">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">Gab'Pharma</h1>
+</div>
+<div class="flex items-center gap-2">
+<button class="active:scale-95 transition-transform hover:bg-surface-container-low p-2 rounded-full">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed">share</span>
+</button>
+<button class="active:scale-95 transition-transform hover:bg-surface-container-low p-2 rounded-full">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed">favorite</span>
+</button>
+</div>
+</header>
+<main class="pt-14 pb-24">
+<!-- Hero Section -->
+<section class="relative h-48 w-full bg-surface-container">
+<div class="absolute inset-0 w-full h-full" data-alt="A high-quality professional photograph of a modern pharmacy storefront in Libreville, Gabon. The building features clean white walls and a large green cross sign reflecting a corporate medical aesthetic. Soft morning light illuminates the tropical vegetation surrounding the entrance, creating a trustworthy and clean clinical environment. The style is modern with high resolution and natural lighting." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDmYJiR3TL4AeUWiYGSOmMSXC88TEfsPQj53UOYGdjiXuHgtin2_VccfKveM6cHpkSn_VC1oIDtZKBBiwkdCqh7y7N7caynWR4JK9KRnXaYMf2DhvdCmm_f98SmUvpjk17SzJGkjEeN9xvq9HxciWCebYaknpOJzwyZAmZcMucbc0897oSVcqAKpM5n0Cx9SbxhW2EFM2zZoK4JFEoIUZjQAQB4cqKdLiR-5M1ybzPdsiDkQ8s8TBxiVQ')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+<div class="absolute bottom-4 left-4 right-4 text-white">
+<div class="flex items-center gap-2 mb-1">
+<span class="bg-primary text-white text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">Pharmacie de Garde</span>
+</div>
+<h2 class="text-headline-lg font-headline-lg font-bold">Pharmacie de la Garde</h2>
+</div>
+</section>
+<!-- Pharmacy Core Info Bento Grid -->
+<section class="px-margin-mobile mt-lg grid grid-cols-1 md:grid-cols-2 gap-md">
+<!-- Details Card -->
+<div class="bg-surface-container-low rounded-xl p-md shadow-sm border border-outline-variant/30 flex flex-col gap-sm">
+<div class="flex items-start gap-md">
+<div class="bg-secondary-container p-3 rounded-xl">
+<span class="material-symbols-outlined text-on-secondary-container">location_on</span>
+</div>
+<div>
+<h3 class="font-title-lg text-title-lg text-primary">Adresse</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Boulevard Triomphal, Face au Sénat, Libreville, Gabon</p>
+</div>
+</div>
+<div class="flex items-start gap-md mt-2">
+<div class="bg-secondary-container p-3 rounded-xl">
+<span class="material-symbols-outlined text-on-secondary-container">call</span>
+</div>
+<div>
+<h3 class="font-title-lg text-title-lg text-primary">Contact</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">+241 01 76 54 32</p>
+</div>
+</div>
+<div class="flex items-start gap-md mt-2">
+<div class="bg-secondary-container p-3 rounded-xl">
+<span class="material-symbols-outlined text-on-secondary-container">schedule</span>
+</div>
+<div class="w-full">
+<div class="flex justify-between items-center mb-1">
+<h3 class="font-title-lg text-title-lg text-primary">Horaires</h3>
+<span class="text-primary-container font-label-lg text-label-lg">Ouvert 24h/24</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Ouvert tous les jours, dimanches et jours fériés inclus.</p>
+</div>
+</div>
+</div>
+<!-- Map Card -->
+<div class="bg-surface-container-low rounded-xl overflow-hidden shadow-sm border border-outline-variant/30 relative h-64 md:h-full">
+<div class="w-full h-full bg-surface-dim" data-location="Libreville" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD8HesKSTvaCNzvF-OnSyUOSOGkSEpaWejpQXowwyuBlEfN867w7p5RFP36YiicX7hSwjwZj7vJMD_kpAOZ7oT3hZ3l6YVqbrbU7WiMMNECavTDtifakgKo1x6ggSM05AWdlFI9RrC3ziZiynX7E8ZSlS93O9peghJ3zG83cVvBSNdjkYmaWLu6HX8nXUFhmlL1jrBK5v80RWeVq9lghP11-j3YBku-ZbB4tOPOR_VcmwUGsrBINJOAFA')"></div>
+<div class="absolute top-4 right-4">
+<button class="bg-white text-primary p-2 rounded-full shadow-lg active:scale-95 transition-all">
+<span class="material-symbols-outlined">directions</span>
+</button>
+</div>
+<div class="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-lg border border-outline-variant shadow-sm">
+<p class="text-label-sm font-label-sm text-primary">850m de votre position</p>
+</div>
+</div>
+</section>
+<!-- Delivery & Insurance Pills -->
+<section class="px-margin-mobile mt-lg">
+<h3 class="font-title-lg text-title-lg text-primary mb-md">Services &amp; Assurances</h3>
+<div class="flex flex-wrap gap-sm">
+<div class="bg-surface-container-highest px-md py-sm rounded-full flex items-center gap-2 border border-outline-variant/50">
+<span class="material-symbols-outlined text-[18px] text-secondary">local_shipping</span>
+<span class="font-label-lg text-label-lg">Zones: Libreville, Akanda, Owendo</span>
+</div>
+<div class="bg-secondary-container/50 px-md py-sm rounded-full flex items-center gap-2 border border-secondary/20">
+<span class="material-symbols-outlined text-[18px] text-secondary">verified</span>
+<span class="font-label-lg text-label-lg text-on-secondary-container">CNAMGS Acceptée</span>
+</div>
+<div class="bg-secondary-container/50 px-md py-sm rounded-full flex items-center gap-2 border border-secondary/20">
+<span class="material-symbols-outlined text-[18px] text-secondary">verified</span>
+<span class="font-label-lg text-label-lg text-on-secondary-container">AXA Gabon</span>
+</div>
+<div class="bg-secondary-container/50 px-md py-sm rounded-full flex items-center gap-2 border border-secondary/20">
+<span class="material-symbols-outlined text-[18px] text-secondary">verified</span>
+<span class="font-label-lg text-label-lg text-on-secondary-container">ASCOMA</span>
+</div>
+</div>
+</section>
+<!-- Product Browse Section -->
+<section class="mt-xl">
+<div class="px-margin-mobile flex justify-between items-end mb-md">
+<div>
+<h3 class="font-headline-md text-headline-md text-primary">Produits disponibles</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Parcourir le stock de cette pharmacie</p>
+</div>
+<button class="text-primary font-label-lg text-label-lg hover:underline transition-all">Voir tout</button>
+</div>
+<div class="flex overflow-x-auto no-scrollbar gap-md px-margin-mobile snap-x">
+<!-- Product Card 1 -->
+<div class="min-w-[160px] bg-white rounded-xl p-sm shadow-sm border border-outline-variant/20 snap-start active:scale-[0.98] transition-transform">
+<div class="h-32 w-full bg-surface-container-low rounded-lg mb-sm overflow-hidden flex items-center justify-center">
+<img class="w-24 h-24 object-contain" data-alt="A professional studio product shot of a box of Paracetamol medicine. The packaging is minimalist, with clear typography in a clinical medical style. The lighting is soft and neutral on a light mint green background, reflecting the corporate healthcare brand identity of Gab'Pharma." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXvr-U7GlwPkxD7kTQYSNLKf3W6Inw-U-GU0ZOgeM6iF_7DoypPo6o5-6SKEPXEdmK7e8NeBL__LWYcvGWVt4ZLNTtD3bSCwlqVWZ8vM7dEdWAzgYwFpy551-yVNl-HmBUMKJEwepiNbo2l0Pk61t7llmT9YtYtq1aFiyQHG-2TU4B9SsQ8GtFD0AyZc8FJEhWpfe4JZ4gjKKCj7Y4rOFX2pbhCJFShoQ_yS65w36qXgvjUFBccxXSJg"/>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-tighter">Médicament</p>
+<h4 class="font-title-lg text-title-lg text-primary truncate">Doliprane 1000mg</h4>
+<p class="font-body-md text-body-md text-on-surface-variant mb-2">Boîte de 8 gélules</p>
+<div class="flex justify-between items-center">
+<span class="font-title-lg text-title-lg text-secondary">1 250 FCFA</span>
+<button class="bg-secondary text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-primary transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>
+</button>
+</div>
+</div>
+<!-- Product Card 2 -->
+<div class="min-w-[160px] bg-white rounded-xl p-sm shadow-sm border border-outline-variant/20 snap-start active:scale-[0.98] transition-transform">
+<div class="h-32 w-full bg-surface-container-low rounded-lg mb-sm overflow-hidden flex items-center justify-center">
+<img class="w-24 h-24 object-contain" data-alt="A high-end commercial photo of a bottle of multi-vitamin syrup for children. The bottle has a colorful, friendly label with vitamin symbols. The setting is a clean medical surface with bright, airy lighting that suggests health and vitality, maintaining the professional Gabonese healthcare aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBr1LuxZaS2XkkS-U2v5zxA10Ag_D11jN4OJCiaMQRcVU0R73xb9WCdTcsiqgeg_lcd4xrBj7Ui3-TNddZYQRY4itvLdf40ikaIEE3YuHfUJt_6oq82U-0JhsQ16i-mVOtIzl_PRgKgT0i7tHa2iNnPFdSPqCsvlQ66-TIUiU1gSwVLuucEfeTtE5PKhYe-kkCcEAtxokC-bFzh087HT8ED9-MmnriHsaw_qHiKLdAnSwFt-P-VIFgfEQ"/>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-tighter">Vitamines</p>
+<h4 class="font-title-lg text-title-lg text-primary truncate">Alvityl Vitalité</h4>
+<p class="font-body-md text-body-md text-on-surface-variant mb-2">Sirop 150ml</p>
+<div class="flex justify-between items-center">
+<span class="font-title-lg text-title-lg text-secondary">4 800 FCFA</span>
+<button class="bg-secondary text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-primary transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>
+</button>
+</div>
+</div>
+<!-- Product Card 3 -->
+<div class="min-w-[160px] bg-white rounded-xl p-sm shadow-sm border border-outline-variant/20 snap-start active:scale-[0.98] transition-transform">
+<div class="h-32 w-full bg-surface-container-low rounded-lg mb-sm overflow-hidden flex items-center justify-center">
+<img class="w-24 h-24 object-contain" data-alt="A clean product shot of an antiseptic skin spray bottle. The packaging is professional and pharmaceutical. The image is bright, with soft highlights, placed on a subtle tonal surface that matches the app's secondary green color palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAocuYOIlfKq3j2_VRfX0tAyQSTYxEY6Un5PbFEbeCyV8ExrNC2pFLbAI_Z1uZ8aSIeEUmgZMAkqJRLf7ipGv3PhXIKBSLoF-5IPrPmXGIIWfDsbQLmE35quwzWDpjmEpC2qgBeyCZwwbG-6tARfxeMPa6vEF3rlGSLqOWECB7evOpI8L9Lclu3jY0NaUcIvfN_SnM15LdYbGMKQqYrCOR2t79aVDtA4ugxDriM6tb8Onu2gTouXgMKPA"/>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-tighter">Hygiène</p>
+<h4 class="font-title-lg text-title-lg text-primary truncate">Biseptine Spraid</h4>
+<p class="font-body-md text-body-md text-on-surface-variant mb-2">Spray 100ml</p>
+<div class="flex justify-between items-center">
+<span class="font-title-lg text-title-lg text-secondary">3 100 FCFA</span>
+<button class="bg-secondary text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-primary transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- CTA Action Bar -->
+<section class="px-margin-mobile mt-xl mb-4">
+<div class="flex flex-col gap-sm">
+<button class="w-full bg-primary text-white h-12 rounded-xl font-label-lg text-label-lg flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-transform">
+<span class="material-symbols-outlined">shopping_bag</span>
+                    Commander dans cette pharmacie
+                </button>
+<button class="w-full bg-secondary-container text-on-secondary-container h-12 rounded-xl font-label-lg text-label-lg flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
+<span class="material-symbols-outlined">call</span>
+                    Appeler la pharmacie
+                </button>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-2 pt-3 bg-surface dark:bg-surface-dim border-t border-outline-variant dark:border-outline shadow-sm rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="font-label-sm text-label-sm">Search</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="font-label-sm text-label-sm">Cart</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="font-label-sm text-label-sm">Orders</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</a>
+</nav>
+<script>
+        // Simple micro-interaction for horizontal scroll
+        const scrollContainer = document.querySelector('.no-scrollbar');
+        let isDown = false;
+        let mt_startX;
+        let mt_scrollLeft;
+
+        scrollContainer.addEventListener('mousedown', (e) => {
+            isDown = true;
+            mt_startX = e.pageX - scrollContainer.offsetLeft;
+            mt_scrollLeft = scrollContainer.scrollLeft;
+        });
+        scrollContainer.addEventListener('mouseleave', () => {
+            isDown = false;
+        });
+        scrollContainer.addEventListener('mouseup', () => {
+            isDown = false;
+        });
+        scrollContainer.addEventListener('mousemove', (e) => {
+            if(!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - scrollContainer.offsetLeft;
+            const walk = (x - mt_startX) * 2;
+            scrollContainer.scrollLeft = mt_scrollLeft - walk;
+        });
+    </script>
+</body></html>

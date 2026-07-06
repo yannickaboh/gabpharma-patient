@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Gab'Pharma - Mes Commandes</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary": "#004f26",
+                    "on-secondary-fixed": "#00210d",
+                    "on-surface": "#111e19",
+                    "surface-container": "#e2f1e9",
+                    "on-secondary-fixed-variant": "#005229",
+                    "on-background": "#111e19",
+                    "on-secondary-container": "#287243",
+                    "primary-fixed": "#9df6b2",
+                    "background": "#eefdf4",
+                    "on-primary": "#ffffff",
+                    "on-error": "#ffffff",
+                    "surface-container-low": "#e8f7ef",
+                    "on-tertiary-container": "#ffcc6c",
+                    "on-secondary": "#ffffff",
+                    "on-primary-fixed-variant": "#005228",
+                    "surface-dim": "#ceded5",
+                    "surface-container-high": "#dcece3",
+                    "secondary-fixed": "#a8f4b9",
+                    "secondary-container": "#a8f4b9",
+                    "tertiary-fixed": "#ffdea7",
+                    "primary-container": "#006a35",
+                    "on-tertiary": "#ffffff",
+                    "outline-variant": "#bec9bd",
+                    "error": "#ba1a1a",
+                    "tertiary-container": "#785500",
+                    "tertiary-fixed-dim": "#ffbb18",
+                    "on-error-container": "#93000a",
+                    "surface-container-highest": "#d7e6de",
+                    "secondary": "#206b3d",
+                    "surface-variant": "#d7e6de",
+                    "on-surface-variant": "#3f4940",
+                    "error-container": "#ffdad6",
+                    "inverse-surface": "#26332e",
+                    "inverse-on-surface": "#e5f4ec",
+                    "on-tertiary-fixed-variant": "#5e4200",
+                    "on-primary-fixed": "#00210c",
+                    "inverse-primary": "#81d998",
+                    "surface-container-lowest": "#ffffff",
+                    "outline": "#6f7a6f",
+                    "on-tertiary-fixed": "#271900",
+                    "secondary-fixed-dim": "#8cd79f",
+                    "on-primary-container": "#8fe7a5",
+                    "primary-fixed-dim": "#81d998",
+                    "surface": "#eefdf4",
+                    "surface-bright": "#eefdf4",
+                    "tertiary": "#5a3f00",
+                    "surface-tint": "#076d38"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "16px",
+                    "xs": "4px",
+                    "md": "16px",
+                    "margin-mobile": "16px",
+                    "base": "8px",
+                    "lg": "24px",
+                    "xl": "32px",
+                    "sm": "8px"
+            },
+            "fontFamily": {
+                    "display-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "title-lg": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "label-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "title-lg": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-sm": ["11px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                    "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #eefdf4;
+            color: #111e19;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .order-card-shadow {
+            box-shadow: 0 2px 8px -2px rgba(0, 79, 38, 0.08);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-margin-mobile h-14 bg-surface dark:bg-background border-b border-outline-variant dark:border-outline">
+<div class="flex items-center gap-4">
+<button class="active:scale-95 transition-transform hover:bg-surface-container-low p-2 rounded-full">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed">arrow_back</span>
+</button>
+<h1 class="font-title-lg text-title-lg text-on-surface">Mes Commandes</h1>
+</div>
+<div class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">
+            Gab'Pharma
+        </div>
+</header>
+<main class="pt-20 px-margin-mobile max-w-2xl mx-auto">
+<!-- Status Filters (Bento-ish horizontal scroll) -->
+<section class="mb-lg">
+<div class="flex gap-sm overflow-x-auto custom-scrollbar py-2">
+<button class="whitespace-nowrap px-md py-2 rounded-xl bg-primary text-on-primary font-label-lg transition-all shadow-sm">Tout</button>
+<button class="whitespace-nowrap px-md py-2 rounded-xl bg-surface-container-high text-on-surface-variant font-label-lg hover:bg-surface-container-highest transition-colors">En attente</button>
+<button class="whitespace-nowrap px-md py-2 rounded-xl bg-surface-container-high text-on-surface-variant font-label-lg hover:bg-surface-container-highest transition-colors">En cours</button>
+<button class="whitespace-nowrap px-md py-2 rounded-xl bg-surface-container-high text-on-surface-variant font-label-lg hover:bg-surface-container-highest transition-colors">Livré</button>
+<button class="whitespace-nowrap px-md py-2 rounded-xl bg-surface-container-high text-on-surface-variant font-label-lg hover:bg-surface-container-highest transition-colors">Annulé</button>
+</div>
+</section>
+<!-- Orders List -->
+<div class="space-y-md">
+<!-- Order Card 1: Pending -->
+<div class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/30 order-card-shadow active:scale-[0.98] transition-transform cursor-pointer group">
+<div class="flex justify-between items-start mb-sm">
+<div>
+<p class="font-label-sm text-on-surface-variant mb-1 uppercase tracking-wider">Réf: GP-2023-8942</p>
+<h3 class="font-title-lg text-on-surface group-hover:text-primary transition-colors">Pharmacie de l'Amitié</h3>
+</div>
+<span class="bg-tertiary-fixed text-on-tertiary-fixed-variant px-3 py-1 rounded-full text-label-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+                        En attente
+                    </span>
+</div>
+<div class="flex items-center gap-gutter mb-md">
+<div class="w-16 h-16 rounded-lg overflow-hidden bg-surface-container border border-outline-variant/20 shrink-0">
+<img class="w-full h-full object-cover" data-alt="A clean, clinical product photography of a box of Paracetamol tablets and a bottle of vitamins placed on a white medical tray. The lighting is soft and professional, typical of a high-end pharmaceutical brand. The color palette features whites and clinical greens, reflecting health and trust." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAy_eS0r-KGkDF6mQosoqheEsSQGlV0sgBmExhO-8wGGc6BaaLrIDJUXoDuDlyEyLYU-3XbzGxYxduWPInOAxZKkEcHqqV8T2GBOoMNCs9tPl8UdGwyQ9g8wjK0bdNucSM7fgk414IK4-Gy0IeDXLUXqLCZKeGHKBSvSUmaI9zPPkmdRVctyR6hGuaZ9cwNQyhDxSu4KcsMGr9VC_F7rEOlfO5g5LDH4fJqhxBLItzuihn8k1xMi1lDDg"/>
+</div>
+<div class="flex-1">
+<p class="font-body-md text-on-surface-variant">3 articles commandés</p>
+<p class="font-headline-md text-primary font-bold">14 500 FCFA</p>
+</div>
+</div>
+<div class="flex justify-between items-center pt-sm border-t border-outline-variant/20">
+<span class="text-label-sm text-on-surface-variant font-medium">Aujourd'hui, 10:45</span>
+<button class="text-primary font-label-lg flex items-center gap-1 hover:underline">
+                        Détails
+                        <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Order Card 2: In Progress -->
+<div class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/30 order-card-shadow active:scale-[0.98] transition-transform cursor-pointer group">
+<div class="flex justify-between items-start mb-sm">
+<div>
+<p class="font-label-sm text-on-surface-variant mb-1 uppercase tracking-wider">Réf: GP-2023-8910</p>
+<h3 class="font-title-lg text-on-surface group-hover:text-primary transition-colors">Grande Pharmacie d'Okala</h3>
+</div>
+<span class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-label-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">local_shipping</span>
+                        En cours
+                    </span>
+</div>
+<div class="flex items-center gap-gutter mb-md">
+<div class="w-16 h-16 rounded-lg overflow-hidden bg-surface-container border border-outline-variant/20 shrink-0">
+<img class="w-full h-full object-cover" data-alt="Close-up shot of a modern glass pharmacy counter with reflections of medical products. A prescription bottle and a digital thermometer are blurred in the background. The aesthetic is clean, modern, and trustworthy, with cool teal and white tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBX5BqtuTOQt9JYqt0Z7Ae9zAWoENjOPmeiIu8Cqmu0PSyXpmmy8IDYiSZwA-11_f96Jh7uuIHQHy-5pvJ3MpCBhJc1NUOVYC7TIjROSyPENGkfIWg6Vn8bvWyAPcchWlsDxo027qSlsemoHi8sPkI3tjC49juCIIGzA5hzo2p1qMqZq-Q4FsvIkfrBa8B3Bk6uh58cs11QNsTBCFCgZd5zbpzVYwghTFbfQzJ4sxaJbjYSTR8h4TsimA"/>
+</div>
+<div class="flex-1">
+<p class="font-body-md text-on-surface-variant">1 article commandé</p>
+<p class="font-headline-md text-primary font-bold">8 250 FCFA</p>
+</div>
+</div>
+<div class="flex justify-between items-center pt-sm border-t border-outline-variant/20">
+<span class="text-label-sm text-on-surface-variant font-medium">Hier, 15:20</span>
+<button class="text-primary font-label-lg flex items-center gap-1 hover:underline">
+                        Détails
+                        <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Order Card 3: Completed -->
+<div class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/30 order-card-shadow active:scale-[0.98] transition-transform cursor-pointer group opacity-90">
+<div class="flex justify-between items-start mb-sm">
+<div>
+<p class="font-label-sm text-on-surface-variant mb-1 uppercase tracking-wider">Réf: GP-2023-8855</p>
+<h3 class="font-title-lg text-on-surface group-hover:text-primary transition-colors">Pharmacie du Centre</h3>
+</div>
+<span class="bg-primary-fixed text-on-primary-fixed-variant px-3 py-1 rounded-full text-label-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                        Livré
+                    </span>
+</div>
+<div class="flex items-center gap-gutter mb-md">
+<div class="w-16 h-16 rounded-lg overflow-hidden bg-surface-container border border-outline-variant/20 shrink-0 grayscale-[40%]">
+<img class="w-full h-full object-cover" data-alt="A stylized digital illustration of a green cross symbol, the international emblem for pharmacies, rendered in a 3D glassmorphic style with soft shadows. The background is a clean mint green gradient, conveying a professional and modern medical atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDDmzr5Ua93HU4tph5uI1SHm5vpqiYIFmr80CzO1gZva8mEdSY3wVPa8SnHhak8V0_9GlcsqMX-NBnxwDdFpqFNZOH8cAcb5VnfrhXronPQ0lzFrsQPlZBVT0o-6l3qeERtHY0CS_svPe2UwQHvH7XtSDHGz6tRewCEhwT_nOHqZaeDkUl_EVTScZkuONXhwL-L3CfbqhuGfxQSt2pLjeTiIebg0KIDevGPzc0iPMPyym7hhAFa7-jjAw"/>
+</div>
+<div class="flex-1">
+<p class="font-body-md text-on-surface-variant">5 articles commandés</p>
+<p class="font-headline-md text-primary font-bold">32 100 FCFA</p>
+</div>
+</div>
+<div class="flex justify-between items-center pt-sm border-t border-outline-variant/20">
+<span class="text-label-sm text-on-surface-variant font-medium">20 Oct. 2023</span>
+<button class="text-primary font-label-lg flex items-center gap-1 hover:underline">
+                        Détails
+                        <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Order Card 4: Cancelled -->
+<div class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant/30 order-card-shadow active:scale-[0.98] transition-transform cursor-pointer group opacity-80">
+<div class="flex justify-between items-start mb-sm">
+<div>
+<p class="font-label-sm text-on-surface-variant mb-1 uppercase tracking-wider">Réf: GP-2023-8799</p>
+<h3 class="font-title-lg text-on-surface group-hover:text-primary transition-colors">Pharmacie de l'Aéroport</h3>
+</div>
+<span class="bg-error-container text-on-error-container px-3 py-1 rounded-full text-label-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">cancel</span>
+                        Annulé
+                    </span>
+</div>
+<div class="flex items-center gap-gutter mb-md">
+<div class="w-16 h-16 rounded-lg overflow-hidden bg-surface-container border border-outline-variant/20 shrink-0 opacity-50">
+<img class="w-full h-full object-cover" data-alt="Minimalist top-down view of a prescription notepad and a pen resting on a clean medical desk. The lighting is bright and even, highlighting the textures of the paper. Professional color palette with white, grey, and deep green accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2_qgV25ib3r7TxWfFpWRx-GiSGtad1D1UrIkJKHw98BrsbqfOK3FU6zECFUyXx-6mZ21DYdqt8MX0Db6VHE-ohQ-WNkhn5gUEa6IPfsyp0iYs0kNoFk4H1hCHTG02Hy_PFMFDdCXLdZHTjB0vmrCTR_q8Kb79AatzKtfRiBGfvlXKxGDEh2QUq2j_taRPyyWGlfT2ccS6XP8rPgudScftGqn68BAEqkLlLIlznx_8EMmjG5WJkWjC6g"/>
+</div>
+<div class="flex-1">
+<p class="font-body-md text-on-surface-variant">2 articles commandés</p>
+<p class="font-headline-md text-on-surface-variant font-bold">5 400 FCFA</p>
+</div>
+</div>
+<div class="flex justify-between items-center pt-sm border-t border-outline-variant/20">
+<span class="text-label-sm text-on-surface-variant font-medium">15 Oct. 2023</span>
+<button class="text-on-surface-variant font-label-lg flex items-center gap-1 hover:underline">
+                        Détails
+                        <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Help Banner -->
+<div class="mt-xl bg-primary-container text-on-primary-container p-md rounded-2xl flex items-center gap-md">
+<div class="bg-primary/20 p-2 rounded-lg">
+<span class="material-symbols-outlined text-on-primary-container" style="font-variation-settings: 'FILL' 1;">help_center</span>
+</div>
+<div class="flex-1">
+<h4 class="font-label-lg">Besoin d'aide ?</h4>
+<p class="text-label-sm opacity-90">Consultez notre FAQ ou contactez le support Gab'Pharma.</p>
+</div>
+<button class="bg-on-primary-container text-primary-container px-3 py-1.5 rounded-full text-label-sm font-bold">Contact</button>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-2 pt-3 bg-surface dark:bg-surface-dim border-t border-outline-variant dark:border-outline shadow-sm rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="font-label-sm text-label-sm">Search</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="font-label-sm text-label-sm">Cart</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-secondary-container dark:bg-secondary text-on-secondary-container dark:text-on-secondary rounded-full px-5 py-1 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">receipt_long</span>
+<span class="font-label-sm text-label-sm">Orders</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</a>
+</nav>
+<script>
+        // Micro-interaction for filter buttons
+        const filters = document.querySelectorAll('button.whitespace-nowrap');
+        filters.forEach(filter => {
+            filter.addEventListener('click', () => {
+                filters.forEach(f => {
+                    f.classList.remove('bg-primary', 'text-on-primary', 'shadow-sm');
+                    f.classList.add('bg-surface-container-high', 'text-on-surface-variant');
+                });
+                filter.classList.add('bg-primary', 'text-on-primary', 'shadow-sm');
+                filter.classList.remove('bg-surface-container-high', 'text-on-surface-variant');
+            });
+        });
+
+        // Simple haptic-like effect on card click
+        const cards = document.querySelectorAll('.order-card-shadow');
+        cards.forEach(card => {
+            card.addEventListener('click', () => {
+                // Future navigation logic would go here
+                console.log('Navigating to order details...');
+            });
+        });
+    </script>
+</body></html>

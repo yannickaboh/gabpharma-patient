@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Panier - Gab'Pharma</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "secondary": "#206b3d",
+                    "on-tertiary": "#ffffff",
+                    "secondary-fixed": "#a8f4b9",
+                    "on-background": "#111e19",
+                    "surface-bright": "#eefdf4",
+                    "surface-container": "#e2f1e9",
+                    "inverse-on-surface": "#e5f4ec",
+                    "surface-dim": "#ceded5",
+                    "surface-variant": "#d7e6de",
+                    "primary": "#004f26",
+                    "on-primary-fixed-variant": "#005228",
+                    "on-error": "#ffffff",
+                    "on-secondary-fixed": "#00210d",
+                    "tertiary-fixed-dim": "#ffbb18",
+                    "primary-container": "#006a35",
+                    "surface": "#eefdf4",
+                    "on-primary-fixed": "#00210c",
+                    "inverse-surface": "#26332e",
+                    "outline": "#6f7a6f",
+                    "on-error-container": "#93000a",
+                    "tertiary-fixed": "#ffdea7",
+                    "secondary-container": "#a8f4b9",
+                    "tertiary-container": "#785500",
+                    "on-tertiary-fixed": "#271900",
+                    "on-surface": "#111e19",
+                    "background": "#eefdf4",
+                    "surface-tint": "#076d38",
+                    "surface-container-highest": "#d7e6de",
+                    "primary-fixed": "#9df6b2",
+                    "surface-container-high": "#dcece3",
+                    "surface-container-lowest": "#ffffff",
+                    "tertiary": "#5a3f00",
+                    "on-secondary-fixed-variant": "#005229",
+                    "on-tertiary-container": "#ffcc6c",
+                    "surface-container-low": "#e8f7ef",
+                    "primary-fixed-dim": "#81d998",
+                    "error": "#ba1a1a",
+                    "inverse-primary": "#81d998",
+                    "on-surface-variant": "#3f4940",
+                    "on-primary-container": "#8fe7a5",
+                    "outline-variant": "#bec9bd",
+                    "secondary-fixed-dim": "#8cd79f",
+                    "on-secondary-container": "#287243",
+                    "on-tertiary-fixed-variant": "#5e4200",
+                    "on-primary": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "xl": "32px",
+                    "xs": "4px",
+                    "sm": "8px",
+                    "md": "16px",
+                    "lg": "24px",
+                    "gutter": "16px",
+                    "base": "8px",
+                    "margin-mobile": "16px"
+            },
+            "fontFamily": {
+                    "label-lg": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "title-lg": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "headline-md": ["Inter"]
+            },
+            "fontSize": {
+                    "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "600"}],
+                    "label-sm": ["11px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "title-lg": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #eefdf4;
+            color: #111e19;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            user-select: none;
+        }
+        .item-card {
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .item-card:active {
+            transform: scale(0.98);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background min-h-screen pb-32">
+<!-- Top AppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-margin-mobile h-14 bg-surface border-b border-outline-variant">
+<div class="flex items-center gap-4">
+<button aria-label="Retour" class="material-symbols-outlined text-primary hover:bg-surface-container-low p-2 rounded-full transition-colors active:scale-95">arrow_back</button>
+<h1 class="font-title-lg text-title-lg text-primary">Panier - Pharmacie Akanda</h1>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant p-2 hover:bg-surface-container-low rounded-full transition-colors">delete_sweep</button>
+</header>
+<main class="mt-14 px-margin-mobile pt-lg flex flex-col gap-lg">
+<!-- Logic Warning -->
+<div class="bg-surface-container-high p-md rounded-xl flex items-start gap-md border border-primary/10 shadow-sm">
+<span class="material-symbols-outlined text-primary-container shrink-0">info</span>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                Votre panier ne peut contenir que les produits d'une seule pharmacie.
+            </p>
+</div>
+<!-- Bento Grid Layout for Items -->
+<div class="flex flex-col gap-md">
+<!-- Item 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-md flex gap-md shadow-[0_2px_4px_rgba(0,0,0,0.04)] border border-outline-variant/30 item-card">
+<div class="w-20 h-20 rounded-lg overflow-hidden bg-surface-container shrink-0">
+<img class="w-full h-full object-cover" data-alt="A clean, studio-lit photograph of a medicine box for Paracetamol, shot in a professional pharmaceutical style with bright white and green tones. The packaging is crisp, and the lighting is soft and high-key, reflecting a modern healthcare aesthetic typical of a premium Gabonese pharmacy." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBG1GJLyl0oyjHAQDFam4GIs2NCQE2BEueCOM9hxO6CYN1GTOnP3K-tB02tm1tT5MtNd865GsFkamT8zuFIeFBdakD-YKpWalLRUv1tdfi_cph5c74MPH8cTyXosjVMsQ2Ub6YdUrHoIHmRDcroYGA2x7HLALGVzYCH4dc5-OJg2p4S73k9a66Moue4BD7xCVNt04j-4j56J7AQAxQrpg51aRq7EAlOyq4ZnDCBOEXmYP5MkbJACn6ecA"/>
+</div>
+<div class="flex flex-col justify-between flex-grow">
+<div>
+<div class="flex justify-between items-start">
+<h3 class="font-title-lg text-title-lg text-on-surface leading-tight">Doliprane 1000mg</h3>
+<button class="material-symbols-outlined text-on-surface-variant text-[20px]">close</button>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Boîte de 8 gélules</p>
+</div>
+<div class="flex items-center justify-between mt-sm">
+<span class="font-label-lg text-label-lg text-primary">2 500 FCFA</span>
+<div class="flex items-center bg-surface-container rounded-full px-sm py-1 border border-outline-variant">
+<button class="material-symbols-outlined text-primary text-[20px] active:scale-90 transition-transform" onclick="decrement('qty-1')">remove</button>
+<span class="mx-3 font-label-lg text-label-lg min-w-[20px] text-center" id="qty-1">2</span>
+<button class="material-symbols-outlined text-primary text-[20px] active:scale-90 transition-transform" onclick="increment('qty-1')">add</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-md flex gap-md shadow-[0_2px_4px_rgba(0,0,0,0.04)] border border-outline-variant/30 item-card">
+<div class="w-20 h-20 rounded-lg overflow-hidden bg-surface-container shrink-0">
+<img class="w-full h-full object-cover" data-alt="Close up photography of a bottle of antiseptic solution, medical professional product, bright high-key lighting, minimalist pharmacy background, clean green and white color palette, professional and clinical mood." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCc2tRAns0lH9G_8y9kjW9cF9-nkB5n8IbcV4-_wW-a-81VUQeUVcnEfJe_PZ91Pu_Ac4nAzKYssBd6smPPmRXseC2Z2RniNwSirTBLkiQY22DMo6TrPSsZg3gXZaa08UgeSIdL33Q53h5UN8D3_s24wZ1xtR-V5qMxAo8ppuPMJF8H8BVG0SZhwG6wycQKkSIuibxnLfZ6hh-y3p-hlap2nvvrdE2i_Plr7M9GPLZVkOtUgOExMIFxWg"/>
+</div>
+<div class="flex flex-col justify-between flex-grow">
+<div>
+<div class="flex justify-between items-start">
+<h3 class="font-title-lg text-title-lg text-on-surface leading-tight">Biseptine Spay</h3>
+<button class="material-symbols-outlined text-on-surface-variant text-[20px]">close</button>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Flacon de 100ml</p>
+</div>
+<div class="flex items-center justify-between mt-sm">
+<span class="font-label-lg text-label-lg text-primary">3 800 FCFA</span>
+<div class="flex items-center bg-surface-container rounded-full px-sm py-1 border border-outline-variant">
+<button class="material-symbols-outlined text-primary text-[20px] active:scale-90 transition-transform" onclick="decrement('qty-2')">remove</button>
+<span class="mx-3 font-label-lg text-label-lg min-w-[20px] text-center" id="qty-2">1</span>
+<button class="material-symbols-outlined text-primary text-[20px] active:scale-90 transition-transform" onclick="increment('qty-2')">add</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Order Summary Glassmorphism Style -->
+<div class="bg-surface-container-low rounded-2xl p-lg mt-md border border-outline-variant/50">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-md">Résumé</h2>
+<div class="flex flex-col gap-sm border-b border-outline-variant pb-md">
+<div class="flex justify-between font-body-lg text-body-lg text-on-surface-variant">
+<span>Sous-total</span>
+<span>8 800 FCFA</span>
+</div>
+<div class="flex justify-between font-body-lg text-body-lg text-on-surface-variant">
+<span>Livraison (Libreville)</span>
+<span>1 500 FCFA</span>
+</div>
+</div>
+<div class="flex justify-between pt-md">
+<span class="font-headline-md text-headline-md text-on-surface">Total</span>
+<span class="font-headline-md text-headline-md text-primary">10 300 FCFA</span>
+</div>
+</div>
+<!-- Checkout Action Area -->
+<div class="mt-lg">
+<button class="w-full bg-primary-container text-white py-4 rounded-xl font-label-lg text-label-lg flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] transition-transform">
+                Passer à la commande
+                <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+<p class="text-center text-on-surface-variant font-label-sm text-label-sm mt-md px-lg">
+                En continuant, vous acceptez nos conditions générales de vente et de confidentialité.
+            </p>
+</div>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-2 pt-3 bg-surface border-t border-outline-variant rounded-t-xl shadow-sm">
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="font-label-sm text-label-sm">Search</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-5 py-1 transition-transform active:scale-90" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">shopping_cart</span>
+<span class="font-label-sm text-label-sm">Cart</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="font-label-sm text-label-sm">Orders</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</a>
+</nav>
+<script>
+        function increment(id) {
+            const el = document.getElementById(id);
+            let val = parseInt(el.innerText);
+            el.innerText = val + 1;
+        }
+
+        function decrement(id) {
+            const el = document.getElementById(id);
+            let val = parseInt(el.innerText);
+            if (val > 1) {
+                el.innerText = val - 1;
+            }
+        }
+
+        // Simple haptic-like feedback on interactions
+        document.querySelectorAll('button, a').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (window.navigator.vibrate) {
+                    window.navigator.vibrate(10);
+                }
+            });
+        });
+    </script>
+</body></html>

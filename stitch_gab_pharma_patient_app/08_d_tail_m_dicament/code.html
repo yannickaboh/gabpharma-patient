@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Détail Médicament - Gab'Pharma</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Config Injection -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "secondary": "#206b3d",
+                    "on-tertiary": "#ffffff",
+                    "secondary-fixed": "#a8f4b9",
+                    "on-background": "#111e19",
+                    "surface-bright": "#eefdf4",
+                    "surface-container": "#e2f1e9",
+                    "inverse-on-surface": "#e5f4ec",
+                    "surface-dim": "#ceded5",
+                    "surface-variant": "#d7e6de",
+                    "primary": "#004f26",
+                    "on-primary-fixed-variant": "#005228",
+                    "on-error": "#ffffff",
+                    "on-secondary-fixed": "#00210d",
+                    "tertiary-fixed-dim": "#ffbb18",
+                    "primary-container": "#006a35",
+                    "surface": "#eefdf4",
+                    "on-primary-fixed": "#00210c",
+                    "inverse-surface": "#26332e",
+                    "outline": "#6f7a6f",
+                    "on-error-container": "#93000a",
+                    "tertiary-fixed": "#ffdea7",
+                    "secondary-container": "#a8f4b9",
+                    "tertiary-container": "#785500",
+                    "on-tertiary-fixed": "#271900",
+                    "on-surface": "#111e19",
+                    "background": "#eefdf4",
+                    "surface-tint": "#076d38",
+                    "surface-container-highest": "#d7e6de",
+                    "primary-fixed": "#9df6b2",
+                    "surface-container-high": "#dcece3",
+                    "surface-container-lowest": "#ffffff",
+                    "tertiary": "#5a3f00",
+                    "on-secondary-fixed-variant": "#005229",
+                    "on-tertiary-container": "#ffcc6c",
+                    "surface-container-low": "#e8f7ef",
+                    "primary-fixed-dim": "#81d998",
+                    "error": "#ba1a1a",
+                    "inverse-primary": "#81d998",
+                    "on-surface-variant": "#3f4940",
+                    "on-primary-container": "#8fe7a5",
+                    "outline-variant": "#bec9bd",
+                    "secondary-fixed-dim": "#8cd79f",
+                    "on-secondary-container": "#287243",
+                    "on-tertiary-fixed-variant": "#5e4200",
+                    "on-primary": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "xl": "32px",
+                    "xs": "4px",
+                    "sm": "8px",
+                    "md": "16px",
+                    "lg": "24px",
+                    "gutter": "16px",
+                    "base": "8px",
+                    "margin-mobile": "16px"
+            },
+            "fontFamily": {
+                    "label-lg": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "title-lg": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "headline-md": ["Inter"]
+            },
+            "fontSize": {
+                    "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "600"}],
+                    "label-sm": ["11px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "title-lg": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .filled-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+        body {
+            background-color: #eefdf4; /* surface background */
+            -webkit-tap-highlight-color: transparent;
+        }
+        .safe-area-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        /* Custom scrollbar for better mobile feel */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #bec9bd;
+            border-radius: 10px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body-md text-on-surface">
+<!-- Top Navigation Anchor -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-margin-mobile h-14 bg-surface dark:bg-background border-b border-outline-variant dark:border-outline">
+<div class="flex items-center gap-4">
+<button class="active:scale-95 transition-transform p-1 rounded-full hover:bg-surface-container-low" onclick="history.back()">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed">arrow_back</span>
+</button>
+<h1 class="font-title-lg text-title-lg text-primary dark:text-primary-fixed">Détails</h1>
+</div>
+<div class="flex items-center gap-2">
+<button class="active:scale-95 transition-transform p-2 rounded-full hover:bg-surface-container-low" id="favorite-btn" onclick="toggleFavorite()">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed" id="fav-icon">favorite</span>
+</button>
+<button class="active:scale-95 transition-transform p-2 rounded-full hover:bg-surface-container-low">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed">share</span>
+</button>
+</div>
+</header>
+<main class="pt-14 pb-32">
+<!-- Hero Section: Medication Image & Core Info -->
+<section class="bg-surface-container-lowest px-margin-mobile pt-lg pb-xl rounded-b-[32px] shadow-sm">
+<div class="aspect-square w-full max-w-sm mx-auto overflow-hidden rounded-xl bg-surface-container mb-lg">
+<img class="w-full h-full object-contain p-lg" data-alt="A professional high-resolution product photograph of a white pharmaceutical medicine box with green accents, set against a clean studio background with soft mint green lighting. The box is sharply detailed, reflecting a medical and health-oriented aesthetic that communicates trust and professionalism. The lighting is bright and modern, emphasizing the product's clean lines and pharmaceutical quality in a clinical yet welcoming atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMmVs401vlLGzpxQPr61yh50UrdG0XwCvMdUwkmrvm_xYAQmKf6gPdvde5ZHRl7Qp2VgLmxBzgko-NtiH4MyUVo714xahMu9rWhV4Zslfo4Bt4Wc-zoOlQNl6lfzm7Na7lYnpAtx0NisZx1pyoT4vq2Qnbgq8F_yAmG3Oojg_YsdnocIVmGugzNfB5yg6AExHZ-jhNWqcMTArPSvn65zIUzHCCZaeqxvaOYsUjHvfpqOu_-g0GITo1RA"/>
+</div>
+<div class="flex flex-col gap-xs">
+<div class="flex justify-between items-start">
+<h2 class="font-display-lg text-display-lg text-primary">Doliprane 1000mg</h2>
+<span class="bg-secondary-container text-on-secondary-container px-sm py-xs rounded-full font-label-sm text-label-sm">En Stock</span>
+</div>
+<p class="font-headline-md text-headline-md text-on-surface-variant">Paracétamol</p>
+<div class="flex gap-sm mt-sm">
+<span class="border border-outline-variant text-on-surface-variant px-sm py-xs rounded-lg font-label-lg text-label-lg">Comprimé sécable</span>
+<span class="border border-outline-variant text-on-surface-variant px-sm py-xs rounded-lg font-label-lg text-label-lg">Boîte de 8</span>
+</div>
+</div>
+</section>
+<!-- Pharmacy Selection Section -->
+<section class="mt-xl px-margin-mobile">
+<div class="flex items-center justify-between mb-md">
+<h3 class="font-headline-md text-headline-md text-primary">Pharmacies Disponibles</h3>
+<span class="text-on-surface-variant font-label-lg text-label-lg">3 trouvées</span>
+</div>
+<!-- Pharmacy List (Bento-style interaction) -->
+<div class="grid grid-cols-1 gap-md">
+<!-- Pharmacy Card 1 (Selected) -->
+<div class="pharmacy-card group cursor-pointer relative bg-white border-2 border-primary rounded-xl p-md shadow-sm transition-all" id="pharmacy-1" onclick="selectPharmacy(1)">
+<div class="absolute top-2 right-2 opacity-100 group-[.selected]:opacity-100">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="flex justify-between items-center">
+<div class="flex flex-col">
+<span class="font-title-lg text-title-lg text-on-surface">Pharmacie de l'Estuaire</span>
+<div class="flex items-center gap-1 text-on-surface-variant mt-xs">
+<span class="material-symbols-outlined text-[16px]">location_on</span>
+<span class="text-label-lg font-label-lg">Libreville, Centre-ville • 1.2 km</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="font-headline-md text-headline-md text-primary">2 500 FCFA</span>
+<span class="text-secondary font-label-sm text-label-sm">Stock: 50+</span>
+</div>
+</div>
+</div>
+<!-- Pharmacy Card 2 -->
+<div class="pharmacy-card group cursor-pointer relative bg-surface-container-low border border-outline-variant rounded-xl p-md hover:border-primary transition-all" id="pharmacy-2" onclick="selectPharmacy(2)">
+<div class="flex justify-between items-center">
+<div class="flex flex-col">
+<span class="font-title-lg text-title-lg text-on-surface">Pharmacie du Pont</span>
+<div class="flex items-center gap-1 text-on-surface-variant mt-xs">
+<span class="material-symbols-outlined text-[16px]">location_on</span>
+<span class="text-label-lg font-label-lg">Akanda • 4.5 km</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="font-headline-md text-headline-md text-on-surface">2 450 FCFA</span>
+<span class="text-error font-label-sm text-label-sm">Stock limité (5)</span>
+</div>
+</div>
+</div>
+<!-- Pharmacy Card 3 -->
+<div class="pharmacy-card group cursor-pointer relative bg-surface-container-low border border-outline-variant rounded-xl p-md hover:border-primary transition-all" id="pharmacy-3" onclick="selectPharmacy(3)">
+<div class="flex justify-between items-center">
+<div class="flex flex-col">
+<span class="font-title-lg text-title-lg text-on-surface">Pharmacie d'Owendo</span>
+<div class="flex items-center gap-1 text-on-surface-variant mt-xs">
+<span class="material-symbols-outlined text-[16px]">location_on</span>
+<span class="text-label-lg font-label-lg">Owendo • 12 km</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="font-headline-md text-headline-md text-on-surface">2 600 FCFA</span>
+<span class="text-secondary font-label-sm text-label-sm">Stock: 24</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Warning Toast (Hidden by default) -->
+<div class="hidden mx-margin-mobile mt-lg p-md bg-error-container text-on-error-container rounded-xl flex items-start gap-md animate-bounce" id="cart-warning">
+<span class="material-symbols-outlined">warning</span>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg font-bold">Attention</span>
+<p class="font-body-md text-body-md">Votre panier contient déjà des articles d'une autre pharmacie. Souhaitez-vous vider votre panier pour continuer ?</p>
+<button class="mt-sm underline font-label-lg text-label-lg text-left" onclick="hideWarning()">Ignorer</button>
+</div>
+</div>
+</main>
+<!-- Bottom Action Bar -->
+<div class="fixed bottom-0 left-0 w-full bg-surface-container-lowest border-t border-outline-variant px-margin-mobile py-md safe-area-bottom z-50">
+<div class="flex items-center gap-lg">
+<div class="flex items-center bg-surface-container-low border border-outline-variant rounded-full h-12 px-2">
+<button class="w-8 h-8 flex items-center justify-center rounded-full active:bg-surface-container-highest" onclick="adjustQty(-1)">
+<span class="material-symbols-outlined text-primary">remove</span>
+</button>
+<span class="w-10 text-center font-title-lg text-title-lg text-primary" id="qty-label">1</span>
+<button class="w-8 h-8 flex items-center justify-center rounded-full active:bg-surface-container-highest" onclick="adjustQty(1)">
+<span class="material-symbols-outlined text-primary">add</span>
+</button>
+</div>
+<button class="flex-1 bg-primary text-on-primary h-12 rounded-xl font-title-lg text-title-lg shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-2" id="add-to-cart-btn" onclick="handleAddToCart()">
+<span class="material-symbols-outlined">shopping_cart</span>
+                Ajouter au panier
+            </button>
+</div>
+</div>
+<!-- Background Decoration -->
+<div class="fixed top-0 left-0 w-full h-screen -z-10 pointer-events-none overflow-hidden">
+<div class="absolute -top-24 -right-24 w-96 h-96 bg-secondary-fixed opacity-10 rounded-full blur-3xl"></div>
+<div class="absolute top-1/2 -left-24 w-64 h-64 bg-primary-fixed opacity-10 rounded-full blur-3xl"></div>
+</div>
+<script>
+        let currentQty = 1;
+        let isFavorite = false;
+        let selectedPharmacyId = 1;
+        let hasItemsFromOtherPharmacy = true; // Simulated state
+
+        function toggleFavorite() {
+            isFavorite = !isFavorite;
+            const icon = document.getElementById('fav-icon');
+            if (isFavorite) {
+                icon.classList.add('filled-icon');
+                icon.textContent = 'favorite';
+                icon.style.color = '#ba1a1a'; // Error color for red heart
+            } else {
+                icon.classList.remove('filled-icon');
+                icon.textContent = 'favorite';
+                icon.style.color = ''; // Reset to theme primary
+            }
+        }
+
+        function selectPharmacy(id) {
+            // Remove selection from all
+            document.querySelectorAll('.pharmacy-card').forEach(card => {
+                card.classList.remove('border-primary', 'border-2', 'bg-white');
+                card.classList.add('border-outline-variant', 'border', 'bg-surface-container-low');
+                // Hide check icon
+                const check = card.querySelector('.absolute');
+                if(check) check.classList.add('hidden');
+            });
+
+            // Add to selected
+            const selectedCard = document.getElementById(`pharmacy-${id}`);
+            selectedCard.classList.remove('border-outline-variant', 'border', 'bg-surface-container-low');
+            selectedCard.classList.add('border-primary', 'border-2', 'bg-white');
+            
+            // Show check icon logic
+            let check = selectedCard.querySelector('.absolute');
+            if(!check) {
+                check = document.createElement('div');
+                check.className = 'absolute top-2 right-2';
+                check.innerHTML = '<span class="material-symbols-outlined text-primary" style="font-variation-settings: \'FILL\' 1;">check_circle</span>';
+                selectedCard.appendChild(check);
+            }
+            check.classList.remove('hidden');
+            
+            selectedPharmacyId = id;
+            hideWarning();
+        }
+
+        function adjustQty(val) {
+            currentQty = Math.max(1, currentQty + val);
+            document.getElementById('qty-label').textContent = currentQty;
+        }
+
+        function handleAddToCart() {
+            if (hasItemsFromOtherPharmacy) {
+                const warning = document.getElementById('cart-warning');
+                warning.classList.remove('hidden');
+                warning.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+                // Success feedback
+                const btn = document.getElementById('add-to-cart-btn');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<span class="material-symbols-outlined">check</span> Ajouté !';
+                btn.classList.replace('bg-primary', 'bg-secondary');
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.replace('bg-secondary', 'bg-primary');
+                }, 2000);
+            }
+        }
+
+        function hideWarning() {
+            document.getElementById('cart-warning').classList.add('hidden');
+        }
+    </script>
+</body></html>

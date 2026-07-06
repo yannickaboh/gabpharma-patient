@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Gab'Pharma - Recherche</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Config Verbatim -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "secondary": "#206b3d",
+                    "on-tertiary": "#ffffff",
+                    "secondary-fixed": "#a8f4b9",
+                    "on-background": "#111e19",
+                    "surface-bright": "#eefdf4",
+                    "surface-container": "#e2f1e9",
+                    "inverse-on-surface": "#e5f4ec",
+                    "surface-dim": "#ceded5",
+                    "surface-variant": "#d7e6de",
+                    "primary": "#004f26",
+                    "on-primary-fixed-variant": "#005228",
+                    "on-error": "#ffffff",
+                    "on-secondary-fixed": "#00210d",
+                    "tertiary-fixed-dim": "#ffbb18",
+                    "primary-container": "#006a35",
+                    "surface": "#eefdf4",
+                    "on-primary-fixed": "#00210c",
+                    "inverse-surface": "#26332e",
+                    "outline": "#6f7a6f",
+                    "on-error-container": "#93000a",
+                    "tertiary-fixed": "#ffdea7",
+                    "secondary-container": "#a8f4b9",
+                    "tertiary-container": "#785500",
+                    "on-tertiary-fixed": "#271900",
+                    "on-surface": "#111e19",
+                    "background": "#eefdf4",
+                    "surface-tint": "#076d38",
+                    "surface-container-highest": "#d7e6de",
+                    "primary-fixed": "#9df6b2",
+                    "surface-container-high": "#dcece3",
+                    "surface-container-lowest": "#ffffff",
+                    "tertiary": "#5a3f00",
+                    "on-secondary-fixed-variant": "#005229",
+                    "on-tertiary-container": "#ffcc6c",
+                    "surface-container-low": "#e8f7ef",
+                    "primary-fixed-dim": "#81d998",
+                    "error": "#ba1a1a",
+                    "inverse-primary": "#81d998",
+                    "on-surface-variant": "#3f4940",
+                    "on-primary-container": "#8fe7a5",
+                    "outline-variant": "#bec9bd",
+                    "secondary-fixed-dim": "#8cd79f",
+                    "on-secondary-container": "#287243",
+                    "on-tertiary-fixed-variant": "#5e4200",
+                    "on-primary": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "xl": "32px",
+                    "xs": "4px",
+                    "sm": "8px",
+                    "md": "16px",
+                    "lg": "24px",
+                    "gutter": "16px",
+                    "base": "8px",
+                    "margin-mobile": "16px"
+            },
+            "fontFamily": {
+                    "label-lg": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "title-lg": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "headline-md": ["Inter"]
+            },
+            "fontSize": {
+                    "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "600"}],
+                    "label-sm": ["11px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "title-lg": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #eefdf4; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface min-h-screen pb-24">
+<!-- TopAppBar Shell -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-margin-mobile h-14 bg-surface dark:bg-background border-b border-outline-variant dark:border-outline">
+<div class="flex items-center gap-4">
+<button class="active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">Gab'Pharma</h1>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-low transition-colors p-2 rounded-full">more_vert</button>
+</header>
+<main class="pt-14 px-margin-mobile max-w-md mx-auto">
+<!-- Search Section -->
+<section class="mt-lg sticky top-14 bg-background z-40 py-2">
+<div class="relative group">
+<div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-on-surface-variant">search</span>
+</div>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-3 pl-12 pr-12 focus:ring-2 focus:ring-primary focus:border-primary outline-none text-on-surface font-body-lg" placeholder="Rechercher un médicament..." type="text" value="Paracétamol"/>
+<button class="absolute inset-y-0 right-4 flex items-center text-on-surface-variant active:scale-90 transition-transform">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+</section>
+<!-- Filter Chips Section -->
+<section class="mt-md overflow-x-auto hide-scrollbar flex gap-2 pb-2">
+<div class="flex items-center gap-2 bg-primary-container text-on-primary-container px-4 py-1.5 rounded-full whitespace-nowrap active:scale-95 transition-transform cursor-pointer">
+<span class="font-label-lg text-label-lg">Akanda</span>
+<span class="material-symbols-outlined text-sm">keyboard_arrow_down</span>
+</div>
+<div class="flex items-center gap-2 border border-outline text-on-surface-variant px-4 py-1.5 rounded-full whitespace-nowrap active:scale-95 transition-transform cursor-pointer hover:bg-surface-container-low">
+<span class="font-label-lg text-label-lg">Owendo</span>
+</div>
+<div class="flex items-center gap-2 border border-outline text-on-surface-variant px-4 py-1.5 rounded-full whitespace-nowrap active:scale-95 transition-transform cursor-pointer hover:bg-surface-container-low">
+<span class="font-label-lg text-label-lg">Catégorie</span>
+<span class="material-symbols-outlined text-sm">filter_list</span>
+</div>
+<div class="flex items-center gap-2 border border-outline text-on-surface-variant px-4 py-1.5 rounded-full whitespace-nowrap active:scale-95 transition-transform cursor-pointer hover:bg-surface-container-low">
+<span class="font-label-lg text-label-lg">Forme</span>
+</div>
+</section>
+<!-- Sort & Results Meta -->
+<div class="flex items-center justify-between mt-lg mb-md">
+<h2 class="font-title-lg text-title-lg text-on-surface">Résultats (24)</h2>
+<div class="flex items-center gap-4">
+<button class="flex items-center gap-1 text-primary font-label-lg text-label-lg">
+<span class="material-symbols-outlined text-sm">swap_vert</span>
+                    Prix
+                </button>
+<button class="flex items-center gap-1 text-on-surface-variant font-label-lg text-label-lg">
+<span class="material-symbols-outlined text-sm">near_me</span>
+                    Proximité
+                </button>
+</div>
+</div>
+<!-- Search Results List -->
+<div class="space-y-md">
+<!-- Result 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-sm hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-sm">
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Paracétamol Mylan</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">500mg • Boîte de 16 gélules</p>
+</div>
+<div class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="font-label-sm text-label-sm">En stock</span>
+</div>
+</div>
+<div class="flex items-end justify-between mt-4 pt-4 border-t border-outline-variant">
+<div>
+<div class="flex items-center gap-1.5 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm">local_pharmacy</span>
+<span class="font-label-lg text-label-lg">Pharmacie du Centre, Akanda</span>
+</div>
+<p class="font-headline-md text-headline-md text-primary font-bold">1 250 FCFA</p>
+</div>
+<button class="bg-primary text-on-primary px-4 py-2 rounded-lg font-label-lg text-label-lg active:scale-95 transition-transform">
+                        Ajouter
+                    </button>
+</div>
+</div>
+<!-- Result 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-sm hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-sm">
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Doliprane</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">1000mg • 8 comprimés sécables</p>
+</div>
+<div class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="font-label-sm text-label-sm">En stock</span>
+</div>
+</div>
+<div class="flex items-end justify-between mt-4 pt-4 border-t border-outline-variant">
+<div>
+<div class="flex items-center gap-1.5 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm">local_pharmacy</span>
+<span class="font-label-lg text-label-lg">Pharmacie de l'Estuaire</span>
+</div>
+<p class="font-headline-md text-headline-md text-primary font-bold">2 100 FCFA</p>
+</div>
+<button class="bg-primary text-on-primary px-4 py-2 rounded-lg font-label-lg text-label-lg active:scale-95 transition-transform">
+                        Ajouter
+                    </button>
+</div>
+</div>
+<!-- Result 3 (Alternative Presentation - Out of Stock context) -->
+<div class="bg-surface-container-low rounded-xl p-md border border-outline-variant opacity-80">
+<div class="flex justify-between items-start mb-sm">
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Efferalgan</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Pediatrique • Sirop 90ml</p>
+</div>
+<div class="bg-surface-container-highest text-on-surface-variant px-3 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">cancel</span>
+<span class="font-label-sm text-label-sm">Épuisé</span>
+</div>
+</div>
+<div class="flex items-end justify-between mt-4 pt-4 border-t border-outline-variant">
+<div>
+<div class="flex items-center gap-1.5 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm">local_pharmacy</span>
+<span class="font-label-lg text-label-lg">Pharmacie Les Palmiers</span>
+</div>
+<p class="font-headline-md text-headline-md text-on-surface-variant font-bold line-through">1 850 FCFA</p>
+</div>
+<button class="border border-primary text-primary px-4 py-2 rounded-lg font-label-lg text-label-lg active:scale-95 transition-transform">
+                        Alerte
+                    </button>
+</div>
+</div>
+<!-- Result 4 -->
+<div class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-sm hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-sm">
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Panadol Ultra</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">500mg/65mg • Boîte de 12</p>
+</div>
+<div class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="font-label-sm text-label-sm">En stock</span>
+</div>
+</div>
+<div class="flex items-end justify-between mt-4 pt-4 border-t border-outline-variant">
+<div>
+<div class="flex items-center gap-1.5 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm">local_pharmacy</span>
+<span class="font-label-lg text-label-lg">Grande Pharmacie d'Owendo</span>
+</div>
+<p class="font-headline-md text-headline-md text-primary font-bold">3 400 FCFA</p>
+</div>
+<button class="bg-primary text-on-primary px-4 py-2 rounded-lg font-label-lg text-label-lg active:scale-95 transition-transform">
+                        Ajouter
+                    </button>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar Shell -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-2 pt-3 bg-surface dark:bg-surface-dim border-t border-outline-variant dark:border-outline rounded-t-xl shadow-sm">
+<div class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform cursor-pointer">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-secondary-container dark:bg-secondary text-on-secondary-container dark:text-on-secondary rounded-full px-5 py-1 active:scale-90 transition-transform cursor-pointer">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">search</span>
+<span class="font-label-sm text-label-sm">Search</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform cursor-pointer relative">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="font-label-sm text-label-sm">Cart</span>
+<div class="absolute top-0 right-3 bg-error text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">2</div>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform cursor-pointer">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="font-label-sm text-label-sm">Orders</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform cursor-pointer">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</div>
+</nav>
+<script>
+        // Micro-interaction for search clear
+        const searchInput = document.querySelector('input[type="text"]');
+        const clearBtn = searchInput.nextElementSibling;
+        
+        clearBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            searchInput.focus();
+        });
+
+        // Add to cart toast simulation
+        const addButtons = document.querySelectorAll('button:contains("Ajouter")');
+        addButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const originalText = btn.innerText;
+                btn.innerText = 'Ajouté !';
+                btn.classList.replace('bg-primary', 'bg-secondary');
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.classList.replace('bg-secondary', 'bg-primary');
+                }, 2000);
+            });
+        });
+
+        // Simple helper for button selection since native contains is not standard
+        document.querySelectorAll('button').forEach(btn => {
+            if(btn.innerText === "Ajouter") {
+                btn.addEventListener('click', function() {
+                   this.innerText = "Ajouté !";
+                   this.classList.remove('bg-primary');
+                   this.classList.add('bg-secondary');
+                   setTimeout(() => {
+                        this.innerText = "Ajouter";
+                        this.classList.add('bg-primary');
+                        this.classList.remove('bg-secondary');
+                   }, 1500);
+                });
+            }
+        });
+    </script>
+</body></html>

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Gab'Pharma - Support Client</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container": "#e2f1e9",
+                        "inverse-primary": "#81d998",
+                        "secondary-container": "#a8f4b9",
+                        "on-error-container": "#93000a",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-fixed-variant": "#005229",
+                        "on-secondary-fixed": "#00210d",
+                        "on-error": "#ffffff",
+                        "on-primary-fixed": "#00210c",
+                        "primary-fixed": "#9df6b2",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed-variant": "#005228",
+                        "on-primary-container": "#8fe7a5",
+                        "inverse-surface": "#26332e",
+                        "surface-container-low": "#e8f7ef",
+                        "secondary": "#206b3d",
+                        "tertiary-container": "#785500",
+                        "tertiary": "#5a3f00",
+                        "on-background": "#111e19",
+                        "on-secondary": "#ffffff",
+                        "inverse-on-surface": "#e5f4ec",
+                        "surface-bright": "#eefdf4",
+                        "primary-fixed-dim": "#81d998",
+                        "on-secondary-container": "#287243",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#dcece3",
+                        "background": "#eefdf4",
+                        "on-tertiary-fixed": "#271900",
+                        "surface-variant": "#d7e6de",
+                        "primary": "#004f26",
+                        "on-surface-variant": "#3f4940",
+                        "outline-variant": "#bec9bd",
+                        "on-surface": "#111e19",
+                        "surface-dim": "#ceded5",
+                        "secondary-fixed": "#a8f4b9",
+                        "surface-tint": "#076d38",
+                        "outline": "#6f7a6f",
+                        "on-tertiary-container": "#ffcc6c",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed-dim": "#ffbb18",
+                        "tertiary-fixed": "#ffdea7",
+                        "surface": "#eefdf4",
+                        "on-tertiary-fixed-variant": "#5e4200",
+                        "error": "#ba1a1a",
+                        "secondary-fixed-dim": "#8cd79f",
+                        "surface-container-highest": "#d7e6de",
+                        "primary-container": "#006a35"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "margin-mobile": "16px",
+                        "sm": "8px",
+                        "gutter": "16px",
+                        "xs": "4px",
+                        "lg": "24px",
+                        "base": "8px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "title-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "label-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "title-lg": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "label-sm": ["11px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                        "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #EDFDF4;
+        }
+        .chat-container {
+            height: calc(100vh - 128px); /* TopAppBar height (56px) + BottomInput height (72px) approx */
+        }
+        .glass-card {
+            background: rgba(238, 253, 244, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-margin-mobile h-14 bg-surface dark:bg-background border-b border-outline-variant dark:border-outline">
+<div class="flex items-center gap-4">
+<button class="active:scale-95 transition-transform hover:bg-surface-container-low p-2 rounded-full">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed">arrow_back</span>
+</button>
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A professional portrait of a friendly female pharmacist wearing a white lab coat and a subtle green Gab'Pharma branded badge, set against a clean, softly lit modern pharmacy interior in Libreville. The lighting is warm and reassuring, reflecting a professional yet approachable healthcare atmosphere consistent with Gabon's medical standards." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAaXXeT_1A3jQ0lTxFyEpE8mBKbbxpLdimclfPkj6TJmxbGSge1gxWTBFku0egU-HXiIIPe5AXaDBucwFMeDxm5AAf65JqWkU4jvTzAjk3lHOF5ox7kdn_B798fHQoS9No41WL2KIiXK7VFD5ysuukiSBJqwuubH0y4HykIzLrOHB-or4wG0NGoeDOSvlTAzn291azlY9NRP0CJeCARiR3y7y7BeFGMzB3y73s3i0x9WI6T5_BxUQAEaw"/>
+</div>
+<div class="flex flex-col">
+<h1 class="font-title-lg text-title-lg text-primary dark:text-primary-fixed leading-tight">Support Pharmacie</h1>
+<span class="text-[10px] font-medium text-secondary uppercase tracking-wider">En ligne • Dr. Mireille</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="hover:bg-surface-container-low p-2 rounded-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-primary">call</span>
+</button>
+<button class="hover:bg-surface-container-low p-2 rounded-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-primary">more_vert</span>
+</button>
+</div>
+</header>
+<!-- Main Content: Chat Interface -->
+<main class="pt-14 pb-20 px-margin-mobile flex flex-col gap-lg min-h-screen">
+<!-- Date Divider -->
+<div class="flex justify-center my-4">
+<span class="bg-surface-container-high px-3 py-1 rounded-full text-label-sm font-label-sm text-on-surface-variant">
+                Aujourd'hui
+            </span>
+</div>
+<!-- Chat Bubble - Agent -->
+<div class="flex flex-col gap-1 items-start max-w-[85%]">
+<div class="bg-surface-container-low text-on-surface p-md rounded-2xl rounded-tl-none shadow-sm border border-outline-variant/30">
+<p class="font-body-md text-body-md">Bonjour ! Comment puis-je vous aider avec votre ordonnance aujourd'hui ?</p>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant ml-1">09:15</span>
+</div>
+<!-- Chat Bubble - User -->
+<div class="flex flex-col gap-1 items-end self-end max-w-[85%]">
+<div class="bg-primary-container text-on-primary p-md rounded-2xl rounded-tr-none shadow-sm text-white">
+<p class="font-body-md text-body-md">Bonjour. Je voulais savoir si le médicament "Dolirhume" est disponible à la pharmacie du centre-ville ?</p>
+</div>
+<div class="flex items-center gap-1 mr-1">
+<span class="text-label-sm font-label-sm text-on-surface-variant">09:17</span>
+<span class="material-symbols-outlined text-[14px] text-primary" style="font-variation-settings: 'FILL' 1;">done_all</span>
+</div>
+</div>
+<!-- System Message / Info Card -->
+<div class="mx-auto w-full max-w-[90%] glass-card p-md border border-outline-variant rounded-xl flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary">info</span>
+<div class="flex flex-col">
+<p class="font-body-md text-body-md text-on-surface-variant leading-snug">Cette conversation est sécurisée par Gab'Pharma. Vos données médicales restent confidentielles.</p>
+</div>
+</div>
+<!-- Chat Bubble - Agent -->
+<div class="flex flex-col gap-1 items-start max-w-[85%]">
+<div class="bg-surface-container-low text-on-surface p-md rounded-2xl rounded-tl-none shadow-sm border border-outline-variant/30">
+<p class="font-body-md text-body-md">Oui, nous en avons encore en stock. Souhaitez-vous que je vous mette une boîte de côté pour votre passage ?</p>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant ml-1">09:20</span>
+</div>
+<!-- Product Attachment Card (Agent sent) -->
+<div class="flex flex-col gap-1 items-start max-w-[85%]">
+<div class="bg-surface-container-low p-2 rounded-2xl rounded-tl-none border border-outline-variant/50 w-full max-w-64">
+<div class="flex flex-col">
+<img class="w-full h-32 object-cover rounded-xl mb-2" data-alt="High-quality professional pharmaceutical product photography of a Dolirhume medicine box, placed on a clean white laboratory-style reflective surface with soft teal and green ambient lighting consistent with Gab'Pharma brand identity. The lighting is bright and clinically clean, emphasizing transparency and trust." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPV0aQm8bbvVzaWMO8k3ANrVLKCecJmuEpMkU0k4xznQHyZeS_5U3rfRruD49xtdq5tZP5QfFTjOL3JYfm3yaMGKbGQz0aGh-P-841hgb0lm-L27GqtZZH-ElLjnitGgMx895suF20fh3ByNvQgtLIpkY4be52EsS3VhHzAsxFdDumRmFPaSFS6XSJCyqeapVAjlAUO7-9rQnZ0R3ec9Hb1JjEgim8yPKtrqI4bXP-NilHM3dirxp8mg"/>
+<div class="px-2 pb-2">
+<p class="font-title-lg text-title-lg text-on-surface text-sm">Dolirhume Paracétamol</p>
+<p class="font-body-md text-primary font-bold">2.500 FCFA</p>
+<button class="mt-2 w-full py-2 bg-secondary-container text-on-secondary-container rounded-lg font-label-lg text-label-lg active:scale-95 transition-transform">
+                            Ajouter au panier
+                        </button>
+</div>
+</div>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant ml-1">09:21</span>
+</div>
+<!-- Chat Bubble - User -->
+<div class="flex flex-col gap-1 items-end self-end max-w-[85%]">
+<div class="bg-primary-container text-on-primary p-md rounded-2xl rounded-tr-none shadow-sm text-white">
+<p class="font-body-md text-body-md">Oui, avec plaisir. Merci beaucoup Dr. Mireille !</p>
+</div>
+<div class="flex items-center gap-1 mr-1">
+<span class="text-label-sm font-label-sm text-on-surface-variant">09:23</span>
+<span class="material-symbols-outlined text-[14px] text-primary" style="font-variation-settings: 'FILL' 1;">done_all</span>
+</div>
+</div>
+</main>
+<!-- Chat Input Area -->
+<footer class="fixed bottom-0 left-0 w-full bg-surface dark:bg-surface-dim px-margin-mobile pb-sm pt-sm border-t border-outline-variant flex items-end gap-2 z-50 pb-6">
+<button class="mb-1 p-2 rounded-full hover:bg-surface-container-highest transition-colors text-primary active:scale-90 transition-transform">
+<span class="material-symbols-outlined">add_circle</span>
+</button>
+<div class="flex-1 min-h-[48px] bg-surface-container-lowest rounded-2xl border border-outline px-4 py-2 flex items-center">
+<textarea class="w-full bg-transparent border-none focus:ring-0 font-body-md text-body-md resize-none max-h-32 py-1 placeholder-on-surface-variant" id="message-input" placeholder="Votre message..." rows="1"></textarea>
+<button class="p-1 text-primary hover:bg-surface-container-low rounded-full">
+<span class="material-symbols-outlined">sentiment_satisfied</span>
+</button>
+</div>
+<button class="mb-1 bg-primary text-on-primary w-11 h-11 flex items-center justify-center rounded-full active:scale-90 transition-all shadow-md" id="send-button">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</footer>
+<script>
+        const textarea = document.getElementById('message-input');
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        // Simple send animation
+        const sendBtn = document.getElementById('send-button');
+        sendBtn.addEventListener('click', () => {
+            if (textarea.value.trim() !== '') {
+                textarea.value = '';
+                textarea.style.height = 'auto';
+                // Simulation behavior logic could go here
+            }
+        });
+    </script>
+</body></html>

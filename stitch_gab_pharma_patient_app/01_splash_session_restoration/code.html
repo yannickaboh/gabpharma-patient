@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Gab'Pharma - Splash</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "secondary": "#206b3d",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed": "#a8f4b9",
+                        "on-background": "#111e19",
+                        "surface-bright": "#eefdf4",
+                        "surface-container": "#e2f1e9",
+                        "inverse-on-surface": "#e5f4ec",
+                        "surface-dim": "#ceded5",
+                        "surface-variant": "#d7e6de",
+                        "primary": "#004f26",
+                        "on-primary-fixed-variant": "#005228",
+                        "on-error": "#ffffff",
+                        "on-secondary-fixed": "#00210d",
+                        "tertiary-fixed-dim": "#ffbb18",
+                        "primary-container": "#006a35",
+                        "surface": "#eefdf4",
+                        "on-primary-fixed": "#00210c",
+                        "inverse-surface": "#26332e",
+                        "outline": "#6f7a6f",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed": "#ffdea7",
+                        "secondary-container": "#a8f4b9",
+                        "tertiary-container": "#785500",
+                        "on-tertiary-fixed": "#271900",
+                        "on-surface": "#111e19",
+                        "background": "#eefdf4",
+                        "surface-tint": "#076d38",
+                        "surface-container-highest": "#d7e6de",
+                        "primary-fixed": "#9df6b2",
+                        "surface-container-high": "#dcece3",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary": "#5a3f00",
+                        "on-secondary-fixed-variant": "#005229",
+                        "on-tertiary-container": "#ffcc6c",
+                        "surface-container-low": "#e8f7ef",
+                        "primary-fixed-dim": "#81d998",
+                        "error": "#ba1a1a",
+                        "inverse-primary": "#81d998",
+                        "on-surface-variant": "#3f4940",
+                        "on-primary-container": "#8fe7a5",
+                        "outline-variant": "#bec9bd",
+                        "secondary-fixed-dim": "#8cd79f",
+                        "on-secondary-container": "#287243",
+                        "on-tertiary-fixed-variant": "#5e4200",
+                        "on-primary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "xs": "4px",
+                        "sm": "8px",
+                        "md": "16px",
+                        "lg": "24px",
+                        "gutter": "16px",
+                        "base": "8px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "label-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "title-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "600"}],
+                        "label-sm": ["11px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                        "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "title-lg": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        @keyframes subtle-pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(0.98); }
+        }
+
+        .animate-logo {
+            animation: subtle-pulse 3s ease-in-out infinite;
+        }
+
+        .loader-dots div {
+            animation-timing-function: cubic-bezier(0, 1, 1, 0);
+        }
+        .loader-dots div:nth-child(1) {
+            left: 8px;
+            animation: loader-dots1 0.6s infinite;
+        }
+        .loader-dots div:nth-child(2) {
+            left: 8px;
+            animation: loader-dots2 0.6s infinite;
+        }
+        .loader-dots div:nth-child(3) {
+            left: 32px;
+            animation: loader-dots2 0.6s infinite;
+        }
+        .loader-dots div:nth-child(4) {
+            left: 56px;
+            animation: loader-dots3 0.6s infinite;
+        }
+        @keyframes loader-dots1 {
+            0% { transform: scale(0); }
+            100% { transform: scale(1); }
+        }
+        @keyframes loader-dots3 {
+            0% { transform: scale(1); }
+            100% { transform: scale(0); }
+        }
+        @keyframes loader-dots2 {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(24px, 0); }
+        }
+
+        /* Subtle tonal background texture */
+        .tonal-mesh {
+            background-image: radial-gradient(at 0% 0%, #EDFDF4 0, transparent 50%), 
+                              radial-gradient(at 100% 100%, #D7E6DE 0, transparent 50%);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col overflow-hidden">
+<!-- Background Decoration -->
+<div class="absolute inset-0 tonal-mesh opacity-40 pointer-events-none"></div>
+<!-- Main Content Canvas -->
+<main class="flex-grow flex flex-col items-center justify-center relative z-10 px-margin-mobile">
+<!-- Logo Container -->
+<div class="mb-xl animate-logo flex flex-col items-center">
+<div class="relative w-48 h-auto flex justify-center items-center">
+<img alt="Gab'Pharma Logo" class="max-w-full h-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDABdP6eXFP3HT2H262JgVDjvBI7yrnRgeohikAdNujZeAaP0TPVc0nDFKJaTdJWYdpQz4VdlKOQqyrbfd-2ttwdIjCX3Q0i6OEoxlJcV9IJ3kIIabCy4-vlBLI-Xr3LxuhffYCyFnrpLzcee7yIj8jdilebMbqfPvdwHBZ-L_39QUINZrgbeN6bxTqKq0HbDh_c_C7qoY19GTS3flpQY6rW87HupnkDYhXnzjWI5bhF0IyEWMgeE51llfRE-u73YE-Kog"/>
+</div>
+</div>
+<!-- Session Restoration Message -->
+<div class="flex flex-col items-center gap-md">
+<div class="flex items-center space-x-1.5 text-primary">
+<span class="material-symbols-outlined animate-spin" style="font-size: 20px;">autorenew</span>
+<span class="font-label-lg text-label-lg tracking-wide uppercase opacity-80">
+                    Vérification de la session...
+                </span>
+</div>
+<!-- Animated Progress Indicator (Custom Loader) -->
+<div class="relative w-20 h-4 mt-xs">
+<div class="loader-dots relative w-full h-full">
+<div class="absolute top-1 w-2.5 h-2.5 rounded-full bg-primary-container opacity-40"></div>
+<div class="absolute top-1 w-2.5 h-2.5 rounded-full bg-primary-container opacity-60"></div>
+<div class="absolute top-1 w-2.5 h-2.5 rounded-full bg-primary-container opacity-80"></div>
+<div class="absolute top-1 w-2.5 h-2.5 rounded-full bg-primary-container"></div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="h-16 flex flex-col items-center justify-center gap-1 opacity-60 relative z-10">
+<p class="font-label-sm text-label-sm text-on-surface-variant tracking-wider">
+            Gab'Pharma © 2024
+        </p>
+<p class="font-label-sm text-label-sm text-on-surface-variant font-bold">
+            Version 1.0.0
+        </p>
+</footer>
+<!-- Atmosphere Effects (Particles) -->
+<div class="fixed inset-0 pointer-events-none opacity-20" id="particle-container"></div>
+<script>
+        // Simple particle effect for medical/clean feel
+        function createParticles() {
+            const container = document.getElementById('particle-container');
+            const particleCount = 12;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                const size = Math.random() * 8 + 4;
+                
+                particle.style.position = 'absolute';
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.backgroundColor = '#006a35';
+                particle.style.borderRadius = '50%';
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                particle.style.opacity = '0.3';
+                particle.style.filter = 'blur(1px)';
+                
+                // Random float animation
+                const duration = Math.random() * 20 + 10;
+                const delay = Math.random() * -20;
+                
+                particle.animate([
+                    { transform: 'translate(0, 0)', opacity: 0.1 },
+                    { transform: `translate(${Math.random() * 100 - 50}px, ${Math.random() * -100 - 50}px)`, opacity: 0.4 },
+                    { transform: `translate(${Math.random() * 200 - 100}px, ${Math.random() * -200 - 100}px)`, opacity: 0 }
+                ], {
+                    duration: duration * 1000,
+                    delay: delay * 1000,
+                    iterations: Infinity,
+                    easing: 'ease-in-out'
+                });
+                
+                container.appendChild(particle);
+            }
+        }
+        
+        window.onload = createParticles;
+    </script>
+</body></html>

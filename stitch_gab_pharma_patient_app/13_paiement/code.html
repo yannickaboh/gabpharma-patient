@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+
+<html lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Paiement - Gab'Pharma</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .step-transition {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-effect {
+            backdrop-filter: blur(8px);
+            background: rgba(255, 255, 255, 0.8);
+        }
+        @keyframes pulse-subtle {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .animate-pulse-subtle {
+            animation: pulse-subtle 2s infinite ease-in-out;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary": "#004f26",
+                      "on-secondary-fixed": "#00210d",
+                      "on-surface": "#111e19",
+                      "surface-container": "#e2f1e9",
+                      "on-secondary-fixed-variant": "#005229",
+                      "on-background": "#111e19",
+                      "on-secondary-container": "#287243",
+                      "primary-fixed": "#9df6b2",
+                      "background": "#eefdf4",
+                      "on-primary": "#ffffff",
+                      "on-error": "#ffffff",
+                      "surface-container-low": "#e8f7ef",
+                      "on-tertiary-container": "#ffcc6c",
+                      "on-secondary": "#ffffff",
+                      "on-primary-fixed-variant": "#005228",
+                      "surface-dim": "#ceded5",
+                      "surface-container-high": "#dcece3",
+                      "secondary-fixed": "#a8f4b9",
+                      "secondary-container": "#a8f4b9",
+                      "tertiary-fixed": "#ffdea7",
+                      "primary-container": "#006a35",
+                      "on-tertiary": "#ffffff",
+                      "outline-variant": "#bec9bd",
+                      "error": "#ba1a1a",
+                      "tertiary-container": "#785500",
+                      "tertiary-fixed-dim": "#ffbb18",
+                      "on-error-container": "#93000a",
+                      "surface-container-highest": "#d7e6de",
+                      "secondary": "#206b3d",
+                      "surface-variant": "#d7e6de",
+                      "on-surface-variant": "#3f4940",
+                      "error-container": "#ffdad6",
+                      "inverse-surface": "#26332e",
+                      "inverse-on-surface": "#e5f4ec",
+                      "on-tertiary-fixed-variant": "#5e4200",
+                      "on-primary-fixed": "#00210c",
+                      "inverse-primary": "#81d998",
+                      "surface-container-lowest": "#ffffff",
+                      "outline": "#6f7a6f",
+                      "on-tertiary-fixed": "#271900",
+                      "secondary-fixed-dim": "#8cd79f",
+                      "on-primary-container": "#8fe7a5",
+                      "primary-fixed-dim": "#81d998",
+                      "surface": "#eefdf4",
+                      "surface-bright": "#eefdf4",
+                      "tertiary": "#5a3f00",
+                      "surface-tint": "#076d38"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "gutter": "16px",
+                      "xs": "4px",
+                      "md": "16px",
+                      "margin-mobile": "16px",
+                      "base": "8px",
+                      "lg": "24px",
+                      "xl": "32px",
+                      "sm": "8px"
+              },
+              "fontFamily": {
+                      "display-lg": ["Inter"],
+                      "body-md": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "title-lg": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "label-sm": ["Inter"],
+                      "label-lg": ["Inter"]
+              },
+              "fontSize": {
+                      "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "title-lg": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                      "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "label-sm": ["11px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                      "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "600"}]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body-md min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-margin-mobile h-14 bg-surface dark:bg-background border-b border-outline-variant dark:border-outline">
+<div class="flex items-center gap-4">
+<button class="active:scale-95 transition-transform p-2 hover:bg-surface-container-low transition-colors rounded-full">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed">arrow_back</span>
+</button>
+<h1 class="font-title-lg text-title-lg text-primary dark:text-primary-fixed">Paiement</h1>
+</div>
+<div class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">Gab'Pharma</div>
+</header>
+<main class="pt-20 px-margin-mobile max-w-lg mx-auto">
+<!-- Order Summary Card -->
+<section class="mb-lg">
+<div class="bg-surface-container-lowest p-md rounded-xl shadow-sm border border-outline-variant">
+<div class="flex justify-between items-start mb-sm">
+<div>
+<h2 class="font-title-lg text-title-lg text-on-surface">Récapitulatif</h2>
+<p class="text-on-surface-variant font-body-md">Commande #GP-8829</p>
+</div>
+<div class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full font-label-lg">
+                        15.500 FCFA
+                    </div>
+</div>
+<div class="space-y-2 border-t border-dashed border-outline-variant pt-sm mt-sm">
+<div class="flex justify-between font-body-md text-on-surface-variant">
+<span>Articles (3)</span>
+<span>14.000 FCFA</span>
+</div>
+<div class="flex justify-between font-body-md text-on-surface-variant">
+<span>Livraison</span>
+<span>1.500 FCFA</span>
+</div>
+<div class="flex justify-between font-title-lg text-title-lg text-primary mt-2">
+<span>Total à payer</span>
+<span>15.500 FCFA</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Payment Methods - Bento Grid Style -->
+<section class="space-y-md" id="payment-selection">
+<h3 class="font-label-lg text-label-lg text-on-surface-variant uppercase tracking-wider">Choisir un mode de paiement</h3>
+<div class="grid grid-cols-2 gap-md">
+<!-- Airtel Money -->
+<button class="payment-card flex flex-col items-center justify-center p-lg bg-surface-container-lowest border-2 border-outline-variant rounded-xl hover:border-primary transition-all active:scale-95 group relative overflow-hidden" onclick="selectMethod('airtel')">
+<div class="w-12 h-12 mb-sm bg-red-50 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-red-600 scale-125" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+</div>
+<span class="font-label-lg text-on-surface">Airtel Money</span>
+<div class="absolute top-2 right-2 opacity-0 group-[.active]:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-primary">check_circle</span>
+</div>
+</button>
+<!-- Moov Money -->
+<button class="payment-card flex flex-col items-center justify-center p-lg bg-surface-container-lowest border-2 border-outline-variant rounded-xl hover:border-primary transition-all active:scale-95 group relative overflow-hidden" onclick="selectMethod('moov')">
+<div class="w-12 h-12 mb-sm bg-blue-50 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-blue-600 scale-125" style="font-variation-settings: 'FILL' 1;">payments</span>
+</div>
+<span class="font-label-lg text-on-surface">Moov Money</span>
+<div class="absolute top-2 right-2 opacity-0 group-[.active]:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-primary">check_circle</span>
+</div>
+</button>
+<!-- Visa / Card -->
+<button class="payment-card flex flex-col items-center justify-center p-lg bg-surface-container-lowest border-2 border-outline-variant rounded-xl hover:border-primary transition-all active:scale-95 group relative overflow-hidden" onclick="selectMethod('visa')">
+<div class="w-12 h-12 mb-sm bg-primary-container/10 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-primary scale-125">credit_card</span>
+</div>
+<span class="font-label-lg text-on-surface">Carte Visa</span>
+<div class="absolute top-2 right-2 opacity-0 group-[.active]:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-primary">check_circle</span>
+</div>
+</button>
+<!-- Cash -->
+<button class="payment-card flex flex-col items-center justify-center p-lg bg-surface-container-lowest border-2 border-outline-variant rounded-xl hover:border-primary transition-all active:scale-95 group relative overflow-hidden" onclick="selectMethod('cash')">
+<div class="w-12 h-12 mb-sm bg-tertiary-fixed-dim/20 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary scale-125">handshake</span>
+</div>
+<span class="font-label-lg text-on-surface">Espèces</span>
+<div class="absolute top-2 right-2 opacity-0 group-[.active]:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-primary">check_circle</span>
+</div>
+</button>
+</div>
+</section>
+<!-- Method Detail Area (Dynamic) -->
+<section class="mt-xl hidden" id="method-details">
+<div class="bg-surface-container-low p-md rounded-xl border border-primary/20 animate-in fade-in slide-in-from-bottom-4 duration-300">
+<div class="hidden space-y-md" id="airtel-form">
+<label class="block">
+<span class="text-label-lg text-on-surface-variant ml-1">Numéro Airtel Money</span>
+<input class="mt-1 block w-full rounded-xl border-outline-variant bg-surface-container-lowest focus:border-primary focus:ring-primary h-12 px-4" placeholder="074 XX XX XX" type="tel"/>
+</label>
+</div>
+<div class="hidden space-y-md" id="moov-form">
+<label class="block">
+<span class="text-label-lg text-on-surface-variant ml-1">Numéro Moov Money</span>
+<input class="mt-1 block w-full rounded-xl border-outline-variant bg-surface-container-lowest focus:border-primary focus:ring-primary h-12 px-4" placeholder="066 XX XX XX" type="tel"/>
+</label>
+</div>
+<div class="hidden space-y-md" id="visa-form">
+<label class="block">
+<span class="text-label-lg text-on-surface-variant ml-1">Numéro de Carte</span>
+<input class="mt-1 block w-full rounded-xl border-outline-variant bg-surface-container-lowest focus:border-primary focus:ring-primary h-12 px-4" placeholder="#### #### #### ####" type="text"/>
+</label>
+<div class="grid grid-cols-2 gap-md">
+<input class="block w-full rounded-xl border-outline-variant bg-surface-container-lowest focus:border-primary focus:ring-primary h-12 px-4" placeholder="MM/YY" type="text"/>
+<input class="block w-full rounded-xl border-outline-variant bg-surface-container-lowest focus:border-primary focus:ring-primary h-12 px-4" placeholder="CVC" type="text"/>
+</div>
+</div>
+<div class="hidden" id="cash-form">
+<div class="flex items-center gap-3 text-on-secondary-container bg-secondary-container/30 p-3 rounded-lg">
+<span class="material-symbols-outlined">info</span>
+<p class="font-body-md">Payez directement au livreur lors de la réception de votre commande.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Secure Footer Hint -->
+<div class="mt-xl flex items-center justify-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">lock</span>
+<span class="font-label-sm">Paiement sécurisé par cryptage SSL 256-bit</span>
+</div>
+</main>
+<!-- Fixed Action Bar -->
+<div class="fixed bottom-0 left-0 w-full p-margin-mobile bg-surface-container-lowest border-t border-outline-variant z-40">
+<button class="w-full h-14 bg-primary text-on-primary rounded-xl font-title-lg flex items-center justify-center gap-2 opacity-50 cursor-not-allowed transition-all active:scale-95 shadow-lg" disabled="" id="pay-button" onclick="startSimulation()">
+<span>Confirmer et Payer</span>
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+<!-- Simulation Overlays -->
+<div class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-black/40 backdrop-blur-sm p-margin-mobile" id="simulation-overlay">
+<!-- Pending State -->
+<div class="hidden w-full max-w-sm glass-effect rounded-3xl p-xl text-center shadow-2xl border border-white/50 animate-in zoom-in duration-300" id="state-pending">
+<div class="relative w-24 h-24 mx-auto mb-lg">
+<div class="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
+<div class="absolute inset-0 border-4 border-primary rounded-full border-t-transparent animate-spin"></div>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-4xl animate-pulse-subtle">sync_saved_locally</span>
+</div>
+</div>
+<h2 class="font-headline-md text-headline-md text-primary mb-2">Traitement en cours</h2>
+<p class="text-on-surface-variant font-body-md">Veuillez patienter pendant que nous validons votre transaction auprès de l'opérateur.</p>
+</div>
+<!-- Success State -->
+<div class="hidden w-full max-w-sm bg-surface-container-lowest rounded-3xl p-xl text-center shadow-2xl border border-primary/20 animate-in zoom-in duration-300" id="state-success">
+<div class="w-24 h-24 bg-primary-container rounded-full mx-auto mb-lg flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined text-6xl">check_circle</span>
+</div>
+<h2 class="font-headline-md text-headline-md text-primary mb-2">Paiement Réussi !</h2>
+<p class="text-on-surface-variant font-body-md mb-xl">Votre commande est maintenant en préparation. Vous recevrez une notification bientôt.</p>
+<button class="w-full h-12 bg-primary text-on-primary rounded-xl font-label-lg" onclick="closeSimulation()">Voir ma commande</button>
+</div>
+<!-- Error State -->
+<div class="hidden w-full max-w-sm bg-surface-container-lowest rounded-3xl p-xl text-center shadow-2xl border border-error/20 animate-in zoom-in duration-300" id="state-error">
+<div class="w-24 h-24 bg-error-container rounded-full mx-auto mb-lg flex items-center justify-center text-on-error-container">
+<span class="material-symbols-outlined text-6xl">error</span>
+</div>
+<h2 class="font-headline-md text-headline-md text-error mb-2">Échec du paiement</h2>
+<p class="text-on-surface-variant font-body-md mb-xl">Désolé, la transaction a été refusée par votre banque. Veuillez réessayer ou utiliser un autre mode.</p>
+<div class="space-y-3">
+<button class="w-full h-12 bg-primary text-on-primary rounded-xl font-label-lg" onclick="closeSimulation()">Réessayer</button>
+<button class="w-full h-12 text-primary font-label-lg" onclick="closeSimulation()">Changer de mode</button>
+</div>
+</div>
+</div>
+<script>
+        let selectedPayment = null;
+
+        function selectMethod(method) {
+            // UI Updates
+            document.querySelectorAll('.payment-card').forEach(card => {
+                card.classList.remove('active', 'border-primary', 'bg-primary/5');
+                card.classList.add('border-outline-variant', 'bg-surface-container-lowest');
+            });
+            
+            const card = event.currentTarget;
+            card.classList.add('active', 'border-primary', 'bg-primary/5');
+            card.classList.remove('border-outline-variant', 'bg-surface-container-lowest');
+
+            // Form Visibility
+            document.getElementById('method-details').classList.remove('hidden');
+            ['airtel', 'moov', 'visa', 'cash'].forEach(m => {
+                document.getElementById(`${m}-form`).classList.add('hidden');
+            });
+            document.getElementById(`${method}-form`).classList.remove('hidden');
+
+            // Button State
+            selectedPayment = method;
+            const payBtn = document.getElementById('pay-button');
+            payBtn.disabled = false;
+            payBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+
+        function startSimulation() {
+            const overlay = document.getElementById('simulation-overlay');
+            const pending = document.getElementById('state-pending');
+            const success = document.getElementById('state-success');
+            const error = document.getElementById('state-error');
+
+            overlay.classList.remove('hidden');
+            pending.classList.remove('hidden');
+
+            // Randomize outcome for demo purposes
+            setTimeout(() => {
+                pending.classList.add('hidden');
+                const isSuccess = Math.random() > 0.3;
+                
+                if(isSuccess) {
+                    success.classList.remove('hidden');
+                } else {
+                    error.classList.remove('hidden');
+                }
+            }, 3000);
+        }
+
+        function closeSimulation() {
+            const overlay = document.getElementById('simulation-overlay');
+            const states = ['state-pending', 'state-success', 'state-error'];
+            
+            overlay.classList.add('hidden');
+            states.forEach(s => document.getElementById(s).classList.add('hidden'));
+        }
+    </script>
+</body></html>

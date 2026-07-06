@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Gab'Pharma - Accueil</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "secondary": "#206b3d",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed": "#a8f4b9",
+                        "on-background": "#111e19",
+                        "surface-bright": "#eefdf4",
+                        "surface-container": "#e2f1e9",
+                        "inverse-on-surface": "#e5f4ec",
+                        "surface-dim": "#ceded5",
+                        "surface-variant": "#d7e6de",
+                        "primary": "#004f26",
+                        "on-primary-fixed-variant": "#005228",
+                        "on-error": "#ffffff",
+                        "on-secondary-fixed": "#00210d",
+                        "tertiary-fixed-dim": "#ffbb18",
+                        "primary-container": "#006a35",
+                        "surface": "#eefdf4",
+                        "on-primary-fixed": "#00210c",
+                        "inverse-surface": "#26332e",
+                        "outline": "#6f7a6f",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed": "#ffdea7",
+                        "secondary-container": "#a8f4b9",
+                        "tertiary-container": "#785500",
+                        "on-tertiary-fixed": "#271900",
+                        "on-surface": "#111e19",
+                        "background": "#eefdf4",
+                        "surface-tint": "#076d38",
+                        "surface-container-highest": "#d7e6de",
+                        "primary-fixed": "#9df6b2",
+                        "surface-container-high": "#dcece3",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary": "#5a3f00",
+                        "on-secondary-fixed-variant": "#005229",
+                        "on-tertiary-container": "#ffcc6c",
+                        "surface-container-low": "#e8f7ef",
+                        "primary-fixed-dim": "#81d998",
+                        "error": "#ba1a1a",
+                        "inverse-primary": "#81d998",
+                        "on-surface-variant": "#3f4940",
+                        "on-primary-container": "#8fe7a5",
+                        "outline-variant": "#bec9bd",
+                        "secondary-fixed-dim": "#8cd79f",
+                        "on-secondary-container": "#287243",
+                        "on-tertiary-fixed-variant": "#5e4200",
+                        "on-primary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "xs": "4px",
+                        "sm": "8px",
+                        "md": "16px",
+                        "lg": "24px",
+                        "gutter": "16px",
+                        "base": "8px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "label-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "title-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "600"}],
+                        "label-sm": ["11px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                        "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "title-lg": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen pb-24">
+<!-- Top App Bar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-margin-mobile h-14 bg-surface dark:bg-background border-b border-outline-variant dark:border-outline">
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">Gab'Pharma</h1>
+<div class="flex items-center gap-sm">
+<button class="p-sm hover:bg-surface-container-low transition-colors rounded-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-primary">notifications</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-primary-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A professional studio portrait of a Gabonese male in his 30s with a friendly expression. He is wearing a clean white shirt, representing a modern professional user. The lighting is soft and warm, highlighting the healthy skin tone against a minimalist soft mint green background. Corporate professional aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlTfMmXR1ysSWvFLcmoDuXq5d5dlTFcLpe02QR23WO3l18cyfy6sebfAjvszgrSWZe8ka6ZFx_NKTYnhGjq8jzFsQSe6r_shQEP7FqESj-w7INvdezrCWX_w_PWzuxBlDKhqHeowAPyZEu1KhSsuYsTdOEUgEzzQp1M9u1oYIE_r1bqFp3LMIHRho4p5FLAHI4oJCI6HQASRBo9jSxBv1UU11yfF9vDgkWth1pgCXRMiFSuIiRFPbITg"/>
+</div>
+</div>
+</header>
+<main class="mt-14 px-margin-mobile pt-lg space-y-lg">
+<!-- Salutation Section -->
+<section class="space-y-xs">
+<p class="font-body-md text-body-md text-on-surface-variant">Bonjour, Jean</p>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Prenez soin de votre santé aujourd'hui</h2>
+</section>
+<!-- Search Bar -->
+<section>
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-md flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">search</span>
+</div>
+<input class="block w-full pl-xl pr-md py-3 bg-surface-container-lowest border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all text-body-lg font-body-lg" placeholder="Rechercher un médicament..." type="text"/>
+<div class="absolute inset-y-0 right-0 pr-md flex items-center">
+<span class="material-symbols-outlined text-primary cursor-pointer">tune</span>
+</div>
+</div>
+</section>
+<!-- Quick Access -->
+<section class="grid grid-cols-3 gap-md">
+<button class="flex flex-col items-center gap-xs p-md bg-surface-container-low rounded-xl active:scale-95 transition-transform">
+<div class="w-12 h-12 bg-secondary-container rounded-full flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined">favorite</span>
+</div>
+<span class="font-label-lg text-label-lg text-on-surface">Favoris</span>
+</button>
+<button class="flex flex-col items-center gap-xs p-md bg-surface-container-low rounded-xl active:scale-95 transition-transform">
+<div class="w-12 h-12 bg-secondary-container rounded-full flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined">verified_user</span>
+</div>
+<span class="font-label-lg text-label-lg text-on-surface">Assurance</span>
+</button>
+<button class="flex flex-col items-center gap-xs p-md bg-surface-container-low rounded-xl active:scale-95 transition-transform">
+<div class="w-12 h-12 bg-secondary-container rounded-full flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined">support_agent</span>
+</div>
+<span class="font-label-lg text-label-lg text-on-surface">Support</span>
+</button>
+</section>
+<!-- Ongoing Order Card -->
+<section class="bg-primary-container text-on-primary-container p-md rounded-xl shadow-sm flex items-center gap-md">
+<div class="p-sm bg-primary rounded-lg">
+<span class="material-symbols-outlined text-on-primary">local_shipping</span>
+</div>
+<div class="flex-1">
+<h3 class="font-title-lg text-title-lg">Commande en cours</h3>
+<p class="font-label-sm text-label-sm opacity-90">Livraison prévue à 14h30</p>
+</div>
+<span class="material-symbols-outlined">chevron_right</span>
+</section>
+<!-- Pharmacies à proximité Section -->
+<section class="space-y-md">
+<div class="flex justify-between items-center">
+<h3 class="font-title-lg text-title-lg text-on-surface">Pharmacies à proximité</h3>
+<button class="text-primary font-label-lg">Voir tout</button>
+</div>
+<div class="flex overflow-x-auto gap-md hide-scrollbar -mx-margin-mobile px-margin-mobile">
+<!-- Pharmacy Card 1 -->
+<div class="min-w-[280px] bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-sm space-y-sm">
+<div class="h-32 rounded-lg overflow-hidden relative">
+<img class="w-full h-full object-cover" data-alt="An exterior view of a modern pharmacy storefront in Libreville, Gabon. The signage is bright and professional with a green cross. The building features clean glass windows and a well-lit interior. The atmosphere is vibrant and trustworthy, capturing the Gabonese urban health infrastructure." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDw_0aBA5u3HpAuECGsXEEgPpcF7s0TsJzigu35bkoemENmMzU_XzvUcuKmaU72XtkaA45JDzjbaoXtuDerGFa-Gy89zSuuPIqi-yTG_ku9z2HfKeTw8uqTnxICjc0P6nl8KqhshQ7i2vFyD_9VEAyBJ57pSxDRjEJcYGO-9nbNu_Q5BAOBFQIkZSYz7bRyc8Q_eljMO0c5KgRWr05MUoKkTrMp48qJaXnb0sgRznvoYUEhdChpW1O5xQ"/>
+<div class="absolute top-sm right-sm bg-primary text-on-primary px-sm py-xs rounded-full text-label-sm font-label-sm">Ouvert 24h/24</div>
+</div>
+<div>
+<h4 class="font-title-lg text-title-lg text-on-surface">Grande Pharmacie d'Olumi</h4>
+<div class="flex items-center gap-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">location_on</span>
+<span class="font-body-md text-body-md">Libreville • 1.2 km</span>
+</div>
+</div>
+</div>
+<!-- Pharmacy Card 2 -->
+<div class="min-w-[280px] bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-sm space-y-sm">
+<div class="h-32 rounded-lg overflow-hidden relative">
+<img class="w-full h-full object-cover" data-alt="A clean and modern pharmacy counter with shelves of neatly organized medicine in the background. The lighting is bright and clinically white, emphasizing trust and health standards. The style is professional corporate photography with a focus on hygiene and reliability." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBYaU7xO6LJDOxFk6ts5blyO9vnVuvY-ATjha3LHh3BuZ0jOQeatPW8TMg1uoJPha4x4S9P8QF2S-2y4MBHLbfEphZ-eO98PN6OF09TC_44EWxfnmt8M4jCdr_cvzH8iXbOzesKGulVdoUKcNXlwo3zFNTQubrtSPpSeqIboNyC-MtoNjG3FA3x4rZmkB0MVRsur2ArzxhrS1dDvnj5UkXGtmuBxex8ekhCDCr_ZgouO0kkFjFYFngXyA"/>
+<div class="absolute top-sm right-sm bg-secondary text-on-secondary px-sm py-xs rounded-full text-label-sm font-label-sm">Ouvert</div>
+</div>
+<div>
+<h4 class="font-title-lg text-title-lg text-on-surface">Pharmacie du Pont-Nomba</h4>
+<div class="flex items-center gap-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">location_on</span>
+<span class="font-body-md text-body-md">Owendo • 3.5 km</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Popular Medications / Categories -->
+<section class="space-y-md">
+<div class="flex justify-between items-center">
+<h3 class="font-title-lg text-title-lg text-on-surface">Médicaments populaires</h3>
+<button class="text-primary font-label-lg">Parcourir</button>
+</div>
+<div class="grid grid-cols-2 gap-md">
+<!-- Product Card 1 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col gap-sm">
+<div class="aspect-square rounded-lg bg-surface flex items-center justify-center p-md">
+<img class="w-full h-full object-contain" data-alt="A high-quality 3D render of a box of paracetamol tablets. The box is white with clear green and blue typography. The lighting is soft and neutral, typical of pharmaceutical marketing photography. Clean, professional pharmaceutical design style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCk14Et_oIkLUQzNqmR_CjG_kiKVU3-onNZkbEldF8jIiVNIddGFkyN6zyreLY2Rxd7lV2_tGP2OjCanpVAethn_2EDHN223GuIrnFL-q_DOxAO4UUmBduSH6Cyoo9BcVWri-cDaMLe150q6QuExyN9XpK86M_-JnLyNDIkkMAgfs5YpFETwPUT9jlEpSwp9JFAWZAiIvJU5Y4JjXCfc_6EYAtsJunzeuXnopcU39OPmRanZ-c6ACu9VQ"/>
+</div>
+<div class="space-y-1">
+<h4 class="font-body-lg text-body-lg text-on-surface truncate">Paracétamol 500mg</h4>
+<p class="font-title-lg text-title-lg text-primary">2 500 FCFA</p>
+</div>
+<button class="w-full py-sm bg-secondary-container text-on-secondary-container rounded-lg font-label-lg active:scale-95 transition-transform">Ajouter</button>
+</div>
+<!-- Product Card 2 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col gap-sm">
+<div class="aspect-square rounded-lg bg-surface flex items-center justify-center p-md">
+<img class="w-full h-full object-contain" data-alt="A realistic 3D product shot of a vitamin C effervescent tube. The packaging is vibrant orange and white. Soft studio lighting with a clean focus on the labels. Professional corporate healthcare presentation." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBy6RWkICLcw0SaWZkvU2XLXGy3MMB0ZKSUC-aRemTLDkfRTiZK5dXSGVVnQZkqzthVlAfbhx9gIISrIvut3eIRhgnhvMTmLtaBXRip2g18QW-r9dRJiQAAj7hnoUaTE_e9dgYCYVlHNfCXikLn087ZS5IR4fQS30YlZS6VJOrDvYEpfiDrMhL-nv7y0KtBUnkHU6UWqnctK6hklB1faKvrcxZ7qiNalug1sntWwYFyOLgsnXepaSPyhw"/>
+</div>
+<div class="space-y-1">
+<h4 class="font-body-lg text-body-lg text-on-surface truncate">Vitamine C Booster</h4>
+<p class="font-title-lg text-title-lg text-primary">4 200 FCFA</p>
+</div>
+<button class="w-full py-sm bg-secondary-container text-on-secondary-container rounded-lg font-label-lg active:scale-95 transition-transform">Ajouter</button>
+</div>
+</div>
+</section>
+<!-- Categories Bento-like Grid -->
+<section class="space-y-md pb-lg">
+<h3 class="font-title-lg text-title-lg text-on-surface">Catégories</h3>
+<div class="grid grid-cols-2 grid-rows-2 gap-md h-64">
+<div class="col-span-1 row-span-2 bg-tertiary-fixed text-on-tertiary-fixed p-md rounded-xl flex flex-col justify-between relative overflow-hidden group">
+<h4 class="font-headline-md text-headline-md z-10">Maman &amp; Bébé</h4>
+<span class="material-symbols-outlined text-[64px] absolute -bottom-2 -right-2 opacity-20 transform group-hover:scale-110 transition-transform">child_care</span>
+</div>
+<div class="col-span-1 bg-secondary-fixed text-on-secondary-fixed p-md rounded-xl flex items-center justify-between relative overflow-hidden group">
+<h4 class="font-title-lg text-title-lg z-10">Hygiène</h4>
+<span class="material-symbols-outlined text-[48px] absolute -right-2 opacity-20 group-hover:rotate-12 transition-transform">clean_hands</span>
+</div>
+<div class="col-span-1 bg-primary-fixed text-on-primary-fixed p-md rounded-xl flex items-center justify-between relative overflow-hidden group">
+<h4 class="font-title-lg text-title-lg z-10">Premiers soins</h4>
+<span class="material-symbols-outlined text-[48px] absolute -right-2 opacity-20 group-hover:rotate-12 transition-transform">medical_services</span>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-2 pt-3 bg-surface dark:bg-surface-dim border-t border-outline-variant dark:border-outline shadow-sm rounded-t-xl">
+<a class="flex flex-col items-center justify-center bg-secondary-container dark:bg-secondary text-on-secondary-container dark:text-on-secondary rounded-full px-5 py-1 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="font-label-sm text-label-sm">Search</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="font-label-sm text-label-sm">Cart</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="font-label-sm text-label-sm">Orders</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</a>
+</nav>
+<script>
+        // Micro-interactions
+        document.querySelectorAll('button, a').forEach(elem => {
+            elem.addEventListener('touchstart', () => {
+                elem.style.transform = 'scale(0.95)';
+            });
+            elem.addEventListener('touchend', () => {
+                elem.style.transform = 'scale(1)';
+            });
+        });
+
+        // Simple scroll reveal simulation
+        const observerOptions = {
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('opacity-100', 'translate-y-0');
+                    entry.target.classList.remove('opacity-0', 'translate-y-4');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('section').forEach(section => {
+            section.classList.add('transition-all', 'duration-500', 'opacity-0', 'translate-y-4');
+            observer.observe(section);
+        });
+    </script>
+</body></html>

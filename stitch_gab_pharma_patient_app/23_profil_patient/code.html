@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Gab'Pharma - Profil Patient</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container": "#e2f1e9",
+                    "inverse-primary": "#81d998",
+                    "secondary-container": "#a8f4b9",
+                    "on-error-container": "#93000a",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-fixed-variant": "#005229",
+                    "on-secondary-fixed": "#00210d",
+                    "on-error": "#ffffff",
+                    "on-primary-fixed": "#00210c",
+                    "primary-fixed": "#9df6b2",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-fixed-variant": "#005228",
+                    "on-primary-container": "#8fe7a5",
+                    "inverse-surface": "#26332e",
+                    "surface-container-low": "#e8f7ef",
+                    "secondary": "#206b3d",
+                    "tertiary-container": "#785500",
+                    "tertiary": "#5a3f00",
+                    "on-background": "#111e19",
+                    "on-secondary": "#ffffff",
+                    "inverse-on-surface": "#e5f4ec",
+                    "surface-bright": "#eefdf4",
+                    "primary-fixed-dim": "#81d998",
+                    "on-secondary-container": "#287243",
+                    "on-primary": "#ffffff",
+                    "surface-container-high": "#dcece3",
+                    "background": "#eefdf4",
+                    "on-tertiary-fixed": "#271900",
+                    "surface-variant": "#d7e6de",
+                    "primary": "#004f26",
+                    "on-surface-variant": "#3f4940",
+                    "outline-variant": "#bec9bd",
+                    "on-surface": "#111e19",
+                    "surface-dim": "#ceded5",
+                    "secondary-fixed": "#a8f4b9",
+                    "surface-tint": "#076d38",
+                    "outline": "#6f7a6f",
+                    "on-tertiary-container": "#ffcc6c",
+                    "error-container": "#ffdad6",
+                    "tertiary-fixed-dim": "#ffbb18",
+                    "tertiary-fixed": "#ffdea7",
+                    "surface": "#eefdf4",
+                    "on-tertiary-fixed-variant": "#5e4200",
+                    "error": "#ba1a1a",
+                    "secondary-fixed-dim": "#8cd79f",
+                    "surface-container-highest": "#d7e6de",
+                    "primary-container": "#006a35"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "xl": "32px",
+                    "margin-mobile": "16px",
+                    "sm": "8px",
+                    "gutter": "16px",
+                    "xs": "4px",
+                    "lg": "24px",
+                    "base": "8px",
+                    "md": "16px"
+            },
+            "fontFamily": {
+                    "headline-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "title-lg": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "label-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "title-lg": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "label-sm": ["11px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #eefdf4; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-tab-pill {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="flex flex-col min-h-screen text-on-surface">
+<!-- Top App Bar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-margin-mobile h-14 bg-surface dark:bg-background border-b border-outline-variant dark:border-outline">
+<div class="flex items-center gap-4">
+<button class="hover:bg-surface-container-low transition-colors p-2 rounded-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed">arrow_back</span>
+</button>
+<h1 class="font-title-lg text-title-lg text-primary dark:text-primary-fixed">Profil Patient</h1>
+</div>
+<div class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">Gab'Pharma</div>
+</header>
+<main class="flex-1 mt-14 mb-20 px-margin-mobile py-lg">
+<!-- Profile Header Section -->
+<section class="flex flex-col items-center mb-xl">
+<div class="relative group">
+<div class="w-24 h-24 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container shadow-md border-4 border-white">
+<span class="text-display-lg font-bold">JN</span>
+</div>
+<button class="absolute bottom-0 right-0 bg-primary text-on-primary p-2 rounded-full shadow-lg border-2 border-white active:scale-90 transition-transform">
+<span class="material-symbols-outlined" style="font-size: 20px;">edit</span>
+</button>
+</div>
+<div class="mt-md text-center">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Jean-Noël Mvé</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">+241 77 12 34 56</p>
+</div>
+</section>
+<!-- Identity & Contact (Read-only Card) -->
+<div class="bg-surface-container-low rounded-xl p-md mb-lg border border-outline-variant/30">
+<div class="flex items-center gap-md mb-4 border-b border-outline-variant pb-md">
+<span class="material-symbols-outlined text-secondary">alternate_email</span>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Email</p>
+<p class="font-body-lg text-body-lg text-on-surface">j.n.mve@gmail.com</p>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<span class="material-symbols-outlined text-secondary">location_on</span>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Adresse</p>
+<p class="font-body-lg text-body-lg text-on-surface">Libreville, Akanda - Gabon</p>
+</div>
+</div>
+</div>
+<!-- Shortcuts Bento Grid -->
+<div class="grid grid-cols-1 gap-md mb-lg">
+<h3 class="font-label-lg text-label-lg text-on-surface-variant px-1 uppercase tracking-widest">Tableau de bord</h3>
+<a class="flex items-center justify-between bg-surface-container-lowest p-md rounded-xl shadow-sm border border-outline-variant hover:bg-surface-container-low transition-colors group" href="#">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-lg bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined" data-weight="fill" style="font-variation-settings: 'FILL' 1;">receipt_long</span>
+</div>
+<span class="font-title-lg text-title-lg">Mes Commandes</span>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:translate-x-1 transition-transform">chevron_right</span>
+</a>
+<a class="flex items-center justify-between bg-surface-container-lowest p-md rounded-xl shadow-sm border border-outline-variant hover:bg-surface-container-low transition-colors group" href="#">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-lg bg-primary-container/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-weight="fill" style="font-variation-settings: 'FILL' 1;">medical_information</span>
+</div>
+<span class="font-title-lg text-title-lg">Assurance Santé</span>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:translate-x-1 transition-transform">chevron_right</span>
+</a>
+<a class="flex items-center justify-between bg-surface-container-lowest p-md rounded-xl shadow-sm border border-outline-variant hover:bg-surface-container-low transition-colors group" href="#">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-lg bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed-variant">
+<span class="material-symbols-outlined" data-weight="fill" style="font-variation-settings: 'FILL' 1;">security</span>
+</div>
+<span class="font-title-lg text-title-lg">Sécurité &amp; Confidentialité</span>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:translate-x-1 transition-transform">chevron_right</span>
+</a>
+</div>
+<!-- Logout Section -->
+<button class="w-full flex items-center justify-center gap-sm bg-error-container text-on-error-container py-md rounded-xl font-label-lg active:scale-95 transition-transform mb-xl">
+<span class="material-symbols-outlined">logout</span>
+            Déconnexion
+        </button>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-2 pt-3 bg-surface dark:bg-surface-dim border-t border-outline-variant dark:border-outline shadow-sm rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="font-label-sm text-label-sm">Search</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="font-label-sm text-label-sm">Cart</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="font-label-sm text-label-sm">Orders</span>
+</a>
+<!-- Profile Tab Active -->
+<a class="flex flex-col items-center justify-center bg-secondary-container dark:bg-secondary text-on-secondary-container dark:text-on-secondary rounded-full px-5 py-1 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</a>
+</nav>
+<script>
+        // Simple micro-interaction for cards
+        document.querySelectorAll('a').forEach(card => {
+            card.addEventListener('mousedown', () => {
+                card.style.transform = 'scale(0.98)';
+            });
+            card.addEventListener('mouseup', () => {
+                card.style.transform = 'scale(1)';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'scale(1)';
+            });
+        });
+    </script>
+</body></html>

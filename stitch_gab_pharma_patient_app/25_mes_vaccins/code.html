@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Mes Vaccins - Gab'Pharma</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-highest": "#d7e6de",
+                    "on-primary": "#ffffff",
+                    "surface-variant": "#d7e6de",
+                    "outline-variant": "#bec9bd",
+                    "primary": "#004f26",
+                    "outline": "#6f7a6f",
+                    "primary-fixed": "#9df6b2",
+                    "primary-container": "#006a35",
+                    "surface-container-low": "#e8f7ef",
+                    "surface-tint": "#076d38",
+                    "surface-dim": "#ceded5",
+                    "tertiary-container": "#785500",
+                    "surface-container": "#e2f1e9",
+                    "on-secondary-fixed-variant": "#005229",
+                    "on-secondary-container": "#287243",
+                    "on-secondary": "#ffffff",
+                    "on-surface-variant": "#3f4940",
+                    "inverse-on-surface": "#e5f4ec",
+                    "background": "#eefdf4",
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary-fixed": "#00210c",
+                    "error-container": "#ffdad6",
+                    "tertiary-fixed": "#ffdea7",
+                    "primary-fixed-dim": "#81d998",
+                    "on-background": "#111e19",
+                    "tertiary": "#5a3f00",
+                    "on-primary-fixed-variant": "#005228",
+                    "on-tertiary": "#ffffff",
+                    "secondary-fixed": "#a8f4b9",
+                    "on-tertiary-container": "#ffcc6c",
+                    "tertiary-fixed-dim": "#ffbb18",
+                    "surface-bright": "#eefdf4",
+                    "error": "#ba1a1a",
+                    "on-secondary-fixed": "#00210d",
+                    "secondary": "#206b3d",
+                    "on-tertiary-fixed-variant": "#5e4200",
+                    "on-error": "#ffffff",
+                    "surface-container-high": "#dcece3",
+                    "on-tertiary-fixed": "#271900",
+                    "on-error-container": "#93000a",
+                    "secondary-fixed-dim": "#8cd79f",
+                    "on-primary-container": "#8fe7a5",
+                    "surface": "#eefdf4",
+                    "secondary-container": "#a8f4b9",
+                    "on-surface": "#111e19",
+                    "inverse-surface": "#26332e",
+                    "inverse-primary": "#81d998"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "2xl": "1rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "xs": "4px",
+                    "gutter": "16px",
+                    "lg": "24px",
+                    "base": "8px",
+                    "xl": "32px",
+                    "sm": "8px",
+                    "md": "16px",
+                    "margin-mobile": "16px"
+            },
+            "fontFamily": {
+                    "headline-md": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "title-lg": ["Inter"],
+                    "label-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "body-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "label-sm": ["11px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "title-lg": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #eefdf4;
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 79, 38, 0.1);
+        }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline flex items-center justify-between px-4 h-16 z-50">
+<div class="flex items-center gap-3">
+<button class="hover:bg-surface-container-low transition-colors p-2 rounded-full active:scale-95 duration-100">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md text-primary dark:text-primary-fixed">Mes Vaccins</h1>
+</div>
+<div class="flex items-center gap-2">
+<button class="hover:bg-surface-container-low transition-colors p-2 rounded-full active:scale-95 duration-100">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed">share</span>
+</button>
+</div>
+</header>
+<main class="px-4 py-6 max-w-2xl mx-auto space-y-6">
+<!-- Vaccination Status Card -->
+<section class="relative overflow-hidden bg-primary-container text-on-primary rounded-2xl p-6 shadow-sm">
+<div class="absolute right-[-20px] top-[-20px] opacity-10">
+<span class="material-symbols-outlined text-[120px]" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+</div>
+<div class="relative z-10 flex items-center justify-between">
+<div class="space-y-1">
+<p class="font-label-lg opacity-90 uppercase tracking-wider">Statut de vaccination</p>
+<h2 class="font-headline-lg text-headline-lg">À jour</h2>
+<p class="font-body-md opacity-80">Prochain rappel : Janvier 2026</p>
+</div>
+<div class="bg-white/20 p-3 rounded-full backdrop-blur-md">
+<span class="material-symbols-outlined text-4xl" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</div>
+</section>
+<!-- Calendrier de vaccination Section -->
+<section class="space-y-4">
+<div class="flex items-center justify-between">
+<h3 class="font-title-lg text-title-lg text-primary">Calendrier de vaccination</h3>
+<span class="material-symbols-outlined text-primary">calendar_month</span>
+</div>
+<div class="space-y-3">
+<!-- Vaccine Card 1 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 flex items-center justify-between transition-all hover:shadow-md">
+<div class="flex items-center gap-4">
+<div class="bg-surface-container-highest p-3 rounded-xl text-primary">
+<span class="material-symbols-outlined">vaccines</span>
+</div>
+<div>
+<p class="font-label-lg text-primary">Fièvre jaune</p>
+<p class="font-body-md text-on-surface-variant">Recommandé pour voyage</p>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="bg-tertiary-fixed-dim text-on-tertiary-fixed px-3 py-1 rounded-full font-label-sm uppercase">À faire</span>
+<p class="font-body-md text-on-surface-variant mt-1">Dès que possible</p>
+</div>
+</div>
+<!-- Vaccine Card 2 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 flex items-center justify-between transition-all hover:shadow-md">
+<div class="flex items-center gap-4">
+<div class="bg-surface-container-highest p-3 rounded-xl text-primary">
+<span class="material-symbols-outlined">health_metrics</span>
+</div>
+<div>
+<p class="font-label-lg text-primary">Hépatite B</p>
+<p class="font-body-md text-on-surface-variant">Rappel décennal</p>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="bg-outline-variant/30 text-outline px-3 py-1 rounded-full font-label-sm uppercase">Prévu</span>
+<p class="font-body-md text-on-surface-variant mt-1">15 Oct. 2024</p>
+</div>
+</div>
+</div>
+</section>
+<!-- CTA Section (Add Vaccine) -->
+<section class="py-2">
+<button class="w-full bg-secondary-container text-on-secondary-container h-14 rounded-2xl font-label-lg flex items-center justify-center gap-2 hover:bg-surface-container-highest transition-all active:scale-95 shadow-sm">
+<span class="material-symbols-outlined">add_circle</span>
+                Ajouter un vaccin (Certificat ou QR)
+            </button>
+</section>
+<!-- Historique Section -->
+<section class="space-y-4">
+<div class="flex items-center justify-between">
+<h3 class="font-title-lg text-title-lg text-primary">Historique</h3>
+<span class="material-symbols-outlined text-primary">history</span>
+</div>
+<div class="space-y-4 relative before:content-[''] before:absolute before:left-6 before:top-4 before:bottom-4 before:w-[2px] before:bg-outline-variant/40">
+<!-- History Item 1 -->
+<div class="relative pl-12">
+<div class="absolute left-[18px] top-4 w-3 h-3 bg-primary rounded-full border-4 border-surface-container-low ring-4 ring-transparent"></div>
+<div class="bg-white/50 border border-outline-variant rounded-2xl p-4 flex items-center justify-between glass-card">
+<div>
+<p class="font-label-lg text-primary">COVID-19 (Pfizer)</p>
+<p class="font-body-md text-on-surface-variant">Pharmacie des Forestiers, Libreville</p>
+<p class="font-label-sm text-on-surface-variant mt-1 opacity-70">12 Janvier 2023</p>
+</div>
+<button class="p-2 text-primary hover:bg-primary-fixed rounded-full transition-colors active:scale-90" title="Voir certificat">
+<span class="material-symbols-outlined">file_present</span>
+</button>
+</div>
+</div>
+<!-- History Item 2 -->
+<div class="relative pl-12">
+<div class="absolute left-[18px] top-4 w-3 h-3 bg-primary rounded-full border-4 border-surface-container-low ring-4 ring-transparent"></div>
+<div class="bg-white/50 border border-outline-variant rounded-2xl p-4 flex items-center justify-between glass-card">
+<div>
+<p class="font-label-lg text-primary">Grippe Saisonnière</p>
+<p class="font-body-md text-on-surface-variant">Centre Médical Akanda</p>
+<p class="font-label-sm text-on-surface-variant mt-1 opacity-70">05 Septembre 2022</p>
+</div>
+<button class="p-2 text-primary hover:bg-primary-fixed rounded-full transition-colors active:scale-90" title="Voir certificat">
+<span class="material-symbols-outlined">file_present</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Aesthetic Bento Illustration -->
+<section class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container p-4 rounded-2xl flex flex-col justify-between aspect-square">
+<span class="material-symbols-outlined text-primary-container text-4xl">local_hospital</span>
+<p class="font-label-lg text-primary leading-tight">Centres de vaccination agréés</p>
+</div>
+<div class="bg-primary-container/10 p-4 rounded-2xl flex flex-col justify-between aspect-square">
+<span class="material-symbols-outlined text-primary text-4xl">info_i</span>
+<p class="font-label-lg text-primary leading-tight">En savoir plus sur les rappels</p>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-xl bg-surface dark:bg-inverse-surface border-t border-outline-variant dark:border-outline bg-surface/80 backdrop-blur-md shadow-sm flex justify-around items-center h-20 px-2 pb-2">
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed active:scale-90 transition-transform">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm">Accueil</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed active:scale-90 transition-transform">
+<span class="material-symbols-outlined">search</span>
+<span class="font-label-sm text-label-sm">Recherche</span>
+</button>
+<button class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-5 py-1 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">vaccines</span>
+<span class="font-label-sm text-label-sm">Vaccins</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed active:scale-90 transition-transform">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-sm text-label-sm">Profil</span>
+</button>
+</nav>
+<script>
+        // Simple haptic-like feedback for buttons
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (window.navigator.vibrate) {
+                    window.navigator.vibrate(5);
+                }
+            });
+        });
+    </script>
+</body></html>

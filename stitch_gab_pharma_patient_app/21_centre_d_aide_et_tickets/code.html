@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Gab'Pharma - Centre d'aide</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container": "#e2f1e9",
+                        "inverse-primary": "#81d998",
+                        "secondary-container": "#a8f4b9",
+                        "on-error-container": "#93000a",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-fixed-variant": "#005229",
+                        "on-secondary-fixed": "#00210d",
+                        "on-error": "#ffffff",
+                        "on-primary-fixed": "#00210c",
+                        "primary-fixed": "#9df6b2",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed-variant": "#005228",
+                        "on-primary-container": "#8fe7a5",
+                        "inverse-surface": "#26332e",
+                        "surface-container-low": "#e8f7ef",
+                        "secondary": "#206b3d",
+                        "tertiary-container": "#785500",
+                        "tertiary": "#5a3f00",
+                        "on-background": "#111e19",
+                        "on-secondary": "#ffffff",
+                        "inverse-on-surface": "#e5f4ec",
+                        "surface-bright": "#eefdf4",
+                        "primary-fixed-dim": "#81d998",
+                        "on-secondary-container": "#287243",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#dcece3",
+                        "background": "#eefdf4",
+                        "on-tertiary-fixed": "#271900",
+                        "surface-variant": "#d7e6de",
+                        "primary": "#004f26",
+                        "on-surface-variant": "#3f4940",
+                        "outline-variant": "#bec9bd",
+                        "on-surface": "#111e19",
+                        "surface-dim": "#ceded5",
+                        "secondary-fixed": "#a8f4b9",
+                        "surface-tint": "#076d38",
+                        "outline": "#6f7a6f",
+                        "on-tertiary-container": "#ffcc6c",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed-dim": "#ffbb18",
+                        "tertiary-fixed": "#ffdea7",
+                        "surface": "#eefdf4",
+                        "on-tertiary-fixed-variant": "#5e4200",
+                        "error": "#ba1a1a",
+                        "secondary-fixed-dim": "#8cd79f",
+                        "surface-container-highest": "#d7e6de",
+                        "primary-container": "#006a35"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "margin-mobile": "16px",
+                        "sm": "8px",
+                        "gutter": "16px",
+                        "xs": "4px",
+                        "lg": "24px",
+                        "base": "8px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "title-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "label-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "title-lg": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "label-sm": ["11px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                        "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #EDFDF4; /* Level 0 Background */
+            font-family: 'Inter', sans-serif;
+            color: #111e19;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .card-shadow {
+            box-shadow: 0px 2px 4px rgba(0, 79, 38, 0.04);
+        }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="flex justify-center min-h-screen">
+<div class="w-[390px] min-h-[844px] bg-surface relative flex flex-col pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-margin-mobile h-14 bg-surface dark:bg-background border-b border-outline-variant dark:border-outline">
+<div class="flex items-center gap-4">
+<button class="active:scale-95 transition-transform text-primary dark:text-primary-fixed">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">Centre d'aide</h1>
+</div>
+<button class="active:scale-95 transition-transform text-primary dark:text-primary-fixed">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</header>
+<main class="mt-14 px-margin-mobile pt-6 space-y-lg">
+<!-- Search Support -->
+<div class="relative group">
+<div class="absolute inset-y-0 left-4 flex items-center pointer-events-none text-on-surface-variant">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="w-full h-12 pl-12 pr-4 bg-white border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all font-body-md text-body-md" placeholder="Comment pouvons-nous vous aider ?" type="text"/>
+</div>
+<!-- FAQ Categories - Bento Style -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h2 class="font-title-lg text-title-lg text-on-surface">Catégories</h2>
+<button class="text-primary font-label-lg hover:bg-surface-container-low transition-colors px-2 py-1 rounded">Voir tout</button>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div class="bg-surface-container-low p-4 rounded-xl card-shadow border border-white/50 flex flex-col gap-3 group active:scale-95 transition-transform">
+<div class="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined">pill</span>
+</div>
+<div>
+<p class="font-label-lg text-on-surface">Médicaments</p>
+<p class="font-label-sm text-on-surface-variant">Disponibilité, posologie</p>
+</div>
+</div>
+<div class="bg-surface-container-low p-4 rounded-xl card-shadow border border-white/50 flex flex-col gap-3 active:scale-95 transition-transform">
+<div class="w-10 h-10 rounded-lg bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined">local_shipping</span>
+</div>
+<div>
+<p class="font-label-lg text-on-surface">Livraison</p>
+<p class="font-label-sm text-on-surface-variant">Suivi, délais</p>
+</div>
+</div>
+<div class="bg-surface-container-low p-4 rounded-xl card-shadow border border-white/50 flex flex-col gap-3 active:scale-95 transition-transform">
+<div class="w-10 h-10 rounded-lg bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed-variant">
+<span class="material-symbols-outlined">payments</span>
+</div>
+<div>
+<p class="font-label-lg text-on-surface">Paiements</p>
+<p class="font-label-sm text-on-surface-variant">Facturation, Airtel</p>
+</div>
+</div>
+<div class="bg-surface-container-low p-4 rounded-xl card-shadow border border-white/50 flex flex-col gap-3 active:scale-95 transition-transform">
+<div class="w-10 h-10 rounded-lg bg-surface-variant flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined">shield</span>
+</div>
+<div>
+<p class="font-label-lg text-on-surface">Compte</p>
+<p class="font-label-sm text-on-surface-variant">Sécurité, profil</p>
+</div>
+</div>
+</div>
+</section>
+<!-- FAQ Accordion Preview -->
+<section>
+<h2 class="font-title-lg text-title-lg text-on-surface mb-4">FAQ Populaires</h2>
+<div class="space-y-2">
+<details class="group bg-white border border-outline-variant rounded-xl overflow-hidden" open="">
+<summary class="flex items-center justify-between p-4 cursor-pointer list-none hover:bg-surface-container-lowest transition-colors">
+<span class="font-label-lg text-on-surface">Quels sont les délais de livraison à Libreville ?</span>
+<span class="material-symbols-outlined transition-transform group-open:rotate-180">expand_more</span>
+</summary>
+<div class="px-4 pb-4 font-body-md text-on-surface-variant">
+                            Les livraisons dans le Grand Libreville s'effectuent généralement entre 1h et 3h après la validation de votre commande.
+                        </div>
+</details>
+<details class="group bg-white border border-outline-variant rounded-xl overflow-hidden">
+<summary class="flex items-center justify-between p-4 cursor-pointer list-none hover:bg-surface-container-lowest transition-colors">
+<span class="font-label-lg text-on-surface">Acceptez-vous Airtel Money ?</span>
+<span class="material-symbols-outlined transition-transform group-open:rotate-180">expand_more</span>
+</summary>
+<div class="px-4 pb-4 font-body-md text-on-surface-variant">
+                            Oui, nous acceptons Airtel Money et Moov Money pour tous les règlements instantanés.
+                        </div>
+</details>
+</div>
+</section>
+<!-- Support Tickets List -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h2 class="font-title-lg text-title-lg text-on-surface">Mes tickets</h2>
+</div>
+<div class="space-y-3">
+<!-- Ticket 1 -->
+<div class="bg-white p-4 rounded-xl border border-outline-variant card-shadow flex items-center justify-between active:bg-surface-container transition-colors">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-label-lg text-on-surface">#TK-45920</span>
+<span class="px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed-variant text-[10px] font-bold uppercase tracking-wider">Ouvert</span>
+</div>
+<p class="font-body-md text-on-surface-variant truncate w-48">Retard de livraison - Akanda</p>
+<p class="font-label-sm text-outline">Mis à jour il y a 2h</p>
+</div>
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</div>
+<!-- Ticket 2 -->
+<div class="bg-white p-4 rounded-xl border border-outline-variant card-shadow flex items-center justify-between opacity-75 grayscale-[0.5] active:bg-surface-container transition-colors">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-label-lg text-on-surface">#TK-45812</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-variant text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">Résolu</span>
+</div>
+<p class="font-body-md text-on-surface-variant truncate w-48">Erreur de dosage - Paracétamol</p>
+<p class="font-label-sm text-outline">Le 12 Mai 2024</p>
+</div>
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</div>
+</div>
+</section>
+</main>
+<!-- FAB: Create Support Request -->
+<button class="fixed bottom-24 right-6 w-14 h-14 bg-primary text-on-primary rounded-2xl shadow-lg flex items-center justify-center active:scale-90 transition-all z-50 group">
+<span class="material-symbols-outlined text-[28px]">add_comment</span>
+<span class="absolute right-full mr-4 bg-inverse-surface text-inverse-on-surface px-3 py-1 rounded-lg font-label-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Créer une demande</span>
+</button>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-2 pt-3 bg-surface dark:bg-surface-dim border-t border-outline-variant dark:border-outline shadow-sm">
+<div class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform">
+<span class="material-symbols-outlined">search</span>
+<span class="font-label-sm text-label-sm">Search</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="font-label-sm text-label-sm">Cart</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="font-label-sm text-label-sm">Orders</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-secondary-container dark:bg-secondary text-on-secondary-container dark:text-on-secondary rounded-full px-5 py-1 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</div>
+</nav>
+</div>
+<script>
+        // Simple micro-interaction for categories
+        document.querySelectorAll('.active\\:scale-95').forEach(card => {
+            card.addEventListener('touchstart', () => {
+                card.classList.add('brightness-95');
+            });
+            card.addEventListener('touchend', () => {
+                card.classList.remove('brightness-95');
+            });
+        });
+
+        // Search bar interaction
+        const searchInput = document.querySelector('input');
+        searchInput.addEventListener('focus', () => {
+            searchInput.parentElement.classList.add('scale-[1.01]');
+        });
+        searchInput.addEventListener('blur', () => {
+            searchInput.parentElement.classList.remove('scale-[1.01]');
+        });
+    </script>
+</body></html>

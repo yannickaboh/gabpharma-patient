@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Gab'Pharma - Notifications</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container": "#e2f1e9",
+                    "inverse-primary": "#81d998",
+                    "secondary-container": "#a8f4b9",
+                    "on-error-container": "#93000a",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-fixed-variant": "#005229",
+                    "on-secondary-fixed": "#00210d",
+                    "on-error": "#ffffff",
+                    "on-primary-fixed": "#00210c",
+                    "primary-fixed": "#9df6b2",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-fixed-variant": "#005228",
+                    "on-primary-container": "#8fe7a5",
+                    "inverse-surface": "#26332e",
+                    "surface-container-low": "#e8f7ef",
+                    "secondary": "#206b3d",
+                    "tertiary-container": "#785500",
+                    "tertiary": "#5a3f00",
+                    "on-background": "#111e19",
+                    "on-secondary": "#ffffff",
+                    "inverse-on-surface": "#e5f4ec",
+                    "surface-bright": "#eefdf4",
+                    "primary-fixed-dim": "#81d998",
+                    "on-secondary-container": "#287243",
+                    "on-primary": "#ffffff",
+                    "surface-container-high": "#dcece3",
+                    "background": "#eefdf4",
+                    "on-tertiary-fixed": "#271900",
+                    "surface-variant": "#d7e6de",
+                    "primary": "#004f26",
+                    "on-surface-variant": "#3f4940",
+                    "outline-variant": "#bec9bd",
+                    "on-surface": "#111e19",
+                    "surface-dim": "#ceded5",
+                    "secondary-fixed": "#a8f4b9",
+                    "surface-tint": "#076d38",
+                    "outline": "#6f7a6f",
+                    "on-tertiary-container": "#ffcc6c",
+                    "error-container": "#ffdad6",
+                    "tertiary-fixed-dim": "#ffbb18",
+                    "tertiary-fixed": "#ffdea7",
+                    "surface": "#eefdf4",
+                    "on-tertiary-fixed-variant": "#5e4200",
+                    "error": "#ba1a1a",
+                    "secondary-fixed-dim": "#8cd79f",
+                    "surface-container-highest": "#d7e6de",
+                    "primary-container": "#006a35"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "xl": "32px",
+                    "margin-mobile": "16px",
+                    "sm": "8px",
+                    "gutter": "16px",
+                    "xs": "4px",
+                    "lg": "24px",
+                    "base": "8px",
+                    "md": "16px"
+            },
+            "fontFamily": {
+                    "headline-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "title-lg": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "label-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "title-lg": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "label-sm": ["11px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen flex justify-center">
+<div class="w-full max-w-[390px] min-h-[844px] bg-background relative flex flex-col overflow-hidden shadow-2xl">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-margin-mobile h-14 bg-surface border-b border-outline-variant">
+<div class="flex items-center gap-4">
+<button class="hover:bg-surface-container-low transition-colors p-2 rounded-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-primary">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">Notifications</h1>
+</div>
+<button class="hover:bg-surface-container-low transition-colors p-2 rounded-full">
+<span class="material-symbols-outlined text-on-surface-variant">more_vert</span>
+</button>
+</header>
+<!-- Main Content -->
+<main class="flex-1 pt-20 pb-24 overflow-y-auto px-margin-mobile hide-scrollbar">
+<!-- Quick Filters (Horizontal Scroll) -->
+<div class="flex gap-2 overflow-x-auto hide-scrollbar mb-6">
+<button class="bg-primary text-on-primary font-label-lg text-label-lg px-4 py-2 rounded-full whitespace-nowrap">Tout</button>
+<button class="bg-surface-container-high text-on-surface-variant font-label-lg text-label-lg px-4 py-2 rounded-full whitespace-nowrap">Commandes</button>
+<button class="bg-surface-container-high text-on-surface-variant font-label-lg text-label-lg px-4 py-2 rounded-full whitespace-nowrap">Sécurité</button>
+<button class="bg-surface-container-high text-on-surface-variant font-label-lg text-label-lg px-4 py-2 rounded-full whitespace-nowrap">Offres</button>
+</div>
+<!-- Notifications List -->
+<div class="space-y-4">
+<!-- Today Section -->
+<h2 class="font-label-lg text-label-lg text-on-surface-variant mb-2">Aujourd'hui</h2>
+<!-- Order Alert (Unread) -->
+<div class="relative bg-surface-container-lowest p-4 rounded-xl border border-outline-variant flex gap-4 transition-all hover:shadow-sm active:scale-[0.98]">
+<div class="absolute top-4 right-4 w-2 h-2 bg-primary rounded-full"></div>
+<div class="w-12 h-12 bg-secondary-container rounded-full flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-secondary-container" style="font-variation-settings: 'FILL' 1;">package_2</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-title-lg text-title-lg text-on-surface">Commande en route</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">10:30</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-2">Votre commande #GP-8821 a été récupérée par le livreur. Livraison estimée à 11:15.</p>
+<button class="mt-3 text-primary font-label-lg text-label-lg flex items-center gap-1">
+                            Suivre mon colis <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Security Message -->
+<div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant flex gap-4 opacity-80 transition-all hover:opacity-100">
+<div class="w-12 h-12 bg-error-container rounded-full flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-error-container" style="font-variation-settings: 'FILL' 1;">security</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-title-lg text-title-lg text-on-surface">Nouvelle connexion</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">08:15</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Un nouvel appareil s'est connecté à votre compte Gab'Pharma depuis Libreville, Gabon.</p>
+</div>
+</div>
+<!-- Yesterday Section -->
+<h2 class="font-label-lg text-label-lg text-on-surface-variant mt-6 mb-2">Hier</h2>
+<!-- Delivery Confirmed -->
+<div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant flex gap-4 opacity-70 transition-all hover:opacity-100">
+<div class="w-12 h-12 bg-surface-container rounded-full flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-secondary-container" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-title-lg text-title-lg text-on-surface">Commande livrée</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">16:45</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">La commande #GP-8790 a été livrée avec succès à Pharmacie du Boulevard.</p>
+</div>
+</div>
+<!-- Promo Alert -->
+<div class="relative overflow-hidden bg-primary-container p-4 rounded-xl flex gap-4 text-on-primary">
+<!-- Subtle background pattern -->
+<div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 10px 10px;"></div>
+<div class="w-12 h-12 bg-on-primary-container rounded-full flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">local_offer</span>
+</div>
+<div class="flex-1 relative z-10">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-title-lg text-title-lg">Promotion Flash !</h3>
+<span class="font-label-sm text-label-sm opacity-80">Hier</span>
+</div>
+<p class="font-body-md text-body-md opacity-90">Profitez de -15% sur tous les produits de parapharmacie ce weekend. Code: GABPHARMA15</p>
+</div>
+</div>
+<!-- Low Stock Alert -->
+<div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant flex gap-4 opacity-70 transition-all hover:opacity-100">
+<div class="w-12 h-12 bg-tertiary-fixed rounded-full flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-tertiary-fixed-variant" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-title-lg text-title-lg text-on-surface">Stock faible</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Hier</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Attention, votre produit habituel "Paracétamol 500mg" est bientôt en rupture de stock.</p>
+</div>
+</div>
+</div>
+<!-- Empty state illustration hint (hidden unless list is empty) -->
+<div class="hidden flex-col items-center justify-center py-20 text-center" id="empty-state">
+<div class="w-24 h-24 bg-surface-container rounded-full flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-4xl text-on-surface-variant">notifications_off</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Aucune notification</h3>
+<p class="font-body-md text-body-md text-on-surface-variant px-12">Nous vous tiendrons informé des mises à jour importantes de vos commandes.</p>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-2 pt-3 bg-surface border-t border-outline-variant rounded-t-xl shadow-sm">
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="font-label-sm text-label-sm">Search</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="font-label-sm text-label-sm">Cart</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="font-label-sm text-label-sm">Orders</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-5 py-1 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</a>
+</nav>
+</div>
+<script>
+        // Micro-interaction for notification clicks
+        document.querySelectorAll('.rounded-xl').forEach(card => {
+            card.addEventListener('click', function() {
+                const badge = this.querySelector('.bg-primary.rounded-full');
+                if (badge) {
+                    badge.classList.add('scale-0', 'opacity-0');
+                    setTimeout(() => badge.remove(), 300);
+                }
+            });
+        });
+
+        // Horizontal scroll animation for filters
+        const filters = document.querySelector('.hide-scrollbar');
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        filters.addEventListener('mousedown', (e) => {
+            isDown = true;
+            startX = e.pageX - filters.offsetLeft;
+            scrollLeft = filters.scrollLeft;
+        });
+        filters.addEventListener('mouseleave', () => isDown = false);
+        filters.addEventListener('mouseup', () => isDown = false);
+        filters.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - filters.offsetLeft;
+            const walk = (x - startX) * 2;
+            filters.scrollLeft = scrollLeft - walk;
+        });
+    </script>
+</body></html>

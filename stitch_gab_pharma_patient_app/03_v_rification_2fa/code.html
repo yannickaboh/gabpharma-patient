@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Vérification de sécurité - Gab'Pharma</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "secondary": "#206b3d",
+                    "on-tertiary": "#ffffff",
+                    "secondary-fixed": "#a8f4b9",
+                    "on-background": "#111e19",
+                    "surface-bright": "#eefdf4",
+                    "surface-container": "#e2f1e9",
+                    "inverse-on-surface": "#e5f4ec",
+                    "surface-dim": "#ceded5",
+                    "surface-variant": "#d7e6de",
+                    "primary": "#004f26",
+                    "on-primary-fixed-variant": "#005228",
+                    "on-error": "#ffffff",
+                    "on-secondary-fixed": "#00210d",
+                    "tertiary-fixed-dim": "#ffbb18",
+                    "primary-container": "#006a35",
+                    "surface": "#eefdf4",
+                    "on-primary-fixed": "#00210c",
+                    "inverse-surface": "#26332e",
+                    "outline": "#6f7a6f",
+                    "on-error-container": "#93000a",
+                    "tertiary-fixed": "#ffdea7",
+                    "secondary-container": "#a8f4b9",
+                    "tertiary-container": "#785500",
+                    "on-tertiary-fixed": "#271900",
+                    "on-surface": "#111e19",
+                    "background": "#eefdf4",
+                    "surface-tint": "#076d38",
+                    "surface-container-highest": "#d7e6de",
+                    "primary-fixed": "#9df6b2",
+                    "surface-container-high": "#dcece3",
+                    "surface-container-lowest": "#ffffff",
+                    "tertiary": "#5a3f00",
+                    "on-secondary-fixed-variant": "#005229",
+                    "on-tertiary-container": "#ffcc6c",
+                    "surface-container-low": "#e8f7ef",
+                    "primary-fixed-dim": "#81d998",
+                    "error": "#ba1a1a",
+                    "inverse-primary": "#81d998",
+                    "on-surface-variant": "#3f4940",
+                    "on-primary-container": "#8fe7a5",
+                    "outline-variant": "#bec9bd",
+                    "secondary-fixed-dim": "#8cd79f",
+                    "on-secondary-container": "#287243",
+                    "on-tertiary-fixed-variant": "#5e4200",
+                    "on-primary": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "xl": "32px",
+                    "xs": "4px",
+                    "sm": "8px",
+                    "md": "16px",
+                    "lg": "24px",
+                    "gutter": "16px",
+                    "base": "8px",
+                    "margin-mobile": "16px"
+            },
+            "fontFamily": {
+                    "label-lg": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "title-lg": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "headline-md": ["Inter"]
+            },
+            "fontSize": {
+                    "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "600"}],
+                    "label-sm": ["11px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "title-lg": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .otp-input:focus {
+            outline: none;
+            border-color: #006a35;
+            box-shadow: 0 0 0 2px rgba(0, 106, 53, 0.1);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col font-body-md overflow-x-hidden">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-margin-mobile h-14 bg-surface dark:bg-background border-b border-outline-variant dark:border-outline">
+<button aria-label="Retour" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-low transition-colors active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed">arrow_back</span>
+</button>
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">Gab'Pharma</span>
+<div class="w-10"></div> <!-- Spacer for symmetry -->
+</header>
+<main class="flex-grow flex flex-col items-center justify-center px-margin-mobile pt-20 pb-10">
+<!-- Background decorative element -->
+<div class="fixed inset-0 pointer-events-none overflow-hidden opacity-20">
+<div class="absolute -top-24 -right-24 w-96 h-96 bg-primary-fixed rounded-full blur-3xl"></div>
+<div class="absolute top-1/2 -left-24 w-72 h-72 bg-secondary-fixed-dim rounded-full blur-3xl"></div>
+</div>
+<div class="w-full max-w-md space-y-lg relative z-10">
+<!-- Header Section -->
+<div class="text-center space-y-sm">
+<div class="mx-auto w-16 h-16 bg-primary-container/10 rounded-2xl flex items-center justify-center mb-md">
+<span class="material-symbols-outlined text-[40px] text-primary-container" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-background">Vérification de sécurité</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-[300px] mx-auto">
+                    Entrez le code à 6 chiffres envoyé à votre numéro <span class="font-bold text-on-surface">(+241 ...)</span>
+</p>
+</div>
+<!-- OTP Input Form -->
+<form class="space-y-xl" id="otp-form">
+<div class="flex justify-between gap-2 max-w-sm mx-auto" id="otp-container">
+<input aria-label="Code digit 1" class="otp-input w-12 h-14 text-center text-title-lg font-bold bg-surface-container-lowest border border-outline-variant rounded-xl transition-all" maxlength="1" pattern="\d*" type="text"/>
+<input aria-label="Code digit 2" class="otp-input w-12 h-14 text-center text-title-lg font-bold bg-surface-container-lowest border border-outline-variant rounded-xl transition-all" maxlength="1" pattern="\d*" type="text"/>
+<input aria-label="Code digit 3" class="otp-input w-12 h-14 text-center text-title-lg font-bold bg-surface-container-lowest border border-outline-variant rounded-xl transition-all" maxlength="1" pattern="\d*" type="text"/>
+<input aria-label="Code digit 4" class="otp-input w-12 h-14 text-center text-title-lg font-bold bg-surface-container-lowest border border-outline-variant rounded-xl transition-all" maxlength="1" pattern="\d*" type="text"/>
+<input aria-label="Code digit 5" class="otp-input w-12 h-14 text-center text-title-lg font-bold bg-surface-container-lowest border border-outline-variant rounded-xl transition-all" maxlength="1" pattern="\d*" type="text"/>
+<input aria-label="Code digit 6" class="otp-input w-12 h-14 text-center text-title-lg font-bold bg-surface-container-lowest border border-outline-variant rounded-xl transition-all" maxlength="1" pattern="\d*" type="text"/>
+</div>
+<div class="text-center space-y-md">
+<div class="flex items-center justify-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">schedule</span>
+<p class="font-label-lg text-label-lg" id="timer-display">Renvoyer le code dans <span class="text-primary font-bold">0:59</span></p>
+</div>
+<div class="flex flex-col gap-sm">
+<button class="w-full h-12 bg-primary text-white rounded-xl font-label-lg text-label-lg hover:shadow-md active:scale-[0.98] transition-all" type="submit">
+                            Vérifier
+                        </button>
+<button class="w-full h-12 text-primary font-label-lg text-label-lg hover:bg-surface-container-low rounded-xl transition-colors" type="button">
+                            Utiliser un autre compte
+                        </button>
+</div>
+</div>
+</form>
+<!-- Decorative Trust Badge -->
+<div class="pt-xl flex flex-col items-center gap-md opacity-60">
+<div class="flex items-center gap-sm px-md py-xs bg-surface-container rounded-full">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">shield</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider">Connexion Sécurisée</span>
+</div>
+<img class="w-16 h-16 object-contain grayscale opacity-30" data-alt="A clean, minimalist 3D rendering of a green medical cross icon glowing softly against a soft mint background. The style is professional and modern, using the Material 3 design language with smooth gradients and high-quality textures. Lighting is soft and directional, emphasizing trust and reliability in a healthcare context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAA06GoFbMHxMJENj6csZyoGZ3aeHszJ2CeWR5STdZmmmncTCgVeye036ODatA0VWKuLRRIKFSfxG6hYfIMUrQN29wfmA6H6nSocKzOHGK8NuH2L6vbnNsmJdDxFIwhOBjCPNkNzKAtXReiSZW1po_TDWNzNQFnpijWj8R0eoBaZWT9PD3ki3ed-6ewdWBhtcki-x5PbuxUvlA7AhezjFLr7cB-nXrZVuj5Wwmn58VCVZ2agCo9n5beCA"/>
+</div>
+</div>
+</main>
+<script>
+        // Simple OTP Focus Logic
+        const inputs = document.querySelectorAll('.otp-input');
+        inputs.forEach((input, index) => {
+            input.addEventListener('input', (e) => {
+                if (e.target.value && index < inputs.length - 1) {
+                    inputs[index + 1].focus();
+                }
+            });
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                    inputs[index - 1].focus();
+                }
+            });
+        });
+
+        // Simple Countdown Timer
+        let timeLeft = 59;
+        const timerSpan = document.querySelector('#timer-display span');
+        const countdown = setInterval(() => {
+            if (timeLeft <= 0) {
+                clearInterval(countdown);
+                document.getElementById('timer-display').innerHTML = '<button class="text-primary font-bold underline">Renvoyer le code maintenant</button>';
+            } else {
+                timeLeft--;
+                const seconds = timeLeft < 10 ? '0' + timeLeft : timeLeft;
+                timerSpan.textContent = `0:${seconds}`;
+            }
+        }, 1000);
+
+        // Form Submission Interaction
+        document.getElementById('otp-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.textContent;
+            btn.innerHTML = '<span class="flex items-center justify-center gap-2"><svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Vérification...</span>';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                alert('Code vérifié avec succès (Simulation)');
+            }, 2000);
+        });
+    </script>
+</body></html>

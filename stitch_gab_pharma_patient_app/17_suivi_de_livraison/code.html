@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Suivi de Livraison - Gab'Pharma</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .step-active::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 100%;
+            width: 2px;
+            height: 100%;
+            background-color: #004f26;
+            transform: translateX(-50%);
+        }
+        .step-inactive::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 100%;
+            width: 2px;
+            height: 100%;
+            background-color: #bec9bd;
+            transform: translateX(-50%);
+        }
+        .step-last::before {
+            display: none;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #eefdf4;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary": "#004f26",
+                        "on-secondary-fixed": "#00210d",
+                        "on-surface": "#111e19",
+                        "surface-container": "#e2f1e9",
+                        "on-secondary-fixed-variant": "#005229",
+                        "on-background": "#111e19",
+                        "on-secondary-container": "#287243",
+                        "primary-fixed": "#9df6b2",
+                        "background": "#eefdf4",
+                        "on-primary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "surface-container-low": "#e8f7ef",
+                        "on-tertiary-container": "#ffcc6c",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed-variant": "#005228",
+                        "surface-dim": "#ceded5",
+                        "surface-container-high": "#dcece3",
+                        "secondary-fixed": "#a8f4b9",
+                        "secondary-container": "#a8f4b9",
+                        "tertiary-fixed": "#ffdea7",
+                        "primary-container": "#006a35",
+                        "on-tertiary": "#ffffff",
+                        "outline-variant": "#bec9bd",
+                        "error": "#ba1a1a",
+                        "tertiary-container": "#785500",
+                        "tertiary-fixed-dim": "#ffbb18",
+                        "on-error-container": "#93000a",
+                        "surface-container-highest": "#d7e6de",
+                        "secondary": "#206b3d",
+                        "surface-variant": "#d7e6de",
+                        "on-surface-variant": "#3f4940",
+                        "error-container": "#ffdad6",
+                        "inverse-surface": "#26332e",
+                        "inverse-on-surface": "#e5f4ec",
+                        "on-tertiary-fixed-variant": "#5e4200",
+                        "on-primary-fixed": "#00210c",
+                        "inverse-primary": "#81d998",
+                        "surface-container-lowest": "#ffffff",
+                        "outline": "#6f7a6f",
+                        "on-tertiary-fixed": "#271900",
+                        "secondary-fixed-dim": "#8cd79f",
+                        "on-primary-container": "#8fe7a5",
+                        "primary-fixed-dim": "#81d998",
+                        "surface": "#eefdf4",
+                        "surface-bright": "#eefdf4",
+                        "tertiary": "#5a3f00",
+                        "surface-tint": "#076d38"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "xs": "4px",
+                        "md": "16px",
+                        "margin-mobile": "16px",
+                        "base": "8px",
+                        "lg": "24px",
+                        "xl": "32px",
+                        "sm": "8px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "title-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "label-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "title-lg": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "label-sm": ["11px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                        "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-margin-mobile h-14 bg-surface border-b border-outline-variant">
+<div class="flex items-center gap-4">
+<button class="active:scale-95 transition-transform hover:bg-surface-container-low p-2 rounded-full">
+<span class="material-symbols-outlined text-primary">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">Suivi de Commande</h1>
+</div>
+<button class="bg-secondary-container text-on-secondary-container px-4 py-1.5 rounded-full font-label-lg hover:bg-surface-container-highest transition-colors active:scale-95">
+            Support
+        </button>
+</header>
+<main class="pt-14 pb-24 min-h-screen">
+<!-- Map Viewport -->
+<div class="relative h-[353px] w-full overflow-hidden">
+<div class="w-full h-full bg-cover bg-center" data-alt="A detailed digital map view of Libreville, Gabon, showing a simplified street grid with pharmaceutical markers and a delivery courier icon moving along a highlighted green path. The style is clean and professional with a color palette of soft greens, white, and gray, consistent with a high-end medical application. Sunlight filters through a clear sky, illuminating the urban coastal landscape of Gabon in a bright, modern aesthetic." data-location="Libreville, Gabon" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDKltR6QOVj_cZXqkbQ3LeI-HxyUfWU3i9cRuXWQ_7jhfI46hgV47AxcgkbSXU6jpXarQGbXfM-9b4v69Eqn0qpm-2Kv2IfOoexRO9wyWaDK36c3w86-1Zx0sRRbz4vNMCRPk3i9ne4h_OhN2uZHgTk3Ac0GmCVbwgwo5sNdFOMO6Wk19Z_S0vniUeqpgtQhf-0zeP7axPxaDJ4c7e4lg8JqpdiCxjfvxx6UsfoJSQvLn2UGHXjqD3ImQ')"></div>
+<!-- Map Overlay UI -->
+<div class="absolute bottom-4 left-4 right-4 flex justify-between items-end pointer-events-none">
+<div class="bg-surface-container-lowest p-3 rounded-xl shadow-lg pointer-events-auto border border-outline-variant flex flex-col gap-1">
+<span class="text-label-sm font-label-sm text-on-surface-variant uppercase tracking-wider">Arrivée estimée</span>
+<span class="text-headline-md font-headline-md text-primary">14:45 (12 min)</span>
+</div>
+</div>
+</div>
+<div class="px-margin-mobile -mt-6 relative z-10">
+<!-- Delivery Status Card (Bento-style layout) -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- Main Status & Courier -->
+<div class="md:col-span-2 bg-surface-container-lowest p-5 rounded-xl shadow-sm border border-outline-variant flex flex-col gap-6">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<h2 class="text-title-lg font-title-lg">En route vers vous</h2>
+<p class="text-body-md font-body-md text-on-surface-variant">Commande #GP-88291</p>
+</div>
+<div class="bg-primary-container text-on-primary-container px-3 py-1 rounded-full text-label-sm font-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">electric_moped</span>
+                            LIVRAISON EXPRESS
+                        </div>
+</div>
+<div class="flex items-center gap-4 bg-surface-container-low p-3 rounded-lg">
+<div class="w-14 h-14 rounded-full overflow-hidden border-2 border-primary">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a friendly African delivery courier named Jean, wearing a green pharmaceutical delivery uniform and a helmet. He is smiling warmly against a blurred urban background of Libreville. The lighting is soft and natural, emphasizing trust and reliability in a corporate healthcare context. High-resolution photography style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWStjKp5UYyNYSzIcPf-Yze2vEI7GXqIe1mKrSzg9RWrAmslsaukXzJEHQQxkSfy10ObMB4etNqXf45yPeMs5IJIgaPHZBoi-Msc0Qe97EfQIu6QN3_-iQxECPzfMys-cj3graQZLSSeJSnVY4j6CJXaOS8WLyHAbwxLq9Wf8RE5ppXidPKiGKC6YqkkTgz7MJGw1TrV5L1gSiW5gY1bp5WFsS7uUSxI5CW2w3MoODGkFLEGPtksZ0NA"/>
+</div>
+<div class="flex-1">
+<h3 class="text-body-lg font-bold">Jean M.</h3>
+<div class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-sm text-tertiary-container" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-label-lg font-label-lg">4.9</span>
+<span class="mx-1">•</span>
+<span class="text-label-lg font-label-lg">850+ courses</span>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-secondary text-on-secondary hover:bg-primary transition-colors active:scale-90">
+<span class="material-symbols-outlined">call</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-variant text-on-surface-variant hover:bg-surface-container-highest transition-colors active:scale-90">
+<span class="material-symbols-outlined">chat_bubble</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Timeline / Progress Sidebar -->
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm border border-outline-variant">
+<h3 class="text-label-lg font-label-lg text-on-surface-variant mb-6 uppercase tracking-widest">Progression</h3>
+<div class="flex flex-col gap-0">
+<!-- Step 1 (Completed) -->
+<div class="relative flex gap-4 pb-8 step-active">
+<div class="z-10 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-on-primary">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</div>
+<div class="flex flex-col">
+<span class="text-label-lg font-label-lg text-primary">Commande confirmée</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">14:10</span>
+</div>
+</div>
+<!-- Step 2 (Completed) -->
+<div class="relative flex gap-4 pb-8 step-active">
+<div class="z-10 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-on-primary">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</div>
+<div class="flex flex-col">
+<span class="text-label-lg font-label-lg text-primary">Préparée par Pharmacie du Centre</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">14:25</span>
+</div>
+</div>
+<!-- Step 3 (Current) -->
+<div class="relative flex gap-4 pb-8 step-inactive">
+<div class="z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 border-primary bg-surface animate-pulse">
+<div class="h-2 w-2 rounded-full bg-primary"></div>
+</div>
+<div class="flex flex-col">
+<span class="text-label-lg font-label-lg font-bold text-on-surface">En cours de livraison</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Jean a récupéré votre colis</span>
+</div>
+</div>
+<!-- Step 4 (Future) -->
+<div class="relative flex gap-4 step-last">
+<div class="z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 border-outline-variant bg-surface">
+</div>
+<div class="flex flex-col">
+<span class="text-label-lg font-label-lg text-on-surface-variant">Livrée</span>
+<span class="text-label-sm font-label-sm text-outline">Prévu vers 14:45</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Addresses Section -->
+<div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="bg-surface-container-high/50 p-4 rounded-xl border border-outline-variant flex gap-3">
+<div class="h-10 w-10 flex-shrink-0 flex items-center justify-center rounded-lg bg-surface text-primary">
+<span class="material-symbols-outlined">medication</span>
+</div>
+<div>
+<p class="text-label-sm font-label-sm text-on-surface-variant uppercase">Pharmacie d'origine</p>
+<p class="text-body-md font-bold">Pharmacie du Centre, Boulevard Triomphal</p>
+<p class="text-label-sm text-on-surface-variant">Libreville, Gabon</p>
+</div>
+</div>
+<div class="bg-surface-container-high/50 p-4 rounded-xl border border-outline-variant flex gap-3">
+<div class="h-10 w-10 flex-shrink-0 flex items-center justify-center rounded-lg bg-primary text-on-primary">
+<span class="material-symbols-outlined">home_pin</span>
+</div>
+<div>
+<p class="text-label-sm font-label-sm text-on-surface-variant uppercase">Destination</p>
+<p class="text-body-md font-bold">Résidence Orchidée, Appt 4B</p>
+<p class="text-label-sm text-on-surface-variant">Quartier Louis, Libreville</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-2 pt-3 bg-surface border-t border-outline-variant shadow-sm rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="font-label-sm text-label-sm">Search</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="font-label-sm text-label-sm">Cart</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-5 py-1 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">receipt_long</span>
+<span class="font-label-sm text-label-sm">Orders</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</a>
+</nav>
+<script>
+        // Micro-interaction for tracking simulation
+        document.addEventListener('DOMContentLoaded', () => {
+            const supportBtn = document.querySelector('header button.bg-secondary-container');
+            supportBtn.addEventListener('click', () => {
+                alert('Mise en relation avec notre service client Gab\'Pharma...');
+            });
+
+            // Pulse effect for the active delivery icon on map (abstract)
+            const mapOverlay = document.querySelector('.bg-surface-container-lowest');
+            setInterval(() => {
+                mapOverlay.style.transition = 'transform 0.5s ease-in-out';
+                mapOverlay.style.transform = 'translateY(-2px)';
+                setTimeout(() => {
+                    mapOverlay.style.transform = 'translateY(0px)';
+                }, 500);
+            }, 3000);
+        });
+    </script>
+</body></html>

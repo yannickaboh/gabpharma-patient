@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Gab'Pharma - Sécurité et paramètres</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Config Verbatim -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container": "#e2f1e9",
+                    "inverse-primary": "#81d998",
+                    "secondary-container": "#a8f4b9",
+                    "on-error-container": "#93000a",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-fixed-variant": "#005229",
+                    "on-secondary-fixed": "#00210d",
+                    "on-error": "#ffffff",
+                    "on-primary-fixed": "#00210c",
+                    "primary-fixed": "#9df6b2",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-fixed-variant": "#005228",
+                    "on-primary-container": "#8fe7a5",
+                    "inverse-surface": "#26332e",
+                    "surface-container-low": "#e8f7ef",
+                    "secondary": "#206b3d",
+                    "tertiary-container": "#785500",
+                    "tertiary": "#5a3f00",
+                    "on-background": "#111e19",
+                    "on-secondary": "#ffffff",
+                    "inverse-on-surface": "#e5f4ec",
+                    "surface-bright": "#eefdf4",
+                    "primary-fixed-dim": "#81d998",
+                    "on-secondary-container": "#287243",
+                    "on-primary": "#ffffff",
+                    "surface-container-high": "#dcece3",
+                    "background": "#eefdf4",
+                    "on-tertiary-fixed": "#271900",
+                    "surface-variant": "#d7e6de",
+                    "primary": "#004f26",
+                    "on-surface-variant": "#3f4940",
+                    "outline-variant": "#bec9bd",
+                    "on-surface": "#111e19",
+                    "surface-dim": "#ceded5",
+                    "secondary-fixed": "#a8f4b9",
+                    "surface-tint": "#076d38",
+                    "outline": "#6f7a6f",
+                    "on-tertiary-container": "#ffcc6c",
+                    "error-container": "#ffdad6",
+                    "tertiary-fixed-dim": "#ffbb18",
+                    "tertiary-fixed": "#ffdea7",
+                    "surface": "#eefdf4",
+                    "on-tertiary-fixed-variant": "#5e4200",
+                    "error": "#ba1a1a",
+                    "secondary-fixed-dim": "#8cd79f",
+                    "surface-container-highest": "#d7e6de",
+                    "primary-container": "#006a35"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "xl": "32px",
+                    "margin-mobile": "16px",
+                    "sm": "8px",
+                    "gutter": "16px",
+                    "xs": "4px",
+                    "lg": "24px",
+                    "base": "8px",
+                    "md": "16px"
+            },
+            "fontFamily": {
+                    "headline-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "title-lg": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "label-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "title-lg": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "label-sm": ["11px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #EDFDF4; /* Level 0 Background per style guidance */
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom scrollbar for mobile feel */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="flex justify-center items-start min-h-screen">
+<!-- Mobile Container (390x844px) -->
+<div class="w-[390px] h-[844px] bg-background relative overflow-hidden flex flex-col shadow-2xl">
+<!-- TopAppBar (From Shared JSON) -->
+<!-- Logic: leading_icon is arrow_back as it's a sub-page. headline is the screen name. -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-margin-mobile h-14 bg-surface dark:bg-background border-b border-outline-variant dark:border-outline">
+<div class="flex items-center gap-4">
+<button class="active:scale-95 transition-transform p-1 rounded-full hover:bg-surface-container-low">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed">arrow_back</span>
+</button>
+<h1 class="font-title-lg text-title-lg text-primary dark:text-primary-fixed">Sécurité</h1>
+</div>
+<div class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">
+                Gab'Pharma
+            </div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 overflow-y-auto pt-14 pb-20 px-margin-mobile">
+<!-- Profile Summary Section (Contextual) -->
+<section class="mt-lg mb-lg">
+<div class="flex items-center gap-md p-md bg-surface-container-low rounded-xl border border-outline-variant/30">
+<div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primary">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a Gabonese woman smiling warmly, set against a soft blurred background of a modern medical office. The lighting is natural and bright, emphasizing a light-mode pharmaceutical brand aesthetic with clean greens and whites. She wears professional attire, conveying trust and healthcare expertise." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBbRa23H0z7UVkUoNrty4sNctmU6h3MUSAs__D38M5Rei01jitPsy70kZ_zyUo90bE1SVDwNUTcjhtwRmPX5_eovt0rAWIRKY9FWFcW9JD80xgWsI09fSs3NrPV3n8qX_JwAMsw9E8Mzl2rdphC4utUDfHZ-96hdlWn-oLx_ytxrucGpqHsxEFquK9z050cMdtBbNz9Q1Al78oyIToXqoG1fMXP5MWkmvF1kz-M-3Ue4ooruX-gKFDTtw"/>
+</div>
+<div>
+<h2 class="font-title-lg text-title-lg text-on-surface">Marie-Claire Obame</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Libreville, Gabon</p>
+</div>
+</div>
+</section>
+<!-- Settings Groups: Using Bento-like cards for high-end UI -->
+<div class="space-y-md">
+<!-- Account Security -->
+<div class="bg-surface-container-lowest p-md rounded-xl shadow-[0_2px_4px_rgba(0,0,0,0.04)] border border-outline-variant/20">
+<h3 class="font-label-lg text-label-lg text-secondary mb-sm uppercase tracking-wider">Sécurité du compte</h3>
+<div class="space-y-sm">
+<!-- Password Change -->
+<button class="w-full flex items-center justify-between p-sm rounded-lg hover:bg-surface-container transition-colors active:scale-95">
+<div class="flex items-center gap-md">
+<div class="bg-primary-container/10 p-2 rounded-lg">
+<span class="material-symbols-outlined text-primary">lock</span>
+</div>
+<span class="font-body-lg text-body-lg text-on-surface">Changer le mot de passe</span>
+</div>
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</button>
+<!-- Biometrics Toggle -->
+<div class="w-full flex items-center justify-between p-sm rounded-lg">
+<div class="flex items-center gap-md">
+<div class="bg-primary-container/10 p-2 rounded-lg">
+<span class="material-symbols-outlined text-primary">fingerprint</span>
+</div>
+<span class="font-body-lg text-body-lg text-on-surface">Touch ID / Face ID</span>
+</div>
+<div class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Legal & Privacy -->
+<div class="bg-surface-container-lowest p-md rounded-xl shadow-[0_2px_4px_rgba(0,0,0,0.04)] border border-outline-variant/20">
+<h3 class="font-label-lg text-label-lg text-secondary mb-sm uppercase tracking-wider">Légal et Confidentialité</h3>
+<div class="space-y-sm">
+<!-- Privacy Policy -->
+<button class="w-full flex items-center justify-between p-sm rounded-lg hover:bg-surface-container transition-colors active:scale-95">
+<div class="flex items-center gap-md">
+<div class="bg-primary-container/10 p-2 rounded-lg">
+<span class="material-symbols-outlined text-primary">shield_person</span>
+</div>
+<span class="font-body-lg text-body-lg text-on-surface">Politique de confidentialité</span>
+</div>
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</button>
+<!-- Terms & Conditions -->
+<button class="w-full flex items-center justify-between p-sm rounded-lg hover:bg-surface-container transition-colors active:scale-95">
+<div class="flex items-center gap-md">
+<div class="bg-primary-container/10 p-2 rounded-lg">
+<span class="material-symbols-outlined text-primary">gavel</span>
+</div>
+<span class="font-body-lg text-body-lg text-on-surface">Conditions générales</span>
+</div>
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- App Preferences -->
+<div class="bg-surface-container-lowest p-md rounded-xl shadow-[0_2px_4px_rgba(0,0,0,0.04)] border border-outline-variant/20">
+<h3 class="font-label-lg text-label-lg text-secondary mb-sm uppercase tracking-wider">Préférences</h3>
+<div class="space-y-sm">
+<!-- Notifications -->
+<button class="w-full flex items-center justify-between p-sm rounded-lg hover:bg-surface-container transition-colors active:scale-95">
+<div class="flex items-center gap-md">
+<div class="bg-primary-container/10 p-2 rounded-lg">
+<span class="material-symbols-outlined text-primary">notifications</span>
+</div>
+<span class="font-body-lg text-body-lg text-on-surface">Notifications</span>
+</div>
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Danger Zone / Logout -->
+<div class="mt-lg">
+<button class="w-full flex items-center justify-center gap-md py-md bg-error-container text-on-error-container rounded-xl font-label-lg transition-transform active:scale-95 border border-error/10">
+<span class="material-symbols-outlined">logout</span>
+                        Déconnexion
+                    </button>
+<p class="text-center mt-md font-label-sm text-label-sm text-outline">Version 2.4.1 (Build 108)</p>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (From Shared JSON) -->
+<!-- ACTIVE STATE: Profile is active -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-2 pt-3 bg-surface dark:bg-surface-dim border-t border-outline-variant dark:border-outline shadow-sm rounded-t-xl">
+<!-- Home -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</button>
+<!-- Search -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform">
+<span class="material-symbols-outlined">search</span>
+<span class="font-label-sm text-label-sm">Search</span>
+</button>
+<!-- Cart -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="font-label-sm text-label-sm">Cart</span>
+</button>
+<!-- Orders -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-container-highest transition-colors active:scale-90 transition-transform">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="font-label-sm text-label-sm">Orders</span>
+</button>
+<!-- Profile (ACTIVE) -->
+<button class="flex flex-col items-center justify-center bg-secondary-container dark:bg-secondary text-on-secondary-container dark:text-on-secondary rounded-full px-5 py-1 transition-transform active:scale-90">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</button>
+</nav>
+<!-- Aesthetic Overlay: Subtle Mesh Gradient -->
+<div class="absolute inset-0 pointer-events-none opacity-20 overflow-hidden z-[-1]">
+<div class="absolute -top-1/4 -right-1/4 w-[400px] h-[400px] bg-primary rounded-full blur-[100px] animate-pulse"></div>
+<div class="absolute -bottom-1/4 -left-1/4 w-[300px] h-[300px] bg-secondary rounded-full blur-[100px] animate-pulse" style="animation-delay: 2s;"></div>
+</div>
+</div>
+<script>
+        // Micro-interaction: Logic for switches and list items
+        document.querySelectorAll('.active\\:scale-95').forEach(button => {
+            button.addEventListener('touchstart', () => {
+                button.classList.add('scale-95');
+            });
+            button.addEventListener('touchend', () => {
+                button.classList.remove('scale-95');
+            });
+        });
+
+        // Switch toggle interaction
+        const switches = document.querySelectorAll('input[type="checkbox"]');
+        switches.forEach(sw => {
+            sw.parentElement.addEventListener('click', () => {
+                sw.checked = !sw.checked;
+            });
+        });
+    </script>
+</body></html>
