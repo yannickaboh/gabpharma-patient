@@ -8,6 +8,7 @@ abstract final class GabColors {
   static const ink = Color(0xFF111E19);
   static const muted = Color(0xFF3F4940);
   static const danger = Color(0xFFBA1A1A);
+  static const outlineVariant = Color(0xFFBEC9BD);
 }
 
 ThemeData buildPatientTheme() {
@@ -35,12 +36,30 @@ ThemeData buildPatientTheme() {
         borderRadius: BorderRadius.all(Radius.circular(16)),
       ),
     ),
-    inputDecorationTheme: const InputDecorationTheme(
+    inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: Colors.white,
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(14)),
-        borderSide: BorderSide.none,
+        borderRadius: const BorderRadius.all(Radius.circular(14)),
+        borderSide: const BorderSide(color: GabColors.outlineVariant),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: const BorderRadius.all(Radius.circular(14)),
+        borderSide: const BorderSide(color: GabColors.outlineVariant),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: const BorderRadius.all(Radius.circular(14)),
+        borderSide: const BorderSide(color: GabColors.primary, width: 1.6),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: const BorderRadius.all(Radius.circular(14)),
+        borderSide: const BorderSide(color: GabColors.danger),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: const BorderRadius.all(Radius.circular(14)),
+        borderSide: const BorderSide(color: GabColors.danger, width: 1.6),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
@@ -48,6 +67,20 @@ ThemeData buildPatientTheme() {
         minimumSize: const Size.fromHeight(52),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      height: 68,
+      backgroundColor: Colors.white,
+      indicatorColor: GabColors.softGreen,
+      labelTextStyle: WidgetStateProperty.resolveWith((states) {
+        final selected = states.contains(WidgetState.selected);
+        return TextStyle(
+          fontSize: 11,
+          height: 1,
+          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          color: selected ? GabColors.primary : GabColors.muted,
+        );
+      }),
     ),
   );
 }

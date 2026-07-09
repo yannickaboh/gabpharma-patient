@@ -24,6 +24,58 @@ class DemoBanner extends StatelessWidget {
   }
 }
 
+class PatientTopBar extends StatelessWidget {
+  const PatientTopBar({required this.onSwitchTab, super.key});
+
+  final ValueChanged<int> onSwitchTab;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+            child: Row(
+              children: [
+                Text(
+                  "Gab'Pharma",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: GabColors.primary,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () =>
+                      Navigator.pushNamed(context, '/notifications'),
+                  icon: const Badge(child: Icon(Icons.notifications_outlined)),
+                  color: GabColors.primary,
+                ),
+                const SizedBox(width: 4),
+                InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => onSwitchTab(4),
+                  child: const CircleAvatar(
+                    radius: 18,
+                    backgroundColor: GabColors.primary,
+                    child: Text(
+                      'GN',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: GabColors.outlineVariant),
+        ],
+      );
+}
+
 class SectionTitle extends StatelessWidget {
   const SectionTitle(this.title, {super.key, this.action});
 

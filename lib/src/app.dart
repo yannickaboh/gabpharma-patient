@@ -19,25 +19,10 @@ class GabPharmaPatientApp extends StatelessWidget {
           '/login': (_) => const LoginScreen(),
           '/verify': (_) => const VerifyScreen(),
           '/home': (_) => const PatientShell(),
-          '/register': (_) => const SimpleFeatureScreen(
-                title: 'Inscription Patient',
-                icon: Icons.person_add_alt_1,
-                description:
-                    'Création sécurisée du compte Patient et recueil des consentements.',
-              ),
-          '/password-reset': (_) => const SimpleFeatureScreen(
-                title: 'Mot de passe oublié',
-                icon: Icons.password,
-                description:
-                    'Identification, code de vérification puis définition d’un nouveau mot de passe.',
-              ),
+          '/register': (_) => const RegisterScreen(),
+          '/password-reset': (_) => const PasswordResetScreen(),
           '/medication': (_) => const MedicationDetailScreen(),
-          '/pharmacy': (_) => const SimpleFeatureScreen(
-                title: 'Pharmacie du Centre',
-                icon: Icons.local_pharmacy_outlined,
-                description:
-                    'Libreville · horaires, zones desservies, paiements et plans acceptés.',
-              ),
+          '/pharmacy': (_) => const PharmacyDetailScreen(),
           '/favorites': (_) => const SimpleFeatureScreen(
                 title: 'Mes favoris',
                 icon: Icons.favorite_outline,
