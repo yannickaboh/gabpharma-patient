@@ -23,27 +23,15 @@ class GabPharmaPatientApp extends StatelessWidget {
           '/password-reset': (_) => const PasswordResetScreen(),
           '/medication': (_) => const MedicationDetailScreen(),
           '/pharmacy': (_) => const PharmacyDetailScreen(),
-          '/favorites': (_) => const SimpleFeatureScreen(
-                title: 'Mes favoris',
-                icon: Icons.favorite_outline,
-                description:
-                    'Vos médicaments favoris avec une disponibilité recalculée par le serveur.',
-              ),
+          '/favorites': (_) => const FavoritesScreen(),
           '/checkout': (_) => const CheckoutScreen(),
-          '/payment': (_) => const SimpleFeatureScreen(
-                title: 'Paiement',
-                icon: Icons.payments_outlined,
-                description:
-                    'Espèces, Airtel Money, Moov Money ou Visa selon les moyens actifs.',
+          '/payment': (_) => const PaymentScreen(
+                orderNumber: 'GP-1051',
+                itemsTotal: 8800,
+                deliveryFee: 1500,
+                discount: 1210,
               ),
-          '/confirmation': (_) => const SimpleFeatureScreen(
-                title: 'Commande enregistrée',
-                icon: Icons.task_alt,
-                description:
-                    'La demande a été transmise à la pharmacie. Elle n’est pas encore acceptée.',
-                actionLabel: 'Voir la commande',
-                nextRoute: '/order-detail',
-              ),
+          '/confirmation': (_) => const OrderConfirmationScreen(),
           '/order-detail': (_) => const OrderDetailScreen(),
           '/delivery': (_) => const SimpleFeatureScreen(
                 title: 'Suivi de livraison',

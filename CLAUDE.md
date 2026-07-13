@@ -1,6 +1,6 @@
 # Gab'Pharma Patient — suivi d'implémentation Flutter
 
-**Dernière mise à jour :** 9 juillet 2026
+**Dernière mise à jour :** 13 juillet 2026
 **Mode actuel :** démonstration statique, aucune connexion à l'API mobile (pas encore construite côté Django).
 
 ## Méthode de travail (à respecter pour chaque nouvel écran)
@@ -26,11 +26,13 @@ Pour chaque écran du dossier `stitch_gab_pharma_patient_app/<NN_nom_ecran>/` :
 - [x] 07 Recherche et résultats
 - [x] 08 Détail médicament (Doliprane 1000mg, choix pharmacie, conflit mono-pharmacie)
 - [x] 09 Détail pharmacie (Pharmacie de la Garde)
-- [ ] 10 Favoris — **prochain écran**
-- [ ] 11 Panier (déjà un socle basique dans `patient_shell.dart`, à confronter au mockup `11_panier`)
-- [ ] 12 Checkout (socle basique dans `detail_screens.dart`, à revoir)
-- [ ] 13 Paiement
-- [ ] 14 Confirmation de commande
+- [x] 10 Favoris
+- [x] 11 Panier (fidèle au mockup `11_panier` : titre pharmacie, +/- réels, vider le panier, état vide)
+- [x] 12 Checkout (adresse/commune, méthode de réception, mode de paiement, récap réel du panier)
+- [x] 13 Paiement (grille de modes, formulaire dynamique, simulation succès/échec ~70/30 comme le mockup)
+- [x] 14 Confirmation de commande (référence copiable, confettis, données transmises de bout en bout depuis Checkout/Paiement)
+
+**Lot 2 terminé et validé.**
 
 ### Lot 3 — Commandes, livraison, finances (pas commencé)
 - [ ] 15 Liste des commandes
@@ -59,8 +61,13 @@ Pour chaque écran du dossier `stitch_gab_pharma_patient_app/<NN_nom_ecran>/` :
 - **Code démo 2FA/OTP** : 6 chiffres partout (`123456`), y compris sur l'écran de réinitialisation de mot de passe où le mockup montrait 4 chiffres — corrigé car le vrai backend Django envoie des codes à 6 chiffres (confirmé via un e-mail réel capturé dans MailHog par l'utilisateur).
 - **Icône de l'app** : croix pharmacie blanche sur fond vert `#006A35`, générée via `flutter_launcher_icons` (config dans `pubspec.yaml`, sources dans `assets/icon/`).
 - **Mode démo** : bandeau jaune `DemoBanner` piloté par `AppConfig.demoMode` (`lib/src/core/app_config.dart`). Disparaît automatiquement quand on passera `--dart-define=DEMO_MODE=false` lors du branchement de la vraie API — rien à retoucher manuellement dans les écrans.
+- **Cohérence des données de démo entre écrans** : quand un mockup Stitch contient des articles/prix différents d'un écran à l'autre (ex. panier vs checkout vs paiement dans l'export d'origine), on privilégie la cohérence interne de l'app plutôt que de copier des données mockup incohérentes. Le panier de démo (Doliprane 1000mg + Biseptine Spray, Pharmacie Akanda) est la source de vérité ; Checkout et Paiement recalculent et transmettent les vrais montants (sous-total, livraison, réduction assurance) via les constructeurs des écrans plutôt que des valeurs codées en dur séparément.
+- **Simulation de paiement (écran 13)** : issue aléatoire succès/échec (~70/30), fidèle au comportement du prototype Stitch lui-même (qui simule volontairement les deux états). Pas de vraie passerelle de paiement branchée.
+- **Liens légaux** : "conditions générales de vente/d'utilisation" et "confidentialité" sont cliquables partout où le mockup les mentionne (Panier, Inscription) et renvoient vers `TermsScreen`/`PrivacyPolicyScreen` (contenu réel du site web, écrans déjà construits dans le lot Authentification) plutôt que des placeholders.
 
 ## Tester sur le Samsung Galaxy S8 (ADB)
+flutter devices
+flutter run -d 988d55344b31384730
 
 ```powershell
 adb devices                                    # vérifier que le S8 est détecté
@@ -80,4 +87,4 @@ flutter run -d <device-id>
 
 ## Prochaine étape
 
-Reprendre à l'écran **10 — Favoris** (`stitch_gab_pharma_patient_app/10_favoris/`), en suivant la méthode ci-dessus, puis continuer le Lot 2 (Panier, Checkout, Paiement, Confirmation de commande) écran par écran avec validation utilisateur à chaque étape.
+Lot 2 (Recherche et achat, écrans 6 à 14) terminé et validé. Reprendre au **Lot 3 — Commandes, livraison, finances**, en commençant par l'écran **15 — Liste des commandes** (`stitch_gab_pharma_patient_app/15_liste_des_commandes/` ou nom de dossier équivalent — vérifier le nom exact dans `stitch_gab_pharma_patient_app/`), en suivant la méthode ci-dessus.

@@ -1,5 +1,7 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+import 'auth_screens.dart' show TermsScreen, PrivacyPolicyScreen;
 import 'core/theme.dart';
 import 'widgets.dart';
 
@@ -1049,21 +1051,28 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartItem {
-  _CartItem(this.name, this.unitPrice, this.quantity, {this.maxQuantity = 9});
+  _CartItem(this.name, this.details, this.unitPrice, this.quantity,
+      {this.maxQuantity = 9});
   final String name;
+  final String details;
   final int unitPrice;
   int quantity;
   final int maxQuantity;
 }
 
 class _CartScreenState extends State<CartScreen> {
+  static const _pharmacyName = 'Pharmacie Akanda';
+  static const _deliveryFee = 1500;
+
   final _items = [
-    _CartItem('Paracétamol 500 mg', 1500, 2),
-    _CartItem('Vitamine C 1000 mg', 3200, 1),
+    _CartItem('Doliprane 1000mg', 'Boîte de 8 gélules', 2500, 2),
+    _CartItem('Biseptine Spray', 'Flacon de 100ml', 3800, 1),
   ];
 
   int get _subtotal =>
       _items.fold(0, (sum, item) => sum + item.unitPrice * item.quantity);
+
+  int get _total => _items.isEmpty ? 0 : _subtotal + _deliveryFee;
 
   String _formatFcfa(int amount) {
     final s = amount.toString();
@@ -1075,119 +1084,367 @@ class _CartScreenState extends State<CartScreen> {
     return '$buffer FCFA';
   }
 
+  Future<void> _clearCart() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Vider le panier ?'),
+        content: const Text(
+            'Tous les articles seront retirés de votre panier.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Vider'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) setState(_items.clear);
+  }
+
+  void _removeItem(_CartItem item) {
+    setState(() => _items.remove(item));
+  }
+
   @override
   Widget build(BuildContext context) => SafeArea(
         child: Column(
           children: [
             PatientTopBar(onSwitchTab: widget.onSwitchTab),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  Text('Mon panier',
-                      style: Theme.of(context).textTheme.headlineMedium),
-                  const SizedBox(height: 6),
-                  const Text('Pharmacie du Centre · panier mono-pharmacie'),
-                  SectionTitle('${_items.length} articles'),
-                  Card(
-                    child: Column(
+              child: _items.isEmpty
+                  ? _EmptyCart(
+                      onBrowse: () => widget.onSwitchTab(1),
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.all(20),
                       children: [
-                        for (var i = 0; i < _items.length; i++) ...[
-                          if (i > 0) const Divider(height: 1),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Panier · $_pharmacyName',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: _clearCart,
+                              icon: const Icon(Icons.delete_sweep_outlined,
+                                  color: GabColors.muted),
+                              tooltip: 'Vider le panier',
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: GabColors.softGreen,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(Icons.info_outline,
+                                  color: GabColors.primary, size: 20),
+                              SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  "Votre panier ne peut contenir que les produits d'une seule pharmacie.",
+                                  style: TextStyle(color: GabColors.muted),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        for (final item in _items)
                           Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(_items[i].name,
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.w700)),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '${_items[i].quantity} × ${_formatFcfa(_items[i].unitPrice)}',
-                                        style: const TextStyle(
-                                            color: GabColors.muted),
-                                      ),
-                                    ],
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _CartItemCard(
+                              item: item,
+                              formatFcfa: _formatFcfa,
+                              onRemove: () => _removeItem(item),
+                              onDecrement: item.quantity > 1
+                                  ? () => setState(() => item.quantity -= 1)
+                                  : null,
+                              onIncrement: item.quantity < item.maxQuantity
+                                  ? () => setState(() => item.quantity += 1)
+                                  : null,
+                            ),
+                          ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: GabColors.softGreen,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Résumé',
+                                style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  const Expanded(
+                                      child: Text('Sous-total',
+                                          style: TextStyle(
+                                              color: GabColors.muted))),
+                                  Text(_formatFcfa(_subtotal),
+                                      style: const TextStyle(
+                                          color: GabColors.muted)),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  const Expanded(
+                                      child: Text('Livraison (Libreville)',
+                                          style: TextStyle(
+                                              color: GabColors.muted))),
+                                  Text(_formatFcfa(_deliveryFee),
+                                      style: const TextStyle(
+                                          color: GabColors.muted)),
+                                ],
+                              ),
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                                child: Divider(
+                                    height: 1,
+                                    color: GabColors.outlineVariant),
+                              ),
+                              Row(
+                                children: [
+                                  const Expanded(
+                                    child: Text(
+                                      'Total',
+                                      style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w800),
+                                    ),
                                   ),
-                                ),
-                                _QuantityStepper(
-                                  quantity: _items[i].quantity,
-                                  onDecrement: _items[i].quantity > 1
-                                      ? () => setState(() => _items[i]
-                                          .quantity -= 1)
-                                      : null,
-                                  onIncrement: _items[i].quantity <
-                                          _items[i].maxQuantity
-                                      ? () => setState(() => _items[i]
-                                          .quantity += 1)
-                                      : null,
-                                ),
+                                  Text(
+                                    _formatFcfa(_total),
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      color: GabColors.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            onPressed: () =>
+                                Navigator.pushNamed(context, '/checkout'),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text('Passer à la commande'),
+                                SizedBox(width: 8),
+                                Icon(Icons.arrow_forward, size: 18),
                               ],
                             ),
                           ),
-                        ],
+                        ),
+                        const SizedBox(height: 12),
+                        RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            style: const TextStyle(
+                                color: GabColors.muted, fontSize: 12),
+                            children: [
+                              const TextSpan(text: 'En continuant, vous acceptez nos '),
+                              TextSpan(
+                                text: 'conditions générales de vente',
+                                style: const TextStyle(
+                                    color: GabColors.primary,
+                                    fontWeight: FontWeight.w700),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const TermsScreen())),
+                              ),
+                              const TextSpan(text: ' et de '),
+                              TextSpan(
+                                text: 'confidentialité',
+                                style: const TextStyle(
+                                    color: GabColors.primary,
+                                    fontWeight: FontWeight.w700),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const PrivacyPolicyScreen())),
+                              ),
+                              const TextSpan(text: '.'),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                  const SectionTitle('Récapitulatif'),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              const Expanded(child: Text('Sous-total')),
-                              Text(_formatFcfa(_subtotal)),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          const Row(
-                            children: [
-                              Expanded(child: Text('Livraison')),
-                              Text('À calculer'),
-                            ],
-                          ),
-                          const Divider(height: 24),
-                          Row(
-                            children: [
-                              const Expanded(
-                                child: Text(
-                                  'Total',
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.w800),
-                                ),
-                              ),
-                              Text(
-                                _formatFcfa(_subtotal),
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w800),
-                              ),
-                            ],
-                          ),
-                        ],
+            ),
+          ],
+        ),
+      );
+}
+
+class _CartItemCard extends StatelessWidget {
+  const _CartItemCard({
+    required this.item,
+    required this.formatFcfa,
+    required this.onRemove,
+    required this.onDecrement,
+    required this.onIncrement,
+  });
+
+  final _CartItem item;
+  final String Function(int) formatFcfa;
+  final VoidCallback onRemove;
+  final VoidCallback? onDecrement;
+  final VoidCallback? onIncrement;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: GabColors.outlineVariant),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: GabColors.softGreen,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.medication_outlined,
+                  color: GabColors.primary, size: 30),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(item.name,
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w700)),
                       ),
-                    ),
+                      IconButton(
+                        onPressed: onRemove,
+                        icon: const Icon(Icons.close, size: 18),
+                        color: GabColors.muted,
+                        constraints: const BoxConstraints(),
+                        padding: EdgeInsets.zero,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: () =>
-                          Navigator.pushNamed(context, '/checkout'),
-                      child: const Text('Passer la commande'),
-                    ),
+                  Text(item.details,
+                      style: const TextStyle(
+                          color: GabColors.muted, fontSize: 12)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          formatFcfa(item.unitPrice),
+                          style: const TextStyle(
+                            color: GabColors.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      _QuantityStepper(
+                        quantity: item.quantity,
+                        onDecrement: onDecrement,
+                        onIncrement: onIncrement,
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
           ],
+        ),
+      );
+}
+
+class _EmptyCart extends StatelessWidget {
+  const _EmptyCart({required this.onBrowse});
+
+  final VoidCallback onBrowse;
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 140,
+                height: 140,
+                decoration: const BoxDecoration(
+                  color: GabColors.softGreen,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.shopping_bag_outlined,
+                    size: 64,
+                    color: GabColors.primary.withValues(alpha: 0.3)),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Votre panier est vide',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Ajoutez des médicaments ou produits depuis la recherche ou une fiche pharmacie.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: GabColors.muted),
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: onBrowse,
+                style: FilledButton.styleFrom(
+                  shape: const StadiumBorder(),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 24, vertical: 14),
+                ),
+                child: const Text('Découvrir des produits'),
+              ),
+            ],
+          ),
         ),
       );
 }
