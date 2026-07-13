@@ -1,6 +1,6 @@
 # Gab'Pharma Patient — suivi d'implémentation Flutter
 
-**Dernière mise à jour :** 13 juillet 2026
+**Dernière mise à jour :** 14 juillet 2026
 **Mode actuel :** démonstration statique, aucune connexion à l'API mobile (pas encore construite côté Django).
 
 ## Méthode de travail (à respecter pour chaque nouvel écran)
@@ -34,13 +34,15 @@ Pour chaque écran du dossier `stitch_gab_pharma_patient_app/<NN_nom_ecran>/` :
 
 **Lot 2 terminé et validé.**
 
-### Lot 3 — Commandes, livraison, finances (pas commencé)
-- [ ] 15 Liste des commandes
-- [ ] 16 Détail commande (socle basique existant)
-- [ ] 17 Suivi de livraison
-- [ ] 18 Paiements et remboursements
+### Lot 3 — Commandes, livraison, finances (terminé et validé)
+- [x] 15 Liste des commandes (filtres Tout/En attente/En cours/Livré/Annulé réellement fonctionnels sur données de démo)
+- [x] 16 Détail commande (bannière de statut, articles, sous-total/livraison/total, timeline de suivi, actions Accepter/Refuser/Annuler réellement interactives en local selon le statut)
+- [x] 17 Suivi de livraison (carte réelle non branchée — remplacée par un fond illustratif explicite ; timeline réutilisée depuis l'écran 16 ; code de remise jamais affiché, seulement "envoyé par SMS")
+- [x] 18 Paiements et remboursements (historique financier avec statuts paid/pending/failed/refund_pending/refunded, reprise de paiement en attente, totaux recalculés dynamiquement depuis la liste plutôt que copiés du mockup)
 
-### Lot 4 — Assurance, assistance, compte (pas commencé)
+**Lot 3 terminé et validé.**
+
+### Lot 4 — Assurance, assistance, compte (en cours)
 - [ ] 19 Mon assurance
 - [ ] 20 Notifications
 - [ ] 21 Centre d'aide et tickets
@@ -64,6 +66,11 @@ Pour chaque écran du dossier `stitch_gab_pharma_patient_app/<NN_nom_ecran>/` :
 - **Cohérence des données de démo entre écrans** : quand un mockup Stitch contient des articles/prix différents d'un écran à l'autre (ex. panier vs checkout vs paiement dans l'export d'origine), on privilégie la cohérence interne de l'app plutôt que de copier des données mockup incohérentes. Le panier de démo (Doliprane 1000mg + Biseptine Spray, Pharmacie Akanda) est la source de vérité ; Checkout et Paiement recalculent et transmettent les vrais montants (sous-total, livraison, réduction assurance) via les constructeurs des écrans plutôt que des valeurs codées en dur séparément.
 - **Simulation de paiement (écran 13)** : issue aléatoire succès/échec (~70/30), fidèle au comportement du prototype Stitch lui-même (qui simule volontairement les deux états). Pas de vraie passerelle de paiement branchée.
 - **Liens légaux** : "conditions générales de vente/d'utilisation" et "confidentialité" sont cliquables partout où le mockup les mentionne (Panier, Inscription) et renvoient vers `TermsScreen`/`PrivacyPolicyScreen` (contenu réel du site web, écrans déjà construits dans le lot Authentification) plutôt que des placeholders.
+- **Timeline de suivi réutilisée** : `_TimelineStep`/`_StepState`/`_TimelineTile` (`detail_screens.dart`) sont partagés entre l'écran 16 (Détail commande) et l'écran 17 (Suivi de livraison) plutôt que dupliqués.
+- **Carte réelle (écran 17)** : aucun SDK cartographique branché pour l'instant — remplacée par un fond illustratif dégradé + pins Material, avec mention explicite "carte simplifiée, à titre illustratif". **Décision utilisateur : le SDK Google Maps sera intégré plus tard, lors du branchement de l'API réelle.**
+- **Code de remise livraison (écran 17)** : jamais affiché en clair, conformément à la spec — seule la mention "Code de remise envoyé par SMS (canal sécurisé)" apparaît une fois le colis récupéré par le livreur.
+- **Cohérence des totaux financiers (écran 18)** : les totaux du bandeau (dépenses/remboursements) sont recalculés dynamiquement depuis la liste de transactions affichée plutôt que copiés du mockup, qui était lui-même incohérent (45 200 FCFA de total affiché alors que les transactions "payé" visibles ne totalisaient que 23 600 FCFA).
+- **Commandes/paiements/livraison — données de démo liées par référence** : `_orderDetails` (détail commande), `_deliveryTrackingDefault` (livraison) et la liste `OrdersScreen` partagent les mêmes références `GP-260x-xxxx` et montants pour rester cohérents d'un écran à l'autre ; `_financialTransactions` (écran 18) est un historique séparé et volontairement plus large (inclut des transactions échouées/remboursées hors de la liste des 4 commandes de démo).
 
 ## Tester sur le Samsung Galaxy S8 (ADB)
 flutter devices
@@ -87,4 +94,4 @@ flutter run -d <device-id>
 
 ## Prochaine étape
 
-Lot 2 (Recherche et achat, écrans 6 à 14) terminé et validé. Reprendre au **Lot 3 — Commandes, livraison, finances**, en commençant par l'écran **15 — Liste des commandes** (`stitch_gab_pharma_patient_app/15_liste_des_commandes/` ou nom de dossier équivalent — vérifier le nom exact dans `stitch_gab_pharma_patient_app/`), en suivant la méthode ci-dessus.
+Lot 3 (Commandes, livraison, finances, écrans 15 à 18) terminé et validé. Reprendre au **Lot 4 — Assurance, assistance, compte**, en commençant par l'écran **19 — Mon assurance** (`stitch_gab_pharma_patient_app/19_mon_assurance/` ou nom de dossier équivalent — vérifier le nom exact dans `stitch_gab_pharma_patient_app/`), en suivant la méthode ci-dessus. Écrans 20, 21, 22 et 24 restent aussi à faire dans ce lot (23 déjà fait en avance).

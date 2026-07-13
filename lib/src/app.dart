@@ -33,18 +33,8 @@ class GabPharmaPatientApp extends StatelessWidget {
               ),
           '/confirmation': (_) => const OrderConfirmationScreen(),
           '/order-detail': (_) => const OrderDetailScreen(),
-          '/delivery': (_) => const SimpleFeatureScreen(
-                title: 'Suivi de livraison',
-                icon: Icons.delivery_dining,
-                description:
-                    'Chronologie de la course. Le code de remise reste transmis par le canal sécurisé.',
-              ),
-          '/payments': (_) => const SimpleFeatureScreen(
-                title: 'Paiements et remboursements',
-                icon: Icons.account_balance_wallet_outlined,
-                description:
-                    'Historique financier séparé du statut opérationnel des commandes.',
-              ),
+          '/delivery': (_) => const DeliveryTrackingScreen(),
+          '/payments': (_) => const PaymentsHistoryScreen(),
           '/insurance': (_) => const SimpleFeatureScreen(
                 title: 'Mon assurance',
                 icon: Icons.health_and_safety_outlined,
