@@ -1,6 +1,6 @@
 # Gab'Pharma Patient — suivi d'implémentation Flutter
 
-**Dernière mise à jour :** 14 juillet 2026
+**Dernière mise à jour :** 14 juillet 2026 (soir)
 **Mode actuel :** démonstration statique, aucune connexion à l'API mobile (pas encore construite côté Django).
 
 ## Méthode de travail (à respecter pour chaque nouvel écran)
@@ -13,6 +13,8 @@ Pour chaque écran du dossier `stitch_gab_pharma_patient_app/<NN_nom_ecran>/` :
 5. Toujours dire en une phrase ce qui a été implémenté et les écarts assumés par rapport au mockup (pas de New devinette).
 
 ## État d'avancement des 26 écrans
+
+**Les 24 écrans cibles de la spec (`stitch_gab_pharma_patient_app/maquette_mobile_patient.md`) sont terminés et validés.** Il ne reste que les écrans 25/26 (hors spec originale, à clarifier — voir plus bas) avant de passer à la connexion API.
 
 ### Lot 1 — Authentification (terminé et validé)
 - [x] 01 Splash / restauration de session
@@ -42,13 +44,15 @@ Pour chaque écran du dossier `stitch_gab_pharma_patient_app/<NN_nom_ecran>/` :
 
 **Lot 3 terminé et validé.**
 
-### Lot 4 — Assurance, assistance, compte (en cours)
-- [ ] 19 Mon assurance
-- [ ] 20 Notifications
-- [ ] 21 Centre d'aide et tickets
-- [ ] 22 Conversation Support
+### Lot 4 — Assurance, assistance, compte (terminé et validé)
+- [x] 19 Mon assurance (profil déclaratif pré-rempli, taux/dérogations par assureur informatifs, retrait d'affiliation réel)
+- [x] 20 Notifications (filtres Tout/Commandes/Sécurité/Offres fonctionnels, chaque notification ouvre le bon écran, lu/non lu local éphémère)
+- [x] 21 Centre d'aide et tickets (recherche + catégories filtrant les FAQ, priorité des tickets, création de ticket réelle avec commande liée)
+- [x] 22 Conversation Support (une conversation cohérente par ticket, champ de réponse réellement câblé, réouverture d'un ticket résolu)
 - [x] 23 Profil Patient (fait en avance, avec écran "Modifier mes informations")
-- [ ] 24 Sécurité et paramètres
+- [x] 24 Sécurité et paramètres (changement de mot de passe avec règles de validation, session locale, préférences de notifications, 2FA non désactivable, déconnexion réelle)
+
+**Lot 4 terminé et validé — les 24 écrans de la spec sont désormais tous construits.**
 
 Écrans 25/26 (Mes vaccins, Certificat numérique) : présents dans le dossier Stitch mais **non listés dans le prompt/spec originale** (au-delà des 24 cibles) — à clarifier avec l'utilisateur avant implémentation.
 
@@ -71,6 +75,11 @@ Pour chaque écran du dossier `stitch_gab_pharma_patient_app/<NN_nom_ecran>/` :
 - **Code de remise livraison (écran 17)** : jamais affiché en clair, conformément à la spec — seule la mention "Code de remise envoyé par SMS (canal sécurisé)" apparaît une fois le colis récupéré par le livreur.
 - **Cohérence des totaux financiers (écran 18)** : les totaux du bandeau (dépenses/remboursements) sont recalculés dynamiquement depuis la liste de transactions affichée plutôt que copiés du mockup, qui était lui-même incohérent (45 200 FCFA de total affiché alors que les transactions "payé" visibles ne totalisaient que 23 600 FCFA).
 - **Commandes/paiements/livraison — données de démo liées par référence** : `_orderDetails` (détail commande), `_deliveryTrackingDefault` (livraison) et la liste `OrdersScreen` partagent les mêmes références `GP-260x-xxxx` et montants pour rester cohérents d'un écran à l'autre ; `_financialTransactions` (écran 18) est un historique séparé et volontairement plus large (inclut des transactions échouées/remboursées hors de la liste des 4 commandes de démo).
+- **Assurance (écran 19)** : une seule affiliation active à la fois (« Ajouter une autre assurance » indisponible en démonstration, pas de vrai multi-assureur) ; taux de couverture et dérogations par catégorie affichés à titre informatif uniquement, avec mention explicite qu'aucun droit n'est vérifié auprès de l'assureur.
+- **Notifications (écran 20) et tickets (écran 21) réutilisent les références de commandes déjà connues** (`GP-2607-4190`, `GP-2606-3980`, etc.) pour que les liens croisés (notification → suivi de livraison, ticket → détail commande) restent cohérents.
+- **Tickets ↔ Conversation (écrans 21-22)** : chaque ticket de démo (`TK-45920`, `TK-45812`) a sa propre conversation cohérente avec son sujet, au lieu d'une seule conversation générique copiée du mockup. Créer un ticket ouvre directement sa conversation. Envoyer un message sur un ticket résolu le rouvre réellement (pas de fausse réponse auto-générée).
+- **Champ de saisie dans un conteneur personnalisé** : quand un `TextField` est placé dans un `Container` avec sa propre bordure/radius (ex. barre de saisie du chat), il faut explicitement mettre `enabledBorder`/`focusedBorder`/`errorBorder`/`disabledBorder` à `InputBorder.none` en plus de `border` — sinon le thème global (`inputDecorationTheme` dans `theme.dart`) dessine sa propre bordure par-dessus et donne un effet de double cadre. Rencontré sur l'écran 22, penser à ce piège pour tout futur champ dans un conteneur custom.
+- **Sécurité (écran 24)** : réutilise l'identité déjà établie du profil (« Grâce Nziengui », Libreville) plutôt que le nom du mockup. La 2FA n'a et n'aura jamais d'interrupteur de désactivation (règle métier explicite). `SimpleFeatureScreen`, le placeholder générique utilisé pour les écrans non construits, a été supprimé une fois tous les écrans remplacés par de vraies implémentations.
 
 ## Tester sur le Samsung Galaxy S8 (ADB)
 flutter devices
@@ -94,4 +103,7 @@ flutter run -d <device-id>
 
 ## Prochaine étape
 
-Lot 3 (Commandes, livraison, finances, écrans 15 à 18) terminé et validé. Reprendre au **Lot 4 — Assurance, assistance, compte**, en commençant par l'écran **19 — Mon assurance** (`stitch_gab_pharma_patient_app/19_mon_assurance/` ou nom de dossier équivalent — vérifier le nom exact dans `stitch_gab_pharma_patient_app/`), en suivant la méthode ci-dessus. Écrans 20, 21, 22 et 24 restent aussi à faire dans ce lot (23 déjà fait en avance).
+**Les 24 écrans cibles de la spec sont terminés et validés (Lots 1 à 4 complets).** Deux sujets restent ouverts avant la suite :
+
+1. **Écrans 25/26 (Mes vaccins, Certificat numérique)** : hors spec originale des 24 écrans — demander à l'utilisateur s'il faut les implémenter ou les laisser de côté.
+2. **Connexion à l'API mobile réelle** (Django) : toute l'app tourne encore en mode démonstration statique (`AppConfig.demoMode`, bandeau jaune `DemoBanner`, aucune donnée persistée). La prochaine grande étape naturelle est de brancher les vrais endpoints (authentification/2FA, catalogue et stocks, favoris, panier, checkout, commandes, paiement, livraison, affiliation, support, notifications, profil) — à confirmer avec l'utilisateur avant de commencer, et probablement à mener une fois l'API mobile construite côté Django.

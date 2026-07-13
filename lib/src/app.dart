@@ -35,38 +35,11 @@ class GabPharmaPatientApp extends StatelessWidget {
           '/order-detail': (_) => const OrderDetailScreen(),
           '/delivery': (_) => const DeliveryTrackingScreen(),
           '/payments': (_) => const PaymentsHistoryScreen(),
-          '/insurance': (_) => const SimpleFeatureScreen(
-                title: 'Mon assurance',
-                icon: Icons.health_and_safety_outlined,
-                description:
-                    'Affiliation et estimation informative de couverture, sans promesse de droits.',
-              ),
-          '/notifications': (_) => const SimpleFeatureScreen(
-                title: 'Notifications',
-                icon: Icons.notifications_outlined,
-                description:
-                    'Transitions de commandes, échéances et événements de livraison.',
-              ),
-          '/support': (_) => const SimpleFeatureScreen(
-                title: 'Centre d’aide et tickets',
-                icon: Icons.support_agent,
-                description:
-                    'Créez une demande liée à une commande et suivez les réponses du Staff.',
-                actionLabel: 'Ouvrir une conversation',
-                nextRoute: '/support-thread',
-              ),
-          '/support-thread': (_) => const SimpleFeatureScreen(
-                title: 'Conversation Support',
-                icon: Icons.forum_outlined,
-                description:
-                    'Messages visibles du patient et pièces jointes protégées.',
-              ),
-          '/security': (_) => const SimpleFeatureScreen(
-                title: 'Sécurité et paramètres',
-                icon: Icons.security_outlined,
-                description:
-                    'Mot de passe, session, confidentialité et préférences. La 2FA reste obligatoire.',
-              ),
+          '/insurance': (_) => const InsuranceScreen(),
+          '/notifications': (_) => const NotificationsScreen(),
+          '/support': (_) => const HelpCenterScreen(),
+          '/support-thread': (_) => const ConversationScreen(),
+          '/security': (_) => const SecurityScreen(),
         },
       );
 }

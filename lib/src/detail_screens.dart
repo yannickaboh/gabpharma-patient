@@ -3,7 +3,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'auth_screens.dart' show TermsScreen, PrivacyPolicyScreen;
 import 'core/theme.dart';
+import 'widgets.dart' show EmptyState;
 
 class _MedicationPharmacy {
   const _MedicationPharmacy({
@@ -3463,8 +3465,14 @@ class DeliveryTrackingScreen extends StatelessWidget {
                             ),
                             const SizedBox(width: 6),
                             IconButton(
-                              onPressed: () => Navigator.pushNamed(
-                                  context, '/support-thread'),
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ConversationScreen(
+                                    ticketReference: 'TK-45920',
+                                  ),
+                                ),
+                              ),
                               icon: const Icon(Icons.chat_bubble_outline,
                                   color: GabColors.muted, size: 18),
                               iconSize: 18,
@@ -4164,64 +4172,2576 @@ class _TransactionCard extends StatelessWidget {
   }
 }
 
-class SimpleFeatureScreen extends StatelessWidget {
-  const SimpleFeatureScreen({
-    required this.title,
-    required this.icon,
-    required this.description,
-    super.key,
-    this.actionLabel,
-    this.nextRoute,
+class _InsurerInfo {
+  const _InsurerInfo({
+    required this.name,
+    required this.defaultRate,
+    required this.exceptions,
   });
+
+  final String name;
+  final double defaultRate;
+  final List<String> exceptions;
+}
+
+const _insurers = <_InsurerInfo>[
+  _InsurerInfo(
+    name: 'CNAMGS',
+    defaultRate: 0.8,
+    exceptions: [
+      'Médicaments de confort non remboursés',
+      'Plafond mensuel : 150 000 FCFA',
+    ],
+  ),
+  _InsurerInfo(
+    name: 'AXA Gabon',
+    defaultRate: 0.7,
+    exceptions: ['Génériques : ticket modérateur de 20 %'],
+  ),
+  _InsurerInfo(
+    name: 'Allianz Gabon',
+    defaultRate: 0.75,
+    exceptions: ['Médicaments hors liste : couverture à 50 %'],
+  ),
+  _InsurerInfo(
+    name: 'Ascoma',
+    defaultRate: 0.65,
+    exceptions: ['Franchise annuelle de 20 000 FCFA'],
+  ),
+  _InsurerInfo(
+    name: 'SUNU Assurances',
+    defaultRate: 0.7,
+    exceptions: ['Parapharmacie exclue de la couverture'],
+  ),
+];
+
+class InsuranceScreen extends StatefulWidget {
+  const InsuranceScreen({super.key});
+
+  @override
+  State<InsuranceScreen> createState() => _InsuranceScreenState();
+}
+
+class _InsuranceScreenState extends State<InsuranceScreen> {
+  _InsurerInfo? _savedInsurer;
+  String? _savedPlan;
+  String? _savedMemberNumber;
+
+  _InsurerInfo? _insurer;
+  final _planController = TextEditingController();
+  final _memberController = TextEditingController();
+
+  bool get _hasProfile => _savedInsurer != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _savedInsurer = _insurers.first;
+    _savedPlan = 'Formule Confort';
+    _savedMemberNumber = 'CNAM-2026-0417';
+  }
+
+  @override
+  void dispose() {
+    _planController.dispose();
+    _memberController.dispose();
+    super.dispose();
+  }
+
+  void _startEditing() {
+    setState(() {
+      _insurer = _savedInsurer;
+      _planController.text = _savedPlan ?? '';
+      _memberController.text = _savedMemberNumber ?? '';
+    });
+  }
+
+  void _save() {
+    if (_insurer == null || _memberController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Choisissez un assureur et indiquez votre numéro '
+            'de membre.'),
+      ));
+      return;
+    }
+    setState(() {
+      _savedInsurer = _insurer;
+      _savedPlan = _planController.text.trim();
+      _savedMemberNumber = _memberController.text.trim();
+      _insurer = null;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Profil assurance enregistré.'),
+    ));
+  }
+
+  Future<void> _withdraw() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Retirer mon affiliation ?'),
+        content: const Text(
+          'Vos remboursements en pharmacie ne seront plus estimés avec '
+          'un taux de couverture tant que vous ne redéclarez pas une '
+          'assurance.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: GabColors.danger),
+            child: const Text('Retirer'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed ?? false) {
+      setState(() {
+        _savedInsurer = null;
+        _savedPlan = null;
+        _savedMemberNumber = null;
+        _insurer = null;
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Affiliation retirée.'),
+      ));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isEditing = _insurer != null || !_hasProfile;
+    return Scaffold(
+      backgroundColor: GabColors.background,
+      appBar: AppBar(
+        title: const Text('Mon assurance'),
+        actions: [
+          IconButton(
+            onPressed: () => Navigator.pushNamed(context, '/support'),
+            icon: const Icon(Icons.help_outline),
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: GabColors.primary,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Gestion Santé',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Configurez vos informations de couverture pour '
+                  'faciliter vos remboursements en pharmacie.',
+                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                ),
+                const SizedBox(height: 12),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.3)),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
+                    child: Text(
+                      _hasProfile ? 'ACTIF' : 'NON CONFIGURÉ',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          if (_hasProfile && !isEditing) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: GabColors.outlineVariant),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: GabColors.softGreen,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.corporate_fare,
+                            color: GabColors.primary),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(_savedInsurer!.name,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w700)),
+                            if ((_savedPlan ?? '').isNotEmpty)
+                              Text(_savedPlan!,
+                                  style: const TextStyle(
+                                      color: GabColors.muted, fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: _startEditing,
+                        icon: const Icon(Icons.edit_outlined,
+                            color: GabColors.primary),
+                        tooltip: 'Modifier',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text('N° de membre : ${_savedMemberNumber ?? "—"}',
+                      style: const TextStyle(
+                          color: GabColors.muted, fontSize: 13)),
+                  const SizedBox(height: 16),
+                  _CoverageEstimate(insurer: _savedInsurer!),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _withdraw,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: GabColors.danger,
+                        side: const BorderSide(color: GabColors.danger),
+                      ),
+                      icon: const Icon(Icons.remove_circle_outline),
+                      label: const Text('Retirer mon affiliation'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            const Text('Assureur',
+                style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<_InsurerInfo>(
+              initialValue: _insurer,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.corporate_fare),
+                hintText: 'Choisir un assureur',
+              ),
+              items: [
+                for (final insurer in _insurers)
+                  DropdownMenuItem(value: insurer, child: Text(insurer.name)),
+              ],
+              onChanged: (value) => setState(() => _insurer = value),
+            ),
+            const SizedBox(height: 16),
+            const Text("Nom de l'offre / Plan",
+                style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _planController,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.medical_services_outlined),
+                hintText: 'Ex : Formule Confort',
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text('Numéro de membre',
+                style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _memberController,
+              textCapitalization: TextCapitalization.characters,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.badge_outlined),
+                hintText: 'XXXX-XXXX-XXXX',
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (_insurer != null)
+              _CoverageEstimate(insurer: _insurer!)
+            else
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: GabColors.softGreen,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline,
+                        color: GabColors.secondary, size: 20),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Estimation de couverture',
+                            style: TextStyle(
+                                color: GabColors.secondary,
+                                fontWeight: FontWeight.w700),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Le montant estimé à payer sera calculé '
+                            'automatiquement sur la base de votre taux '
+                            'de couverture habituel déclaré par votre '
+                            'assureur.',
+                            style: TextStyle(
+                                color: GabColors.muted, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _save,
+                icon: const Icon(Icons.save_outlined),
+                label: const Text('Enregistrer mon profil'),
+              ),
+            ),
+            if (_hasProfile) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => setState(() {
+                    _insurer = null;
+                    _planController.clear();
+                    _memberController.clear();
+                  }),
+                  child: const Text('Annuler'),
+                ),
+              ),
+            ],
+          ],
+          const SizedBox(height: 20),
+          if (_hasProfile && !isEditing)
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Une seule affiliation active à la fois en '
+                      'démonstration.',
+                    ),
+                  ),
+                ),
+                child: const Text('Ajouter une autre assurance'),
+              ),
+            ),
+          const SizedBox(height: 12),
+          const Text(
+            'Ces informations sont déclaratives : Gab\'Pharma ne vérifie '
+            'pas vos droits auprès de votre assureur. Le montant réel '
+            'remboursé dépend de votre contrat et de votre assureur.',
+            style: TextStyle(color: GabColors.muted, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CoverageEstimate extends StatelessWidget {
+  const _CoverageEstimate({required this.insurer});
+
+  final _InsurerInfo insurer;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: GabColors.softGreen,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline,
+                    color: GabColors.secondary, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Estimation de couverture',
+                        style: TextStyle(
+                            color: GabColors.secondary,
+                            fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Taux par défaut ${insurer.name} : '
+                        '${(insurer.defaultRate * 100).round()} % du prix, '
+                        'à titre informatif.',
+                        style: const TextStyle(
+                            color: GabColors.muted, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Dérogations par catégorie',
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: GabColors.muted,
+                  letterSpacing: 0.5),
+            ),
+            const SizedBox(height: 4),
+            for (final exception in insurer.exceptions)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('•  ',
+                        style: TextStyle(color: GabColors.muted)),
+                    Expanded(
+                      child: Text(exception,
+                          style: const TextStyle(
+                              color: GabColors.muted, fontSize: 13)),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      );
+}
+
+enum _NotifCategory { orders, security, offers }
+
+enum _NotifTarget { orderDelivering, orderDelivered, security, none }
+
+class _NotificationItem {
+  _NotificationItem({
+    required this.title,
+    required this.body,
+    required this.time,
+    required this.dayGroup,
+    required this.category,
+    required this.icon,
+    required this.iconBackground,
+    required this.iconColor,
+    required this.target,
+    this.promo = false,
+    this.actionLabel,
+    this.unread = false,
+  });
+
   final String title;
+  final String body;
+  final String time;
+  final String dayGroup;
+  final _NotifCategory category;
   final IconData icon;
-  final String description;
+  final Color iconBackground;
+  final Color iconColor;
+  final _NotifTarget target;
+  final bool promo;
   final String? actionLabel;
-  final String? nextRoute;
+  bool unread;
+}
+
+List<_NotificationItem> _buildDemoNotifications() => [
+      _NotificationItem(
+        title: 'Commande en route',
+        body: 'Votre commande #GP-2607-4190 a été récupérée par le '
+            'livreur. Livraison estimée à 15:50.',
+        time: "Aujourd'hui, 10:30",
+        dayGroup: "Aujourd'hui",
+        category: _NotifCategory.orders,
+        icon: Icons.inventory_2,
+        iconBackground: const Color(0xFFA8F4B9),
+        iconColor: const Color(0xFF00210D),
+        target: _NotifTarget.orderDelivering,
+        actionLabel: 'Suivre mon colis',
+        unread: true,
+      ),
+      _NotificationItem(
+        title: 'Nouvelle connexion',
+        body: "Un nouvel appareil s'est connecté à votre compte "
+            "Gab'Pharma depuis Libreville, Gabon.",
+        time: "Aujourd'hui, 08:15",
+        dayGroup: "Aujourd'hui",
+        category: _NotifCategory.security,
+        icon: Icons.shield,
+        iconBackground: const Color(0xFFFFDAD6),
+        iconColor: const Color(0xFF93000A),
+        target: _NotifTarget.security,
+      ),
+      _NotificationItem(
+        title: 'Commande livrée',
+        body: 'La commande #GP-2606-3980 a été livrée avec succès à '
+            'Pharmacie du Centre.',
+        time: 'Hier, 16:45',
+        dayGroup: 'Hier',
+        category: _NotifCategory.orders,
+        icon: Icons.check_circle,
+        iconBackground: GabColors.softGreen,
+        iconColor: GabColors.secondary,
+        target: _NotifTarget.orderDelivered,
+      ),
+      _NotificationItem(
+        title: 'Promotion Flash !',
+        body: 'Profitez de -15% sur tous les produits de parapharmacie '
+            'ce weekend. Code : GABPHARMA15',
+        time: 'Hier',
+        dayGroup: 'Hier',
+        category: _NotifCategory.offers,
+        icon: Icons.local_offer,
+        iconBackground: Colors.white,
+        iconColor: GabColors.primary,
+        target: _NotifTarget.none,
+        promo: true,
+      ),
+      _NotificationItem(
+        title: 'Stock faible',
+        body: 'Attention, votre produit habituel "Paracétamol 500mg" '
+            'est bientôt en rupture de stock.',
+        time: 'Hier',
+        dayGroup: 'Hier',
+        category: _NotifCategory.orders,
+        icon: Icons.inventory_2_outlined,
+        iconBackground: const Color(0xFFFFDEA7),
+        iconColor: const Color(0xFF5E4200),
+        target: _NotifTarget.none,
+      ),
+    ];
+
+class NotificationsScreen extends StatefulWidget {
+  const NotificationsScreen({super.key});
+
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  final _items = _buildDemoNotifications();
+  _NotifCategory? _filter;
+
+  void _openNotification(_NotificationItem item) {
+    setState(() => item.unread = false);
+    switch (item.target) {
+      case _NotifTarget.orderDelivering:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                const DeliveryTrackingScreen(reference: 'GP-2607-4190'),
+          ),
+        );
+      case _NotifTarget.orderDelivered:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                const OrderDetailScreen(reference: 'GP-2606-3980'),
+          ),
+        );
+      case _NotifTarget.security:
+        Navigator.pushNamed(context, '/security');
+      case _NotifTarget.none:
+        break;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = _filter == null
+        ? _items
+        : _items.where((n) => n.category == _filter).toList();
+    final groups = <String>[];
+    for (final item in visible) {
+      if (!groups.contains(item.dayGroup)) groups.add(item.dayGroup);
+    }
+    return Scaffold(
+      backgroundColor: GabColors.background,
+      appBar: AppBar(
+        title: const Text('Notifications'),
+        actions: [
+          IconButton(
+            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Options indisponibles en démonstration.'),
+              ),
+            ),
+            icon: const Icon(Icons.more_vert),
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          SizedBox(
+            height: 40,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                _NotifFilterChip(
+                  label: 'Tout',
+                  selected: _filter == null,
+                  onTap: () => setState(() => _filter = null),
+                ),
+                const SizedBox(width: 8),
+                _NotifFilterChip(
+                  label: 'Commandes',
+                  selected: _filter == _NotifCategory.orders,
+                  onTap: () =>
+                      setState(() => _filter = _NotifCategory.orders),
+                ),
+                const SizedBox(width: 8),
+                _NotifFilterChip(
+                  label: 'Sécurité',
+                  selected: _filter == _NotifCategory.security,
+                  onTap: () =>
+                      setState(() => _filter = _NotifCategory.security),
+                ),
+                const SizedBox(width: 8),
+                _NotifFilterChip(
+                  label: 'Offres',
+                  selected: _filter == _NotifCategory.offers,
+                  onTap: () =>
+                      setState(() => _filter = _NotifCategory.offers),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (visible.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(top: 40),
+              child: EmptyState(
+                icon: Icons.notifications_off_outlined,
+                title: 'Aucune notification',
+                message: 'Nous vous tiendrons informé des mises à jour '
+                    'importantes de vos commandes.',
+              ),
+            )
+          else
+            for (final group in groups) ...[
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8, top: 4),
+                child: Text(
+                  group,
+                  style: const TextStyle(
+                      color: GabColors.muted, fontWeight: FontWeight.w700),
+                ),
+              ),
+              for (final item in visible.where((n) => n.dayGroup == group))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _NotificationCard(
+                    item: item,
+                    onTap: () => _openNotification(item),
+                  ),
+                ),
+            ],
+        ],
+      ),
+    );
+  }
+}
+
+class _NotifFilterChip extends StatelessWidget {
+  const _NotifFilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: selected ? GabColors.primary : GabColors.softGreen,
+        borderRadius: BorderRadius.circular(999),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: selected ? Colors.white : GabColors.muted,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
+class _NotificationCard extends StatelessWidget {
+  const _NotificationCard({required this.item, required this.onTap});
+
+  final _NotificationItem item;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: item.promo ? GabColors.primary : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: item.promo
+                  ? null
+                  : Border.all(color: GabColors.outlineVariant),
+            ),
+            child: Stack(
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: item.iconBackground,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(item.icon, color: item.iconColor, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  item.title,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                    color: item.promo
+                                        ? Colors.white
+                                        : GabColors.ink,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                item.time.contains(',')
+                                    ? item.time.split(', ').last
+                                    : item.time,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: item.promo
+                                      ? Colors.white70
+                                      : GabColors.muted,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            item.body,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: item.promo
+                                  ? Colors.white.withValues(alpha: 0.9)
+                                  : GabColors.muted,
+                            ),
+                          ),
+                          if (item.actionLabel != null) ...[
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  item.actionLabel!,
+                                  style: const TextStyle(
+                                    color: GabColors.primary,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.arrow_forward,
+                                    size: 14, color: GabColors.primary),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                if (item.unread)
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: GabColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
+enum _HelpCategory { medications, delivery, payments, account }
+
+extension on _HelpCategory {
+  String get label => switch (this) {
+        _HelpCategory.medications => 'Médicaments',
+        _HelpCategory.delivery => 'Livraison',
+        _HelpCategory.payments => 'Paiements',
+        _HelpCategory.account => 'Compte',
+      };
+
+  String get hint => switch (this) {
+        _HelpCategory.medications => 'Disponibilité, posologie',
+        _HelpCategory.delivery => 'Suivi, délais',
+        _HelpCategory.payments => 'Facturation, Airtel',
+        _HelpCategory.account => 'Sécurité, profil',
+      };
+
+  IconData get icon => switch (this) {
+        _HelpCategory.medications => Icons.medication,
+        _HelpCategory.delivery => Icons.local_shipping,
+        _HelpCategory.payments => Icons.payments,
+        _HelpCategory.account => Icons.shield,
+      };
+
+  Color get background => switch (this) {
+        _HelpCategory.medications => GabColors.primary,
+        _HelpCategory.delivery => const Color(0xFFA8F4B9),
+        _HelpCategory.payments => const Color(0xFFFFDEA7),
+        _HelpCategory.account => const Color(0xFFD7E6DE),
+      };
+
+  Color get foreground => switch (this) {
+        _HelpCategory.medications => Colors.white,
+        _HelpCategory.delivery => const Color(0xFF00210D),
+        _HelpCategory.payments => const Color(0xFF5E4200),
+        _HelpCategory.account => const Color(0xFF3F4940),
+      };
+}
+
+class _FaqEntry {
+  const _FaqEntry(
+      {required this.question, required this.answer, required this.category});
+
+  final String question;
+  final String answer;
+  final _HelpCategory category;
+}
+
+const _faqEntries = <_FaqEntry>[
+  _FaqEntry(
+    question: 'Quels sont les délais de livraison à Libreville ?',
+    answer: 'Les livraisons dans le Grand Libreville s\'effectuent '
+        'généralement entre 1h et 3h après la validation de votre '
+        'commande.',
+    category: _HelpCategory.delivery,
+  ),
+  _FaqEntry(
+    question: 'Acceptez-vous Airtel Money ?',
+    answer: 'Oui, nous acceptons Airtel Money et Moov Money pour tous '
+        'les règlements instantanés.',
+    category: _HelpCategory.payments,
+  ),
+  _FaqEntry(
+    question: "Comment vérifier la disponibilité d'un médicament ?",
+    answer: 'Utilisez la recherche pour voir le stock en temps réel par '
+        'pharmacie avant de commander.',
+    category: _HelpCategory.medications,
+  ),
+  _FaqEntry(
+    question: 'Puis-je changer la posologie indiquée par le pharmacien ?',
+    answer: 'Non, seul un professionnel de santé peut modifier une '
+        'posologie. Contactez votre pharmacien ou votre médecin.',
+    category: _HelpCategory.medications,
+  ),
+  _FaqEntry(
+    question: 'Comment modifier mon numéro ou mon mot de passe ?',
+    answer: 'Rendez-vous dans Profil puis Sécurité et paramètres pour '
+        'mettre à jour vos identifiants.',
+    category: _HelpCategory.account,
+  ),
+  _FaqEntry(
+    question: 'Que faire si mon paiement échoue ?',
+    answer: 'Vérifiez votre solde Mobile Money puis reprenez le '
+        'paiement depuis Paiements et remboursements.',
+    category: _HelpCategory.payments,
+  ),
+];
+
+enum _TicketStatus { open, resolved }
+
+enum _TicketPriority { low, normal, high }
+
+extension on _TicketPriority {
+  String get label => switch (this) {
+        _TicketPriority.low => 'Basse',
+        _TicketPriority.normal => 'Normale',
+        _TicketPriority.high => 'Haute',
+      };
+
+  Color get color => switch (this) {
+        _TicketPriority.low => GabColors.muted,
+        _TicketPriority.normal => GabColors.secondary,
+        _TicketPriority.high => GabColors.danger,
+      };
+}
+
+class _SupportTicket {
+  _SupportTicket({
+    required this.reference,
+    required this.subject,
+    required this.status,
+    required this.priority,
+    required this.lastActivity,
+    this.linkedOrder,
+  });
+
+  final String reference;
+  final String subject;
+  _TicketStatus status;
+  final _TicketPriority priority;
+  final String lastActivity;
+  final String? linkedOrder;
+}
+
+List<_SupportTicket> _buildDemoTickets() => [
+      _SupportTicket(
+        reference: 'TK-45920',
+        subject: 'Retard de livraison - Akanda',
+        status: _TicketStatus.open,
+        priority: _TicketPriority.high,
+        lastActivity: 'Mis à jour il y a 2h',
+        linkedOrder: 'GP-2607-4190',
+      ),
+      _SupportTicket(
+        reference: 'TK-45812',
+        subject: 'Erreur de dosage - Paracétamol',
+        status: _TicketStatus.resolved,
+        priority: _TicketPriority.normal,
+        lastActivity: 'Le 12 mai 2026',
+        linkedOrder: 'GP-2606-3980',
+      ),
+    ];
+
+class HelpCenterScreen extends StatefulWidget {
+  const HelpCenterScreen({super.key});
+
+  @override
+  State<HelpCenterScreen> createState() => _HelpCenterScreenState();
+}
+
+class _HelpCenterScreenState extends State<HelpCenterScreen> {
+  final _searchController = TextEditingController();
+  _HelpCategory? _category;
+  final _tickets = _buildDemoTickets();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<_FaqEntry> get _visibleFaq {
+    final query = _searchController.text.trim().toLowerCase();
+    return _faqEntries.where((faq) {
+      final matchesCategory = _category == null || faq.category == _category;
+      final matchesQuery = query.isEmpty ||
+          faq.question.toLowerCase().contains(query) ||
+          faq.answer.toLowerCase().contains(query);
+      return matchesCategory && matchesQuery;
+    }).toList();
+  }
+
+  Future<void> _openTicketForm() async {
+    final subjectController = TextEditingController();
+    final messageController = TextEditingController();
+    String? linkedOrder;
+    final created = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        ),
+        child: StatefulBuilder(
+          builder: (context, setSheetState) => SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Créer une demande',
+                  style:
+                      TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 16),
+                const Text('Sujet',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: subjectController,
+                  decoration: const InputDecoration(
+                    hintText: 'Ex : Retard de livraison',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text('Message',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: messageController,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    hintText: 'Décrivez votre problème...',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text('Commande liée (optionnel)',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String?>(
+                  initialValue: linkedOrder,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.receipt_long_outlined),
+                  ),
+                  items: [
+                    const DropdownMenuItem(
+                        value: null, child: Text('Aucune commande liée')),
+                    for (final ref in _orderDetails.keys)
+                      DropdownMenuItem(value: ref, child: Text('#$ref')),
+                  ],
+                  onChanged: (value) =>
+                      setSheetState(() => linkedOrder = value),
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  onPressed: () =>
+                      ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Pièce jointe indisponible en démonstration.',
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.attach_file),
+                  label: const Text('Ajouter une pièce jointe'),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () {
+                      if (subjectController.text.trim().isEmpty ||
+                          messageController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Indiquez un sujet et un message.',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+                      Navigator.pop(context, true);
+                    },
+                    child: const Text('Envoyer'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    if (created ?? false) {
+      final subject = subjectController.text.trim();
+      final message = messageController.text.trim();
+      setState(() {
+        _tickets.insert(
+          0,
+          _SupportTicket(
+            reference: 'TK-${46000 + _tickets.length}',
+            subject: subject,
+            status: _TicketStatus.open,
+            priority: _TicketPriority.normal,
+            lastActivity: "À l'instant",
+            linkedOrder: linkedOrder,
+          ),
+        );
+      });
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ConversationScreen(
+            initialSubject: subject,
+            initialMessage: message,
+          ),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(title)),
+        backgroundColor: GabColors.background,
+        floatingActionButton: FloatingActionButton(
+          onPressed: _openTicketForm,
+          backgroundColor: GabColors.primary,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18)),
+          child: const Icon(Icons.add_comment, color: Colors.white),
+        ),
+        appBar: AppBar(
+          title: const Text("Centre d'aide"),
+          actions: [
+            IconButton(
+              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Options indisponibles en démonstration.'),
+                ),
+              ),
+              icon: const Icon(Icons.more_vert),
+            ),
+          ],
+        ),
         body: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
           children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    Icon(icon, color: GabColors.primary, size: 52),
-                    const SizedBox(height: 16),
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.headlineSmall,
-                      textAlign: TextAlign.center,
+            TextField(
+              controller: _searchController,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search),
+                hintText: 'Comment pouvons-nous vous aider ?',
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Catégories',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                if (_category != null)
+                  TextButton(
+                    onPressed: () => setState(() => _category = null),
+                    child: const Text('Voir tout'),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            GridView(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                mainAxisExtent: 128,
+              ),
+              children: [
+                for (final category in _HelpCategory.values)
+                  _CategoryTile(
+                    category: category,
+                    selected: _category == category,
+                    onTap: () => setState(
+                      () => _category = _category == category
+                          ? null
+                          : category,
                     ),
-                    const SizedBox(height: 10),
-                    Text(description, textAlign: TextAlign.center),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            const Text('FAQ Populaires',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            if (_visibleFaq.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Text(
+                  'Aucun résultat pour cette recherche.',
+                  style: TextStyle(color: GabColors.muted),
+                ),
+              )
+            else
+              for (final faq in _visibleFaq)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _FaqTile(faq: faq),
+                ),
+            const SizedBox(height: 24),
+            const Text('Mes tickets',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            for (final ticket in _tickets)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _TicketTile(
+                  ticket: ticket,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ConversationScreen(
+                        ticketReference: ticket.reference,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+}
+
+class _CategoryTile extends StatelessWidget {
+  const _CategoryTile({
+    required this.category,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final _HelpCategory category;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: selected ? GabColors.primary : GabColors.outlineVariant,
+                width: selected ? 1.6 : 1,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: category.background,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(category.icon,
+                      color: category.foreground, size: 18),
+                ),
+                const SizedBox(height: 8),
+                Text(category.label,
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                Text(category.hint,
+                    style: const TextStyle(
+                        color: GabColors.muted, fontSize: 11)),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
+class _FaqTile extends StatefulWidget {
+  const _FaqTile({required this.faq});
+
+  final _FaqEntry faq;
+
+  @override
+  State<_FaqTile> createState() => _FaqTileState();
+}
+
+class _FaqTileState extends State<_FaqTile> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: GabColors.outlineVariant),
+        ),
+        child: Column(
+          children: [
+            InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => setState(() => _expanded = !_expanded),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(widget.faq.question,
+                          style:
+                              const TextStyle(fontWeight: FontWeight.w600)),
+                    ),
+                    Icon(
+                      _expanded ? Icons.expand_less : Icons.expand_more,
+                      color: GabColors.muted,
+                    ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            const Card(
-              child: ListTile(
-                leading: Icon(Icons.info_outline),
-                title: Text('Données de démonstration'),
-                subtitle: Text(
-                  'Cet écran sera alimenté par l’API mobile Django. Aucune règle métier n’est calculée localement.',
+            if (_expanded)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(widget.faq.answer,
+                      style: const TextStyle(
+                          color: GabColors.muted, fontSize: 13)),
+                ),
+              ),
+          ],
+        ),
+      );
+}
+
+class _TicketTile extends StatelessWidget {
+  const _TicketTile({required this.ticket, required this.onTap});
+
+  final _SupportTicket ticket;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolved = ticket.status == _TicketStatus.resolved;
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Opacity(
+          opacity: resolved ? 0.8 : 1,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: GabColors.outlineVariant),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text('#${ticket.reference}',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700)),
+                          const SizedBox(width: 8),
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: resolved
+                                  ? GabColors.outlineVariant
+                                      .withValues(alpha: 0.4)
+                                  : const Color(0xFF9DF6B2),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              child: Text(
+                                resolved ? 'RÉSOLU' : 'OUVERT',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: resolved
+                                      ? GabColors.muted
+                                      : const Color(0xFF00210D),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              color:
+                                  ticket.priority.color.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              child: Text(
+                                ticket.priority.label,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: ticket.priority.color,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(ticket.subject,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: GabColors.muted)),
+                      Text(ticket.lastActivity,
+                          style: const TextStyle(
+                              color: GabColors.muted, fontSize: 11)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: GabColors.muted),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+enum _ChatKind { patientText, agentText, systemInfo, agentProduct }
+
+class _ChatMessage {
+  _ChatMessage.patient(this.text, this.time)
+      : kind = _ChatKind.patientText,
+        productName = null,
+        productPrice = null;
+
+  _ChatMessage.agent(this.text, this.time)
+      : kind = _ChatKind.agentText,
+        productName = null,
+        productPrice = null;
+
+  _ChatMessage.info(this.text)
+      : kind = _ChatKind.systemInfo,
+        time = '',
+        productName = null,
+        productPrice = null;
+
+  _ChatMessage.product(this.productName, this.productPrice, this.time)
+      : kind = _ChatKind.agentProduct,
+        text = '';
+
+  final _ChatKind kind;
+  final String text;
+  final String time;
+  final String? productName;
+  final int? productPrice;
+}
+
+class _SupportThread {
+  _SupportThread({
+    required this.agentName,
+    required this.agentSubtitle,
+    required this.status,
+    required this.messages,
+  });
+
+  final String agentName;
+  final String agentSubtitle;
+  _TicketStatus status;
+  final List<_ChatMessage> messages;
+}
+
+final Map<String, _SupportThread Function()> _supportThreadBuilders = {
+  'TK-45920': () => _SupportThread(
+        agentName: 'Support Livraison',
+        agentSubtitle: 'En ligne • Paul K.',
+        status: _TicketStatus.open,
+        messages: [
+          _ChatMessage.agent(
+            'Bonjour ! Je vois que votre commande #GP-2607-4190 est en '
+            'cours de livraison. Comment puis-je vous aider ?',
+            '15:52',
+          ),
+          _ChatMessage.patient(
+            'Bonjour, la livraison devait arriver à 15:50 mais je n\'ai '
+            'encore rien reçu.',
+            '15:58',
+          ),
+          _ChatMessage.agent(
+            'Je suis désolé pour ce retard. Je vérifie avec le livreur '
+            'Jean M. tout de suite.',
+            '16:00',
+          ),
+          _ChatMessage.agent(
+            'Le livreur signale un trafic dense sur la route d\'Akanda. '
+            'Nouvelle heure d\'arrivée estimée : 16:20.',
+            '16:02',
+          ),
+        ],
+      ),
+  'TK-45812': () => _SupportThread(
+        agentName: 'Support Pharmacie',
+        agentSubtitle: 'Dr. Mireille',
+        status: _TicketStatus.resolved,
+        messages: [
+          _ChatMessage.patient(
+            'Bonjour, je pense qu\'il y a une erreur sur la posologie '
+            'indiquée pour le Paracétamol 500mg de ma dernière commande.',
+            '09:15',
+          ),
+          _ChatMessage.agent(
+            'Bonjour ! Merci de votre signalement. Pouvez-vous me '
+            'préciser la posologie indiquée sur l\'étiquette ?',
+            '09:17',
+          ),
+          _ChatMessage.patient(
+            'Il est indiqué 3 comprimés toutes les 4 heures, ce qui me '
+            'semble élevé.',
+            '09:19',
+          ),
+          _ChatMessage.info(
+            'Cette conversation est sécurisée par Gab\'Pharma. Vos '
+            'données médicales restent confidentielles.',
+          ),
+          _ChatMessage.agent(
+            'Vous avez raison, c\'est une erreur d\'étiquetage. La '
+            'posologie correcte est 1 à 2 comprimés toutes les 6 heures, '
+            'sans dépasser 8 comprimés par jour. Nous corrigeons la '
+            'fiche produit.',
+            '09:24',
+          ),
+          _ChatMessage.agent(
+            'Ticket marqué comme résolu. N\'hésitez pas si vous avez '
+            "d'autres questions.",
+            '09:25',
+          ),
+        ],
+      ),
+};
+
+_SupportThread _defaultSupportThread() => _SupportThread(
+      agentName: 'Support Pharmacie',
+      agentSubtitle: 'En ligne • Dr. Mireille',
+      status: _TicketStatus.open,
+      messages: [
+        _ChatMessage.agent(
+          'Bonjour ! Comment puis-je vous aider avec votre ordonnance '
+          "aujourd'hui ?",
+          '09:15',
+        ),
+        _ChatMessage.patient(
+          'Bonjour. Je voulais savoir si le médicament "Dolirhume" est '
+          'disponible à la pharmacie du centre-ville ?',
+          '09:17',
+        ),
+        _ChatMessage.info(
+          'Cette conversation est sécurisée par Gab\'Pharma. Vos '
+          'données médicales restent confidentielles.',
+        ),
+        _ChatMessage.agent(
+          'Oui, nous en avons encore en stock. Souhaitez-vous que je '
+          'vous mette une boîte de côté pour votre passage ?',
+          '09:20',
+        ),
+        _ChatMessage.product('Dolirhume Paracétamol', 2500, '09:21'),
+        _ChatMessage.agent(
+          'Ticket créé et transmis à notre équipe. Nous vous répondrons '
+          'sous peu.',
+          '09:23',
+        ),
+      ],
+    );
+
+class ConversationScreen extends StatefulWidget {
+  const ConversationScreen({
+    this.ticketReference,
+    this.initialSubject,
+    this.initialMessage,
+    super.key,
+  });
+
+  final String? ticketReference;
+  final String? initialSubject;
+  final String? initialMessage;
+
+  @override
+  State<ConversationScreen> createState() => _ConversationScreenState();
+}
+
+class _ConversationScreenState extends State<ConversationScreen> {
+  late final _SupportThread _thread;
+  final _inputController = TextEditingController();
+  final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    final builder = widget.ticketReference == null
+        ? null
+        : _supportThreadBuilders[widget.ticketReference];
+    if (builder != null) {
+      _thread = builder();
+    } else if (widget.initialMessage != null) {
+      _thread = _SupportThread(
+        agentName: "Support Gab'Pharma",
+        agentSubtitle: 'Équipe support',
+        status: _TicketStatus.open,
+        messages: [
+          _ChatMessage.patient(widget.initialMessage!, _now()),
+          _ChatMessage.info(
+            'Cette conversation est sécurisée par Gab\'Pharma. Vos '
+            'données médicales restent confidentielles.',
+          ),
+          _ChatMessage.agent(
+            'Merci, votre demande a bien été transmise à notre équipe '
+            'support. Nous vous répondrons sous peu.',
+            _now(),
+          ),
+        ],
+      );
+    } else {
+      _thread = _defaultSupportThread();
+    }
+  }
+
+  @override
+  void dispose() {
+    _inputController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  String _now() {
+    final now = DateTime.now();
+    return '${now.hour.toString().padLeft(2, '0')}:'
+        '${now.minute.toString().padLeft(2, '0')}';
+  }
+
+  void _send() {
+    final text = _inputController.text.trim();
+    if (text.isEmpty) return;
+    final reopened = _thread.status == _TicketStatus.resolved;
+    setState(() {
+      _thread.messages.add(_ChatMessage.patient(text, _now()));
+      if (reopened) _thread.status = _TicketStatus.open;
+    });
+    _inputController.clear();
+    if (reopened) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Ticket rouvert — votre message a été envoyé.'),
+      ));
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: GabColors.background,
+        appBar: AppBar(
+          titleSpacing: 0,
+          title: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: GabColors.softGreen,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.support_agent,
+                    color: GabColors.primary),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _thread.agentName,
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w700),
+                    ),
+                    Text(
+                      _thread.agentSubtitle,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: GabColors.secondary,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            IconButton(
+              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content:
+                      Text('Appel avec le support indisponible en démonstration.'),
+                ),
+              ),
+              icon: const Icon(Icons.call),
+            ),
+            IconButton(
+              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Options indisponibles en démonstration.'),
+                ),
+              ),
+              icon: const Icon(Icons.more_vert),
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            if (_thread.status == _TicketStatus.resolved)
+              Container(
+                width: double.infinity,
+                color: GabColors.softGreen,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: const Text(
+                  'Ticket résolu — envoyez un message pour le rouvrir.',
+                  style: TextStyle(
+                      color: GabColors.secondary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12),
+                ),
+              ),
+            Expanded(
+              child: ListView(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(20),
+                children: [
+                  Center(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: GabColors.softGreen,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 4),
+                        child: Text(
+                          "Aujourd'hui",
+                          style: TextStyle(
+                              fontSize: 11, color: GabColors.muted),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  for (final message in _thread.messages)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _ChatBubble(message: message),
+                    ),
+                ],
+              ),
+            ),
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      onPressed: () =>
+                          ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Pièces jointes indisponibles en démonstration.',
+                          ),
+                        ),
+                      ),
+                      icon: const Icon(Icons.add_circle_outline,
+                          color: GabColors.primary),
+                    ),
+                    Expanded(
+                      child: Container(
+                        constraints: const BoxConstraints(minHeight: 44),
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: GabColors.outlineVariant),
+                        ),
+                        child: TextField(
+                          controller: _inputController,
+                          minLines: 1,
+                          maxLines: 4,
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: const InputDecoration(
+                            hintText: 'Votre message...',
+                            filled: false,
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            errorBorder: InputBorder.none,
+                            disabledBorder: InputBorder.none,
+                            isCollapsed: true,
+                            contentPadding: EdgeInsets.symmetric(vertical: 10),
+                          ),
+                          onSubmitted: (_) => _send(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: _send,
+                      icon: const Icon(Icons.send),
+                      style: IconButton.styleFrom(
+                        backgroundColor: GabColors.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            if (actionLabel != null) ...[
-              const SizedBox(height: 20),
-              FilledButton(
-                onPressed: nextRoute == null
-                    ? () {}
-                    : () => Navigator.pushNamed(context, nextRoute!),
-                child: Text(actionLabel!),
+          ],
+        ),
+      );
+}
+
+class _ChatBubble extends StatelessWidget {
+  const _ChatBubble({required this.message});
+
+  final _ChatMessage message;
+
+  @override
+  Widget build(BuildContext context) {
+    if (message.kind == _ChatKind.systemInfo) {
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: GabColors.outlineVariant),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.info_outline,
+                  color: GabColors.secondary, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  message.text,
+                  style: const TextStyle(
+                      color: GabColors.muted, fontSize: 13),
+                ),
               ),
             ],
+          ),
+        ),
+      );
+    }
+    if (message.kind == _ChatKind.agentProduct) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 240),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18).copyWith(
+                    topLeft: const Radius.circular(4),
+                  ),
+                  border: Border.all(color: GabColors.outlineVariant),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      height: 90,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: GabColors.softGreen,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.medication,
+                          color: GabColors.primary, size: 32),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 8, 4, 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(message.productName ?? '',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700, fontSize: 13)),
+                          Text(
+                            '${message.productPrice} FCFA'
+                                .replaceAllMapped(
+                                    RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+                                    (m) => '${m[1]} '),
+                            style: const TextStyle(
+                                color: GabColors.primary,
+                                fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 6),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pushNamed(
+                                  context, '/medication'),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 8),
+                                minimumSize: Size.zero,
+                              ),
+                              child: const Text('Voir le produit',
+                                  style: TextStyle(fontSize: 12)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Text(message.time,
+                    style: const TextStyle(
+                        color: GabColors.muted, fontSize: 11)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    final isPatient = message.kind == _ChatKind.patientText;
+    return Align(
+      alignment: isPatient ? Alignment.centerRight : Alignment.centerLeft,
+      child: Column(
+        crossAxisAlignment:
+            isPatient ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.75,
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: isPatient ? GabColors.primary : Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(18),
+                  topRight: const Radius.circular(18),
+                  bottomLeft:
+                      Radius.circular(isPatient ? 18 : 4),
+                  bottomRight:
+                      Radius.circular(isPatient ? 4 : 18),
+                ),
+                border: isPatient
+                    ? null
+                    : Border.all(color: GabColors.outlineVariant),
+              ),
+              child: Text(
+                message.text,
+                style: TextStyle(
+                  color: isPatient ? Colors.white : GabColors.ink,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(message.time,
+                    style: const TextStyle(
+                        color: GabColors.muted, fontSize: 11)),
+                if (isPatient) ...[
+                  const SizedBox(width: 4),
+                  const Icon(Icons.done_all,
+                      size: 13, color: GabColors.primary),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class SecurityScreen extends StatefulWidget {
+  const SecurityScreen({super.key});
+
+  @override
+  State<SecurityScreen> createState() => _SecurityScreenState();
+}
+
+class _SecurityScreenState extends State<SecurityScreen> {
+  bool _biometrics = true;
+  bool _orderNotifs = true;
+  bool _promoNotifs = false;
+  bool _securityNotifs = true;
+
+  Future<void> _changePassword() async {
+    final currentController = TextEditingController();
+    final newController = TextEditingController();
+    final confirmController = TextEditingController();
+    var obscure = true;
+
+    bool hasMinLength(String v) => v.length >= 8;
+    bool hasUpperAndDigit(String v) =>
+        RegExp(r'[A-Z]').hasMatch(v) && RegExp(r'[0-9]').hasMatch(v);
+    bool hasSpecialChar(String v) =>
+        RegExp(r'''[!@#$%^&*(),.?":{}|<>_\-]''').hasMatch(v);
+
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        ),
+        child: StatefulBuilder(
+          builder: (context, setSheetState) => SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Changer le mot de passe',
+                  style:
+                      TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: currentController,
+                  obscureText: obscure,
+                  decoration: const InputDecoration(
+                    labelText: 'Mot de passe actuel',
+                    prefixIcon: Icon(Icons.lock_outline),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: newController,
+                  obscureText: obscure,
+                  onChanged: (_) => setSheetState(() {}),
+                  decoration: const InputDecoration(
+                    labelText: 'Nouveau mot de passe',
+                    prefixIcon: Icon(Icons.lock_reset),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _RuleRow(
+                    label: 'Au moins 8 caractères',
+                    ok: hasMinLength(newController.text)),
+                _RuleRow(
+                    label: 'Une majuscule et un chiffre',
+                    ok: hasUpperAndDigit(newController.text)),
+                _RuleRow(
+                    label: 'Un caractère spécial',
+                    ok: hasSpecialChar(newController.text)),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: confirmController,
+                  obscureText: obscure,
+                  onChanged: (_) => setSheetState(() {}),
+                  decoration: const InputDecoration(
+                    labelText: 'Confirmer le nouveau mot de passe',
+                    prefixIcon: Icon(Icons.lock_reset),
+                  ),
+                ),
+                CheckboxListTile(
+                  value: !obscure,
+                  onChanged: (v) =>
+                      setSheetState(() => obscure = !(v ?? false)),
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: const Text('Afficher les mots de passe'),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () {
+                      final newPwd = newController.text;
+                      if (currentController.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content:
+                                Text('Indiquez votre mot de passe actuel.'),
+                          ),
+                        );
+                        return;
+                      }
+                      if (!hasMinLength(newPwd) ||
+                          !hasUpperAndDigit(newPwd) ||
+                          !hasSpecialChar(newPwd)) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Le nouveau mot de passe ne respecte pas '
+                              'les règles ci-dessus.',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+                      if (newPwd != confirmController.text) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'La confirmation ne correspond pas au '
+                              'nouveau mot de passe.',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+                      Navigator.pop(context, true);
+                    },
+                    child: const Text('Enregistrer'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    currentController.dispose();
+    newController.dispose();
+    confirmController.dispose();
+    if ((saved ?? false) && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Mot de passe mis à jour.'),
+      ));
+    }
+  }
+
+  Future<void> _logout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Se déconnecter ?'),
+        content: const Text(
+          'Vous devrez vous reconnecter avec votre identifiant et le '
+          'code de vérification.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: GabColors.danger),
+            child: const Text('Déconnexion'),
+          ),
+        ],
+      ),
+    );
+    if ((confirmed ?? false) && mounted) {
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: GabColors.background,
+        appBar: AppBar(title: const Text('Sécurité')),
+        body: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: GabColors.softGreen,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  const CircleAvatar(
+                    radius: 26,
+                    backgroundColor: GabColors.primary,
+                    child: Text('GN',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700)),
+                  ),
+                  const SizedBox(width: 14),
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Grâce Nziengui',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 16)),
+                      Text('Libreville, Gabon',
+                          style: TextStyle(color: GabColors.muted)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            _SettingsGroup(
+              title: 'Sécurité du compte',
+              children: [
+                _SettingsRow(
+                  icon: Icons.lock_outline,
+                  label: 'Changer le mot de passe',
+                  onTap: _changePassword,
+                ),
+                _SettingsToggleRow(
+                  icon: Icons.fingerprint,
+                  label: 'Touch ID / Face ID',
+                  subtitle: 'Sera activé une fois le capteur biométrique '
+                      "connecté à l'application.",
+                  value: _biometrics,
+                  onChanged: (v) => setState(() => _biometrics = v),
+                ),
+                _SettingsRow(
+                  icon: Icons.smartphone,
+                  label: 'Session active',
+                  subtitle: 'Cet appareil • Connecté maintenant',
+                  onTap: null,
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Text(
+                    "L'authentification à deux facteurs (2FA) est "
+                    'obligatoire et ne peut pas être désactivée.',
+                    style: TextStyle(color: GabColors.muted, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _SettingsGroup(
+              title: 'Légal et confidentialité',
+              children: [
+                _SettingsRow(
+                  icon: Icons.shield_outlined,
+                  label: 'Politique de confidentialité',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const PrivacyPolicyScreen()),
+                  ),
+                ),
+                _SettingsRow(
+                  icon: Icons.gavel_outlined,
+                  label: 'Conditions générales',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const TermsScreen()),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _SettingsGroup(
+              title: 'Préférences de notifications',
+              children: [
+                _SettingsToggleRow(
+                  icon: Icons.receipt_long_outlined,
+                  label: 'Commandes et livraison',
+                  value: _orderNotifs,
+                  onChanged: (v) => setState(() => _orderNotifs = v),
+                ),
+                _SettingsToggleRow(
+                  icon: Icons.local_offer_outlined,
+                  label: 'Offres et promotions',
+                  value: _promoNotifs,
+                  onChanged: (v) => setState(() => _promoNotifs = v),
+                ),
+                _SettingsToggleRow(
+                  icon: Icons.security,
+                  label: 'Alertes de sécurité',
+                  value: _securityNotifs,
+                  onChanged: (v) => setState(() => _securityNotifs = v),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _logout,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: GabColors.danger,
+                  side: const BorderSide(color: GabColors.danger),
+                  backgroundColor: const Color(0xFFFFDAD6),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                icon: const Icon(Icons.logout),
+                label: const Text('Déconnexion'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Center(
+              child: Text(
+                'Version 2.4.1 (Build 108)',
+                style: TextStyle(color: GabColors.muted, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _RuleRow extends StatelessWidget {
+  const _RuleRow({required this.label, required this.ok});
+
+  final String label;
+  final bool ok;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          children: [
+            Icon(ok ? Icons.check_circle : Icons.radio_button_unchecked,
+                size: 16,
+                color: ok ? GabColors.primary : GabColors.muted),
+            const SizedBox(width: 8),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 12,
+                    color: ok ? GabColors.primary : GabColors.muted)),
+          ],
+        ),
+      );
+}
+
+class _SettingsGroup extends StatelessWidget {
+  const _SettingsGroup({required this.title, required this.children});
+
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: GabColors.outlineVariant),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: GabColors.secondary,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...children,
+          ],
+        ),
+      );
+}
+
+class _SettingsRow extends StatelessWidget {
+  const _SettingsRow({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.subtitle,
+  });
+
+  final IconData icon;
+  final String label;
+  final String? subtitle;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: GabColors.softGreen,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: GabColors.primary, size: 18),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: const TextStyle(fontSize: 15)),
+                    if (subtitle != null)
+                      Text(subtitle!,
+                          style: const TextStyle(
+                              color: GabColors.muted, fontSize: 12)),
+                  ],
+                ),
+              ),
+              if (onTap != null)
+                const Icon(Icons.chevron_right, color: GabColors.muted),
+            ],
+          ),
+        ),
+      );
+}
+
+class _SettingsToggleRow extends StatelessWidget {
+  const _SettingsToggleRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    this.subtitle,
+  });
+
+  final IconData icon;
+  final String label;
+  final String? subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: GabColors.softGreen,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: GabColors.primary, size: 18),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: const TextStyle(fontSize: 15)),
+                  if (subtitle != null)
+                    Text(subtitle!,
+                        style: const TextStyle(
+                            color: GabColors.muted, fontSize: 12)),
+                ],
+              ),
+            ),
+            Switch(
+              value: value,
+              onChanged: onChanged,
+              activeThumbColor: Colors.white,
+              activeTrackColor: GabColors.primary,
+            ),
           ],
         ),
       );
