@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'auth_screens.dart' show TermsScreen, PrivacyPolicyScreen;
+import 'core/auth_session.dart';
 import 'core/theme.dart';
 import 'widgets.dart' show EmptyState;
 
@@ -29,8 +30,7 @@ class MedicationDetailScreen extends StatefulWidget {
   const MedicationDetailScreen({super.key});
 
   @override
-  State<MedicationDetailScreen> createState() =>
-      _MedicationDetailScreenState();
+  State<MedicationDetailScreen> createState() => _MedicationDetailScreenState();
 }
 
 class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
@@ -84,8 +84,8 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
       final emptyAndContinue = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          icon: const Icon(Icons.warning_amber_rounded,
-              color: GabColors.danger),
+          icon:
+              const Icon(Icons.warning_amber_rounded, color: GabColors.danger),
           title: const Text("Panier d'une autre pharmacie"),
           content: const Text(
             'Votre panier contient déjà des articles de la Pharmacie du '
@@ -132,8 +132,8 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
                 children: [
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back,
-                        color: GabColors.primary),
+                    icon:
+                        const Icon(Icons.arrow_back, color: GabColors.primary),
                   ),
                   const Text(
                     'Détails',
@@ -145,13 +145,10 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
                   ),
                   const Spacer(),
                   IconButton(
-                    onPressed: () =>
-                        setState(() => _isFavorite = !_isFavorite),
+                    onPressed: () => setState(() => _isFavorite = !_isFavorite),
                     icon: Icon(
                       _isFavorite ? Icons.favorite : Icons.favorite_border,
-                      color: _isFavorite
-                          ? GabColors.danger
-                          : GabColors.primary,
+                      color: _isFavorite ? GabColors.danger : GabColors.primary,
                     ),
                   ),
                   IconButton(
@@ -174,8 +171,8 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                     decoration: const BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.vertical(
-                          bottom: Radius.circular(32)),
+                      borderRadius:
+                          BorderRadius.vertical(bottom: Radius.circular(32)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,8 +255,7 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
                               ),
                             ),
                             Text('${_pharmacies.length} trouvées',
-                                style:
-                                    const TextStyle(color: GabColors.muted)),
+                                style: const TextStyle(color: GabColors.muted)),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -285,8 +281,8 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
             DecoratedBox(
               decoration: const BoxDecoration(
                 color: Colors.white,
-                border: Border(
-                    top: BorderSide(color: GabColors.outlineVariant)),
+                border:
+                    Border(top: BorderSide(color: GabColors.outlineVariant)),
               ),
               child: SafeArea(
                 top: false,
@@ -424,8 +420,7 @@ class _PharmacyOptionCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               '${pharmacy.location} • ${pharmacy.distance}',
-                              style:
-                                  const TextStyle(color: GabColors.muted),
+                              style: const TextStyle(color: GabColors.muted),
                             ),
                           ),
                         ],
@@ -568,7 +563,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       children: [
                         _StepDot(number: '1', label: 'Livraison', active: true),
                         Container(
-                            width: 32, height: 2, color: GabColors.outlineVariant),
+                            width: 32,
+                            height: 2,
+                            color: GabColors.outlineVariant),
                         const _StepDot(
                             number: '2', label: 'Paiement', active: false),
                       ],
@@ -603,8 +600,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           const SizedBox(height: 14),
                           const Text(
                             "Précisions sur l'adresse (Quartier, Immeuble, Repères)",
-                            style: TextStyle(
-                                fontSize: 12, color: GabColors.muted),
+                            style:
+                                TextStyle(fontSize: 12, color: GabColors.muted),
                           ),
                           const SizedBox(height: 8),
                           TextField(
@@ -628,8 +625,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             title: 'Livraison à domicile',
                             subtitle: 'Sous 2 à 4 heures',
                             trailing: '1 500 FCFA',
-                            selected:
-                                _deliveryMethod == _DeliveryMethod.home,
+                            selected: _deliveryMethod == _DeliveryMethod.home,
                             onTap: () => setState(
                                 () => _deliveryMethod = _DeliveryMethod.home),
                           ),
@@ -639,10 +635,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             title: 'Retrait en pharmacie',
                             subtitle: 'Prêt en 30 minutes',
                             trailing: 'Gratuit',
-                            selected:
-                                _deliveryMethod == _DeliveryMethod.pickup,
-                            onTap: () => setState(() =>
-                                _deliveryMethod = _DeliveryMethod.pickup),
+                            selected: _deliveryMethod == _DeliveryMethod.pickup,
+                            onTap: () => setState(
+                                () => _deliveryMethod = _DeliveryMethod.pickup),
                           ),
                         ],
                       ),
@@ -707,8 +702,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             title: 'Airtel Money / Moov',
                             selected:
                                 _paymentMethod == _PaymentMethod.mobileMoney,
-                            onTap: () => setState(() => _paymentMethod =
-                                _PaymentMethod.mobileMoney),
+                            onTap: () => setState(() =>
+                                _paymentMethod = _PaymentMethod.mobileMoney),
                           ),
                           const SizedBox(height: 10),
                           _OptionCard(
@@ -779,8 +774,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           ),
                           _SummaryLine('Sous-total', _formatFcfa(_subtotal)),
                           const SizedBox(height: 6),
-                          _SummaryLine('Frais de livraison',
-                              _formatFcfa(_deliveryFee)),
+                          _SummaryLine(
+                              'Frais de livraison', _formatFcfa(_deliveryFee)),
                           const SizedBox(height: 6),
                           _SummaryLine(
                             'Réduction (estimation CNAMGS)',
@@ -836,14 +831,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               itemsTotal: _subtotal,
                               deliveryFee: _deliveryFee,
                               discount: _insuranceReduction,
-                              deliveryLabel: _deliveryMethod ==
-                                      _DeliveryMethod.home
-                                  ? 'Livraison à domicile'
-                                  : 'Retrait en pharmacie',
-                              deliverySubtitle: _deliveryMethod ==
-                                      _DeliveryMethod.home
-                                  ? 'Sous 2 à 4 heures · À domicile'
-                                  : 'Prêt en 30 minutes',
+                              deliveryLabel:
+                                  _deliveryMethod == _DeliveryMethod.home
+                                      ? 'Livraison à domicile'
+                                      : 'Retrait en pharmacie',
+                              deliverySubtitle:
+                                  _deliveryMethod == _DeliveryMethod.home
+                                      ? 'Sous 2 à 4 heures · À domicile'
+                                      : 'Prêt en 30 minutes',
                             ),
                           ),
                         ),
@@ -865,8 +860,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             size: 14, color: GabColors.muted),
                         SizedBox(width: 6),
                         Text('Paiement 100% sécurisé',
-                            style:
-                                TextStyle(color: GabColors.muted, fontSize: 12)),
+                            style: TextStyle(
+                                color: GabColors.muted, fontSize: 12)),
                       ],
                     ),
                   ],
@@ -1048,8 +1043,7 @@ class _OptionCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(title,
-                          style:
-                              const TextStyle(fontWeight: FontWeight.w600)),
+                          style: const TextStyle(fontWeight: FontWeight.w600)),
                       if (subtitle != null)
                         Text(subtitle!,
                             style: const TextStyle(
@@ -1085,9 +1079,8 @@ class _SummaryLine extends StatelessWidget {
           Text(value,
               style: TextStyle(
                 color: valueColor ?? GabColors.muted,
-                fontWeight: valueColor != null
-                    ? FontWeight.w700
-                    : FontWeight.w400,
+                fontWeight:
+                    valueColor != null ? FontWeight.w700 : FontWeight.w400,
               )),
         ],
       );
@@ -1159,7 +1152,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
     // états, comme dans le prototype Stitch — aucune vraie transaction n'a
     // lieu, il n'y a pas de passerelle de paiement branchée.
     final success = Random().nextDouble() > 0.3;
-    setState(() => _simState = success ? _PaySimState.success : _PaySimState.error);
+    setState(
+        () => _simState = success ? _PaySimState.success : _PaySimState.error);
   }
 
   @override
@@ -1212,15 +1206,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
-                            border:
-                                Border.all(color: GabColors.outlineVariant),
+                            border: Border.all(color: GabColors.outlineVariant),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Expanded(
                                     child: Column(
@@ -1244,8 +1236,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                         horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFA8F4B9),
-                                      borderRadius:
-                                          BorderRadius.circular(999),
+                                      borderRadius: BorderRadius.circular(999),
                                     ),
                                     child: Text(
                                       _formatFcfa(widget.total),
@@ -1261,8 +1252,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                 child: Divider(
                                     height: 1, color: GabColors.outlineVariant),
                               ),
-                              _SummaryLine('Articles',
-                                  _formatFcfa(widget.itemsTotal)),
+                              _SummaryLine(
+                                  'Articles', _formatFcfa(widget.itemsTotal)),
                               const SizedBox(height: 6),
                               _SummaryLine(
                                   'Livraison', _formatFcfa(widget.deliveryFee)),
@@ -1363,8 +1354,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                               color: GabColors.softGreen,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                  color: GabColors.primary
-                                      .withValues(alpha: 0.2)),
+                                  color:
+                                      GabColors.primary.withValues(alpha: 0.2)),
                             ),
                             child: _buildMethodDetail(),
                           ),
@@ -1397,8 +1388,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
               child: DecoratedBox(
                 decoration: const BoxDecoration(
                   color: Colors.white,
-                  border: Border(
-                      top: BorderSide(color: GabColors.outlineVariant)),
+                  border:
+                      Border(top: BorderSide(color: GabColors.outlineVariant)),
                 ),
                 child: SafeArea(
                   top: false,
@@ -1716,8 +1707,7 @@ class _PaymentMethodTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(label,
-                        style:
-                            const TextStyle(fontWeight: FontWeight.w600)),
+                        style: const TextStyle(fontWeight: FontWeight.w600)),
                   ],
                 ),
                 if (selected)
@@ -1942,8 +1932,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
                             children: [
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const Text(
                                       'RÉFÉRENCE DE COMMANDE',
@@ -2020,8 +2009,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
                             children: [
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const Text(
                                       'Total payé',
@@ -2092,8 +2080,8 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
                               decoration: BoxDecoration(
                                 color: GabColors.background,
                                 borderRadius: BorderRadius.circular(999),
-                                border: Border.all(
-                                    color: GabColors.outlineVariant),
+                                border:
+                                    Border.all(color: GabColors.outlineVariant),
                               ),
                               child: const Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -2104,10 +2092,11 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
                                   Text.rich(
                                     TextSpan(
                                       style: TextStyle(
-                                          color: GabColors.muted,
-                                          fontSize: 12),
+                                          color: GabColors.muted, fontSize: 12),
                                       children: [
-                                        TextSpan(text: "Besoin d'aide ? Appelez le "),
+                                        TextSpan(
+                                            text:
+                                                "Besoin d'aide ? Appelez le "),
                                         TextSpan(
                                           text: '011 70 70 70',
                                           style: TextStyle(
@@ -2168,11 +2157,9 @@ class _InfoTile extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 6),
-            Text(title,
-                style: const TextStyle(fontWeight: FontWeight.w700)),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
             Text(subtitle,
-                style:
-                    const TextStyle(color: GabColors.muted, fontSize: 12)),
+                style: const TextStyle(color: GabColors.muted, fontSize: 12)),
           ],
         ),
       );
@@ -2682,8 +2669,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       color: Colors.white.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
-                    child:
-                        Icon(_stage.bannerIcon, color: Colors.white),
+                    child: Icon(_stage.bannerIcon, color: Colors.white),
                   ),
                 ],
               ),
@@ -2869,8 +2855,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           const Text('Sous-total',
                               style: TextStyle(color: GabColors.muted)),
                           Text(_formatFcfa(data.subtotal),
-                              style:
-                                  const TextStyle(color: GabColors.muted)),
+                              style: const TextStyle(color: GabColors.muted)),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -2880,8 +2865,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           const Text('Frais de livraison',
                               style: TextStyle(color: GabColors.muted)),
                           Text(_formatFcfa(data.deliveryFee),
-                              style:
-                                  const TextStyle(color: GabColors.muted)),
+                              style: const TextStyle(color: GabColors.muted)),
                         ],
                       ),
                       const Padding(
@@ -2925,8 +2909,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               children: [
                 const Text(
                   'Suivi de la commande',
-                  style:
-                      TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
                 ),
                 const SizedBox(height: 16),
                 for (var i = 0; i < _steps.length; i++)
@@ -3077,8 +3060,8 @@ class _TimelineTile extends StatelessWidget {
                     ),
                     Text(
                       step.time,
-                      style: const TextStyle(
-                          color: GabColors.muted, fontSize: 12),
+                      style:
+                          const TextStyle(color: GabColors.muted, fontSize: 12),
                     ),
                     if (step.note != null) ...[
                       const SizedBox(height: 4),
@@ -3403,8 +3386,7 @@ class DeliveryTrackingScreen extends StatelessWidget {
                             const SizedBox(width: 10),
                             Expanded(
                               child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     data.courier.name,
@@ -3416,9 +3398,7 @@ class DeliveryTrackingScreen extends StatelessWidget {
                                   Row(
                                     children: [
                                       const Icon(Icons.star,
-                                          size: 14,
-                                          color:
-                                              Color(0xFFFFBB18)),
+                                          size: 14, color: Color(0xFFFFBB18)),
                                       const SizedBox(width: 2),
                                       Text('${data.courier.rating}',
                                           style: const TextStyle(
@@ -3883,8 +3863,8 @@ class PaymentsHistoryScreen extends StatelessWidget {
             decoration: BoxDecoration(
               color: GabColors.softGreen,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                  color: GabColors.secondary.withValues(alpha: 0.2)),
+              border:
+                  Border.all(color: GabColors.secondary.withValues(alpha: 0.2)),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -3907,8 +3887,7 @@ class PaymentsHistoryScreen extends StatelessWidget {
                         'Les remboursements sont traités sous 3 à 5 jours '
                         "ouvrables après validation par Gab'Pharma. Le "
                         "montant sera crédité sur votre compte d'origine.",
-                        style: TextStyle(
-                            color: GabColors.muted, fontSize: 13),
+                        style: TextStyle(color: GabColors.muted, fontSize: 13),
                       ),
                       TextButton(
                         onPressed: () => _showRefundInfo(context),
@@ -3955,8 +3934,7 @@ class PaymentsHistoryScreen extends StatelessWidget {
               child: _TransactionCard(
                 tx: tx,
                 formatFcfa: _formatFcfa,
-                onResumePayment: () =>
-                    Navigator.pushNamed(context, '/payment'),
+                onResumePayment: () => Navigator.pushNamed(context, '/payment'),
               ),
             ),
           const SizedBox(height: 12),
@@ -4032,8 +4010,7 @@ class _StatTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(label,
-                style:
-                    const TextStyle(color: GabColors.muted, fontSize: 12)),
+                style: const TextStyle(color: GabColors.muted, fontSize: 12)),
             const SizedBox(height: 4),
             Text(
               value,
@@ -4093,8 +4070,7 @@ class _TransactionCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(tx.pharmacyName,
-                        style:
-                            const TextStyle(fontWeight: FontWeight.w700)),
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
                     Text(tx.referenceLabel,
                         style: const TextStyle(
                             color: GabColors.muted, fontSize: 12)),
@@ -4358,12 +4334,12 @@ class _InsuranceScreenState extends State<InsuranceScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.3)),
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: 0.3)),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     child: Text(
                       _hasProfile ? 'ACTIF' : 'NON CONFIGURÉ',
                       style: const TextStyle(
@@ -4519,8 +4495,8 @@ class _InsuranceScreenState extends State<InsuranceScreen> {
                             'automatiquement sur la base de votre taux '
                             'de couverture habituel déclaré par votre '
                             'assureur.',
-                            style: TextStyle(
-                                color: GabColors.muted, fontSize: 13),
+                            style:
+                                TextStyle(color: GabColors.muted, fontSize: 13),
                           ),
                         ],
                       ),
@@ -4641,8 +4617,7 @@ class _CoverageEstimate extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('•  ',
-                        style: TextStyle(color: GabColors.muted)),
+                    const Text('•  ', style: TextStyle(color: GabColors.muted)),
                     Expanded(
                       child: Text(exception,
                           style: const TextStyle(
@@ -4782,8 +4757,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) =>
-                const OrderDetailScreen(reference: 'GP-2606-3980'),
+            builder: (_) => const OrderDetailScreen(reference: 'GP-2606-3980'),
           ),
         );
       case _NotifTarget.security:
@@ -4834,8 +4808,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 _NotifFilterChip(
                   label: 'Commandes',
                   selected: _filter == _NotifCategory.orders,
-                  onTap: () =>
-                      setState(() => _filter = _NotifCategory.orders),
+                  onTap: () => setState(() => _filter = _NotifCategory.orders),
                 ),
                 const SizedBox(width: 8),
                 _NotifFilterChip(
@@ -4848,8 +4821,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 _NotifFilterChip(
                   label: 'Offres',
                   selected: _filter == _NotifCategory.offers,
-                  onTap: () =>
-                      setState(() => _filter = _NotifCategory.offers),
+                  onTap: () => setState(() => _filter = _NotifCategory.offers),
                 ),
               ],
             ),
@@ -5242,8 +5214,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
               children: [
                 const Text(
                   'Créer une demande',
-                  style:
-                      TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 16),
                 const Text('Sujet',
@@ -5286,8 +5257,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                 ),
                 const SizedBox(height: 16),
                 OutlinedButton.icon(
-                  onPressed: () =>
-                      ScaffoldMessenger.of(context).showSnackBar(
+                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text(
                         'Pièce jointe indisponible en démonstration.',
@@ -5359,8 +5329,8 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
         floatingActionButton: FloatingActionButton(
           onPressed: _openTicketForm,
           backgroundColor: GabColors.primary,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           child: const Icon(Icons.add_comment, color: Colors.white),
         ),
         appBar: AppBar(
@@ -5417,9 +5387,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                     category: category,
                     selected: _category == category,
                     onTap: () => setState(
-                      () => _category = _category == category
-                          ? null
-                          : category,
+                      () => _category = _category == category ? null : category,
                     ),
                   ),
               ],
@@ -5503,15 +5471,15 @@ class _CategoryTile extends StatelessWidget {
                     color: category.background,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(category.icon,
-                      color: category.foreground, size: 18),
+                  child:
+                      Icon(category.icon, color: category.foreground, size: 18),
                 ),
                 const SizedBox(height: 8),
                 Text(category.label,
                     style: const TextStyle(fontWeight: FontWeight.w700)),
                 Text(category.hint,
-                    style: const TextStyle(
-                        color: GabColors.muted, fontSize: 11)),
+                    style:
+                        const TextStyle(color: GabColors.muted, fontSize: 11)),
               ],
             ),
           ),
@@ -5549,8 +5517,7 @@ class _FaqTileState extends State<_FaqTile> {
                   children: [
                     Expanded(
                       child: Text(widget.faq.question,
-                          style:
-                              const TextStyle(fontWeight: FontWeight.w600)),
+                          style: const TextStyle(fontWeight: FontWeight.w600)),
                     ),
                     Icon(
                       _expanded ? Icons.expand_less : Icons.expand_more,
@@ -5607,8 +5574,8 @@ class _TicketTile extends StatelessWidget {
                       Row(
                         children: [
                           Text('#${ticket.reference}',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w700)),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w700)),
                           const SizedBox(width: 8),
                           DecoratedBox(
                             decoration: BoxDecoration(
@@ -5728,22 +5695,22 @@ final Map<String, _SupportThread Function()> _supportThreadBuilders = {
         messages: [
           _ChatMessage.agent(
             'Bonjour ! Je vois que votre commande #GP-2607-4190 est en '
-            'cours de livraison. Comment puis-je vous aider ?',
+                'cours de livraison. Comment puis-je vous aider ?',
             '15:52',
           ),
           _ChatMessage.patient(
             'Bonjour, la livraison devait arriver à 15:50 mais je n\'ai '
-            'encore rien reçu.',
+                'encore rien reçu.',
             '15:58',
           ),
           _ChatMessage.agent(
             'Je suis désolé pour ce retard. Je vérifie avec le livreur '
-            'Jean M. tout de suite.',
+                'Jean M. tout de suite.',
             '16:00',
           ),
           _ChatMessage.agent(
             'Le livreur signale un trafic dense sur la route d\'Akanda. '
-            'Nouvelle heure d\'arrivée estimée : 16:20.',
+                'Nouvelle heure d\'arrivée estimée : 16:20.',
             '16:02',
           ),
         ],
@@ -5755,17 +5722,17 @@ final Map<String, _SupportThread Function()> _supportThreadBuilders = {
         messages: [
           _ChatMessage.patient(
             'Bonjour, je pense qu\'il y a une erreur sur la posologie '
-            'indiquée pour le Paracétamol 500mg de ma dernière commande.',
+                'indiquée pour le Paracétamol 500mg de ma dernière commande.',
             '09:15',
           ),
           _ChatMessage.agent(
             'Bonjour ! Merci de votre signalement. Pouvez-vous me '
-            'préciser la posologie indiquée sur l\'étiquette ?',
+                'préciser la posologie indiquée sur l\'étiquette ?',
             '09:17',
           ),
           _ChatMessage.patient(
             'Il est indiqué 3 comprimés toutes les 4 heures, ce qui me '
-            'semble élevé.',
+                'semble élevé.',
             '09:19',
           ),
           _ChatMessage.info(
@@ -5774,14 +5741,14 @@ final Map<String, _SupportThread Function()> _supportThreadBuilders = {
           ),
           _ChatMessage.agent(
             'Vous avez raison, c\'est une erreur d\'étiquetage. La '
-            'posologie correcte est 1 à 2 comprimés toutes les 6 heures, '
-            'sans dépasser 8 comprimés par jour. Nous corrigeons la '
-            'fiche produit.',
+                'posologie correcte est 1 à 2 comprimés toutes les 6 heures, '
+                'sans dépasser 8 comprimés par jour. Nous corrigeons la '
+                'fiche produit.',
             '09:24',
           ),
           _ChatMessage.agent(
             'Ticket marqué comme résolu. N\'hésitez pas si vous avez '
-            "d'autres questions.",
+                "d'autres questions.",
             '09:25',
           ),
         ],
@@ -5795,12 +5762,12 @@ _SupportThread _defaultSupportThread() => _SupportThread(
       messages: [
         _ChatMessage.agent(
           'Bonjour ! Comment puis-je vous aider avec votre ordonnance '
-          "aujourd'hui ?",
+              "aujourd'hui ?",
           '09:15',
         ),
         _ChatMessage.patient(
           'Bonjour. Je voulais savoir si le médicament "Dolirhume" est '
-          'disponible à la pharmacie du centre-ville ?',
+              'disponible à la pharmacie du centre-ville ?',
           '09:17',
         ),
         _ChatMessage.info(
@@ -5809,13 +5776,13 @@ _SupportThread _defaultSupportThread() => _SupportThread(
         ),
         _ChatMessage.agent(
           'Oui, nous en avons encore en stock. Souhaitez-vous que je '
-          'vous mette une boîte de côté pour votre passage ?',
+              'vous mette une boîte de côté pour votre passage ?',
           '09:20',
         ),
         _ChatMessage.product('Dolirhume Paracétamol', 2500, '09:21'),
         _ChatMessage.agent(
           'Ticket créé et transmis à notre équipe. Nous vous répondrons '
-          'sous peu.',
+              'sous peu.',
           '09:23',
         ),
       ],
@@ -5924,8 +5891,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
                   color: GabColors.softGreen,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.support_agent,
-                    color: GabColors.primary),
+                child:
+                    const Icon(Icons.support_agent, color: GabColors.primary),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -5956,8 +5923,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
             IconButton(
               onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content:
-                      Text('Appel avec le support indisponible en démonstration.'),
+                  content: Text(
+                      'Appel avec le support indisponible en démonstration.'),
                 ),
               ),
               icon: const Icon(Icons.call),
@@ -6000,12 +5967,12 @@ class _ConversationScreenState extends State<ConversationScreen> {
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: const Padding(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 4),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         child: Text(
                           "Aujourd'hui",
-                          style: TextStyle(
-                              fontSize: 11, color: GabColors.muted),
+                          style:
+                              TextStyle(fontSize: 11, color: GabColors.muted),
                         ),
                       ),
                     ),
@@ -6041,8 +6008,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                     Expanded(
                       child: Container(
                         constraints: const BoxConstraints(minHeight: 44),
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 14),
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(20),
@@ -6111,8 +6077,7 @@ class _ChatBubble extends StatelessWidget {
               Expanded(
                 child: Text(
                   message.text,
-                  style: const TextStyle(
-                      color: GabColors.muted, fontSize: 13),
+                  style: const TextStyle(color: GabColors.muted, fontSize: 13),
                 ),
               ),
             ],
@@ -6159,10 +6124,9 @@ class _ChatBubble extends StatelessWidget {
                               style: const TextStyle(
                                   fontWeight: FontWeight.w700, fontSize: 13)),
                           Text(
-                            '${message.productPrice} FCFA'
-                                .replaceAllMapped(
-                                    RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-                                    (m) => '${m[1]} '),
+                            '${message.productPrice} FCFA'.replaceAllMapped(
+                                RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+                                (m) => '${m[1]} '),
                             style: const TextStyle(
                                 color: GabColors.primary,
                                 fontWeight: FontWeight.w700),
@@ -6171,11 +6135,11 @@ class _ChatBubble extends StatelessWidget {
                           SizedBox(
                             width: double.infinity,
                             child: OutlinedButton(
-                              onPressed: () => Navigator.pushNamed(
-                                  context, '/medication'),
+                              onPressed: () =>
+                                  Navigator.pushNamed(context, '/medication'),
                               style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 8),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 8),
                                 minimumSize: Size.zero,
                               ),
                               child: const Text('Voir le produit',
@@ -6192,8 +6156,8 @@ class _ChatBubble extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(left: 4),
                 child: Text(message.time,
-                    style: const TextStyle(
-                        color: GabColors.muted, fontSize: 11)),
+                    style:
+                        const TextStyle(color: GabColors.muted, fontSize: 11)),
               ),
             ],
           ),
@@ -6218,10 +6182,8 @@ class _ChatBubble extends StatelessWidget {
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(18),
                   topRight: const Radius.circular(18),
-                  bottomLeft:
-                      Radius.circular(isPatient ? 18 : 4),
-                  bottomRight:
-                      Radius.circular(isPatient ? 4 : 18),
+                  bottomLeft: Radius.circular(isPatient ? 18 : 4),
+                  bottomRight: Radius.circular(isPatient ? 4 : 18),
                 ),
                 border: isPatient
                     ? null
@@ -6242,8 +6204,8 @@ class _ChatBubble extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(message.time,
-                    style: const TextStyle(
-                        color: GabColors.muted, fontSize: 11)),
+                    style:
+                        const TextStyle(color: GabColors.muted, fontSize: 11)),
                 if (isPatient) ...[
                   const SizedBox(width: 4),
                   const Icon(Icons.done_all,
@@ -6304,8 +6266,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
               children: [
                 const Text(
                   'Changer le mot de passe',
-                  style:
-                      TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -6436,6 +6397,9 @@ class _SecurityScreenState extends State<SecurityScreen> {
         ],
       ),
     );
+    if (confirmed ?? false) {
+      await AuthSession.instance.clear();
+    }
     if ((confirmed ?? false) && mounted) {
       Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
     }
@@ -6461,8 +6425,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                     backgroundColor: GabColors.primary,
                     child: Text('GN',
                         style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700)),
+                            color: Colors.white, fontWeight: FontWeight.w700)),
                   ),
                   const SizedBox(width: 14),
                   const Column(
@@ -6597,8 +6560,7 @@ class _RuleRow extends StatelessWidget {
         child: Row(
           children: [
             Icon(ok ? Icons.check_circle : Icons.radio_button_unchecked,
-                size: 16,
-                color: ok ? GabColors.primary : GabColors.muted),
+                size: 16, color: ok ? GabColors.primary : GabColors.muted),
             const SizedBox(width: 8),
             Text(label,
                 style: TextStyle(
@@ -6839,9 +6801,8 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
                           setState(() => _isFavorite = !_isFavorite),
                       icon: Icon(
                         _isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color: _isFavorite
-                            ? GabColors.danger
-                            : GabColors.primary,
+                        color:
+                            _isFavorite ? GabColors.danger : GabColors.primary,
                       ),
                     ),
                   ],
@@ -7004,7 +6965,8 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 10, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.9),
+                                      color:
+                                          Colors.white.withValues(alpha: 0.9),
                                       borderRadius: BorderRadius.circular(10),
                                       border: Border.all(
                                           color: GabColors.outlineVariant),
@@ -7082,8 +7044,7 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
                                   ),
                                 ),
                                 Text('Parcourir le stock de cette pharmacie',
-                                    style:
-                                        TextStyle(color: GabColors.muted)),
+                                    style: TextStyle(color: GabColors.muted)),
                               ],
                             ),
                           ),
@@ -7120,10 +7081,12 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
                           SizedBox(
                             width: double.infinity,
                             child: FilledButton.icon(
-                              onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                                  context, '/home', (route) => false),
+                              onPressed: () =>
+                                  Navigator.pushNamedAndRemoveUntil(
+                                      context, '/home', (route) => false),
                               icon: const Icon(Icons.shopping_bag_outlined),
-                              label: const Text('Commander dans cette pharmacie'),
+                              label:
+                                  const Text('Commander dans cette pharmacie'),
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -7241,8 +7204,8 @@ class _ServiceChip extends StatelessWidget {
             Icon(icon, size: 16, color: GabColors.secondary),
             const SizedBox(width: 6),
             Text(label,
-                style: const TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w600)),
+                style:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
           ],
         ),
       );
@@ -7307,8 +7270,7 @@ class _PharmacyProductCard extends StatelessWidget {
                   product.details,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      color: GabColors.muted, fontSize: 12),
+                  style: const TextStyle(color: GabColors.muted, fontSize: 12),
                 ),
                 const SizedBox(height: 6),
                 Row(
@@ -7360,14 +7322,13 @@ class _FavoriteItem {
     required this.details,
     required this.price,
     required this.stock,
-    this.isFavorite = true,
   });
 
   final String name;
   final String details;
   final int? price;
   final _StockStatus stock;
-  bool isFavorite;
+  bool isFavorite = true;
 }
 
 class FavoritesScreen extends StatefulWidget {
@@ -7431,8 +7392,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       case _FavoritesSort.name:
         list.sort((a, b) => a.name.compareTo(b.name));
       case _FavoritesSort.price:
-        list.sort((a, b) => (a.price ?? 1 << 30)
-            .compareTo(b.price ?? 1 << 30));
+        list.sort((a, b) => (a.price ?? 1 << 30).compareTo(b.price ?? 1 << 30));
       case _FavoritesSort.recent:
         break;
     }
@@ -7447,8 +7407,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         content: Text('${item.name} retiré des favoris.'),
         action: SnackBarAction(
           label: 'Annuler',
-          onPressed: () => setState(() => _items.insert(
-              index.clamp(0, _items.length), item)),
+          onPressed: () => setState(
+              () => _items.insert(index.clamp(0, _items.length), item)),
         ),
       ),
     );
@@ -7479,8 +7439,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     ),
                     const Spacer(),
                     PopupMenuButton<_FavoritesSort>(
-                      icon: const Icon(Icons.more_vert,
-                          color: GabColors.primary),
+                      icon:
+                          const Icon(Icons.more_vert, color: GabColors.primary),
                       onSelected: (value) => setState(() => _sort = value),
                       itemBuilder: (context) => const [
                         PopupMenuItem(
@@ -7600,9 +7560,7 @@ class _FavoriteCard extends StatelessWidget {
                       ),
                       child: Icon(
                         Icons.medication_outlined,
-                        color: outOfStock
-                            ? GabColors.muted
-                            : GabColors.primary,
+                        color: outOfStock ? GabColors.muted : GabColors.primary,
                         size: 30,
                       ),
                     ),
@@ -7683,12 +7641,10 @@ class _FavoriteCard extends StatelessWidget {
                             ? FilledButton.tonal(
                                 onPressed: null,
                                 style: FilledButton.styleFrom(
-                                  disabledBackgroundColor:
-                                      GabColors.background,
+                                  disabledBackgroundColor: GabColors.background,
                                 ),
                                 child: const Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.center,
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Icon(Icons.remove_shopping_cart_outlined,
                                         size: 18),
@@ -7704,8 +7660,7 @@ class _FavoriteCard extends StatelessWidget {
                                   foregroundColor: GabColors.primary,
                                 ),
                                 child: const Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.center,
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Icon(Icons.shopping_cart_outlined,
                                         size: 18),
@@ -7724,8 +7679,8 @@ class _FavoriteCard extends StatelessWidget {
                         onPressed: onDelete,
                         style: OutlinedButton.styleFrom(
                           padding: EdgeInsets.zero,
-                          side: const BorderSide(
-                              color: GabColors.outlineVariant),
+                          side:
+                              const BorderSide(color: GabColors.outlineVariant),
                         ),
                         child: const Icon(Icons.delete_outline,
                             color: GabColors.muted),
@@ -7753,9 +7708,7 @@ class _StockChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: lowStock
-            ? const Color(0xFFFFDAD6)
-            : const Color(0xFFA8F4B9),
+        color: lowStock ? const Color(0xFFFFDAD6) : const Color(0xFFA8F4B9),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
@@ -7772,7 +7725,8 @@ class _StockChip extends StatelessWidget {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: lowStock ? const Color(0xFF93000A) : const Color(0xFF287243),
+              color:
+                  lowStock ? const Color(0xFF93000A) : const Color(0xFF287243),
             ),
           ),
         ],

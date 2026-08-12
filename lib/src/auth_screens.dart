@@ -3,10 +3,14 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+import 'core/api_client.dart';
+import 'core/auth_session.dart';
 import 'core/theme.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  const SplashScreen({super.key, this.restoreSession});
+
+  final Future<bool> Function()? restoreSession;
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -23,10 +27,16 @@ class _SplashScreenState extends State<SplashScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat();
-    // Démo statique : pas d'appel réseau, aucune session locale à restaurer.
-    Future<void>.delayed(const Duration(milliseconds: 1400), () {
-      if (mounted) Navigator.pushReplacementNamed(context, '/login');
-    });
+    _restoreSession();
+  }
+
+  Future<void> _restoreSession() async {
+    final sessionFuture =
+        (widget.restoreSession ?? AuthSession.instance.restoreSession)();
+    await Future<void>.delayed(const Duration(milliseconds: 900));
+    final hasSession = await sessionFuture;
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, hasSession ? '/home' : '/login');
   }
 
   @override
@@ -194,8 +204,8 @@ class _SessionLoaderDots extends StatelessWidget {
                   width: 10,
                   height: 10,
                   decoration: BoxDecoration(
-                    color: GabColors.primary
-                        .withValues(alpha: 0.4 + 0.6 * wave),
+                    color:
+                        GabColors.primary.withValues(alpha: 0.4 + 0.6 * wave),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -220,6 +230,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscure = true;
   bool _rememberMe = false;
   bool _submitting = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -231,11 +242,27 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _submit() async {
     if (_submitting) return;
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _submitting = true);
-    await Future<void>.delayed(const Duration(milliseconds: 700));
-    if (!mounted) return;
-    setState(() => _submitting = false);
-    Navigator.pushNamed(context, '/verify');
+    setState(() {
+      _submitting = true;
+      _errorMessage = null;
+    });
+    try {
+      final challenge = await AuthSession.instance.login(
+        identifier: _identifier.text.trim(),
+        password: _password.text,
+      );
+      if (!mounted) return;
+      Navigator.pushNamed(context, '/verify', arguments: challenge);
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _errorMessage = error.message);
+    } on Object {
+      if (!mounted) return;
+      setState(() => _errorMessage =
+          "Impossible de joindre l'API Gab'Pharma. Vérifiez le serveur.");
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
@@ -363,14 +390,24 @@ class _LoginScreenState extends State<LoginScreen> {
                                       minimumSize: const Size(0, 44),
                                       tapTargetSize:
                                           MaterialTapTargetSize.shrinkWrap,
-                                      textStyle:
-                                          const TextStyle(fontSize: 13),
+                                      textStyle: const TextStyle(fontSize: 13),
                                     ),
                                     child: const Text('Mot de passe oublié ?'),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 8),
+                              if (_errorMessage != null) ...[
+                                Text(
+                                  _errorMessage!,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: GabColors.danger,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                              ],
                               FilledButton(
                                 onPressed: _submitting ? null : _submit,
                                 child: _submitting
@@ -422,30 +459,45 @@ class VerifyScreen extends StatefulWidget {
 
 class _VerifyScreenState extends State<VerifyScreen> {
   static const _codeLength = 6;
-  static const _demoCode = '123456';
-  static const _resendSeconds = 59;
+  static const _fallbackResendSeconds = 59;
   static const _maxAttempts = 3;
 
   final _controllers =
       List.generate(_codeLength, (_) => TextEditingController());
   final _focusNodes = List.generate(_codeLength, (_) => FocusNode());
+  AuthChallenge? _challenge;
   Timer? _timer;
-  int _secondsLeft = _resendSeconds;
+  int _secondsLeft = _fallbackResendSeconds;
   int _attempts = 0;
   bool _submitting = false;
+  bool _resending = false;
   bool _expired = false;
   String? _errorMessage;
+  bool _didLoadArguments = false;
 
   @override
   void initState() {
     super.initState();
-    _startCountdown();
   }
 
-  void _startCountdown() {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didLoadArguments) return;
+    _didLoadArguments = true;
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    if (arguments is AuthChallenge) {
+      _challenge = arguments;
+      if (arguments.canResend) _startCountdown(arguments.expiresIn);
+    } else {
+      _errorMessage = 'Session de vérification introuvable. Reconnectez-vous.';
+    }
+  }
+
+  void _startCountdown([int? seconds]) {
     _timer?.cancel();
     setState(() {
-      _secondsLeft = _resendSeconds;
+      _secondsLeft = seconds ?? _fallbackResendSeconds;
       _expired = false;
     });
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -481,6 +533,12 @@ class _VerifyScreenState extends State<VerifyScreen> {
 
   Future<void> _submit() async {
     if (_submitting) return;
+    final challenge = _challenge;
+    if (challenge == null) {
+      setState(() => _errorMessage =
+          'Session de vérification introuvable. Reconnectez-vous.');
+      return;
+    }
     final code = _enteredCode;
     if (code.length < _codeLength) {
       setState(() => _errorMessage = 'Saisissez les 6 chiffres du code.');
@@ -495,31 +553,56 @@ class _VerifyScreenState extends State<VerifyScreen> {
       _submitting = true;
       _errorMessage = null;
     });
-    await Future<void>.delayed(const Duration(milliseconds: 900));
-    if (!mounted) return;
-    if (_timer == null || !_timer!.isActive) {
-      // Countdown terminé : le code envoyé n'est plus valable.
+    try {
+      await AuthSession.instance.verifyTwoFactor(
+        challenge: challenge,
+        code: code,
+      );
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+    } on ApiException catch (error) {
+      if (!mounted) return;
       setState(() {
-        _submitting = false;
-        _attempts++;
-        _errorMessage = 'Ce code a expiré. Demandez-en un nouveau.';
-      });
-      _clearCode();
-      return;
-    }
-    if (code != _demoCode) {
-      setState(() {
-        _submitting = false;
         _attempts++;
         _errorMessage = _attempts >= _maxAttempts
             ? 'Trop de tentatives. Réessayez dans quelques minutes.'
-            : 'Code invalide. Vérifiez et réessayez.';
+            : error.message;
       });
       _clearCode();
-      return;
+    } on Object {
+      if (!mounted) return;
+      setState(() => _errorMessage =
+          "Impossible de joindre l'API Gab'Pharma. Vérifiez le serveur.");
+    } finally {
+      if (mounted) setState(() => _submitting = false);
     }
-    setState(() => _submitting = false);
-    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+  }
+
+  Future<void> _resendCode() async {
+    final challenge = _challenge;
+    if (challenge == null || !challenge.canResend || _resending) return;
+    setState(() {
+      _resending = true;
+      _errorMessage = null;
+    });
+    try {
+      final nextChallenge =
+          await AuthSession.instance.resendTwoFactor(challenge);
+      if (!mounted) return;
+      _challenge = nextChallenge;
+      _attempts = 0;
+      _clearCode();
+      _startCountdown(nextChallenge.expiresIn);
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _errorMessage = error.message);
+    } on Object {
+      if (!mounted) return;
+      setState(() => _errorMessage =
+          "Impossible de joindre l'API Gab'Pharma. Vérifiez le serveur.");
+    } finally {
+      if (mounted) setState(() => _resending = false);
+    }
   }
 
   @override
@@ -555,8 +638,8 @@ class _VerifyScreenState extends State<VerifyScreen> {
               const Divider(height: 1, color: GabColors.outlineVariant),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 32),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
                   child: Column(
                     children: [
                       Container(
@@ -586,27 +669,21 @@ class _VerifyScreenState extends State<VerifyScreen> {
                           style: const TextStyle(
                               color: GabColors.muted, fontSize: 16),
                           children: [
-                            const TextSpan(
-                                text:
-                                    'Entrez le code à 6 chiffres envoyé à votre numéro '),
                             TextSpan(
-                              text: '(+241 ...)',
+                              text: _challenge?.isEmail == true
+                                  ? 'Entrez le code à 6 chiffres envoyé à '
+                                  : 'Entrez le code à 6 chiffres de votre application ',
+                            ),
+                            TextSpan(
+                              text: _challenge?.isEmail == true
+                                  ? (_challenge?.user?.email ?? 'votre email')
+                                  : '2FA',
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 color: GabColors.ink,
                               ),
                             ),
                           ],
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Démonstration : utilisez le code $_demoCode.',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: GabColors.secondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(height: 28),
@@ -668,39 +745,47 @@ class _VerifyScreenState extends State<VerifyScreen> {
                         ),
                       ],
                       const SizedBox(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.schedule,
-                              size: 16, color: GabColors.muted),
-                          const SizedBox(width: 6),
-                          if (_expired)
-                            TextButton(
-                              onPressed: _startCountdown,
-                              child:
-                                  const Text('Renvoyer le code maintenant'),
-                            )
-                          else
-                            Text.rich(
-                              TextSpan(
-                                style:
-                                    const TextStyle(color: GabColors.muted),
-                                children: [
-                                  const TextSpan(
-                                      text: 'Renvoyer le code dans '),
-                                  TextSpan(
-                                    text:
-                                        '0:${_secondsLeft.toString().padLeft(2, '0')}',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      color: GabColors.primary,
+                      if (_challenge?.canResend == true)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.schedule,
+                                size: 16, color: GabColors.muted),
+                            const SizedBox(width: 6),
+                            if (_expired)
+                              TextButton(
+                                onPressed: _resending ? null : _resendCode,
+                                child: Text(_resending
+                                    ? 'Envoi en cours...'
+                                    : 'Renvoyer le code maintenant'),
+                              )
+                            else
+                              Text.rich(
+                                TextSpan(
+                                  style:
+                                      const TextStyle(color: GabColors.muted),
+                                  children: [
+                                    const TextSpan(
+                                        text: 'Renvoyer le code dans '),
+                                    TextSpan(
+                                      text:
+                                          '0:${_secondsLeft.toString().padLeft(2, '0')}',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: GabColors.primary,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                        ],
-                      ),
+                          ],
+                        )
+                      else
+                        const Text(
+                          "Utilisez le code actuel de votre application d'authentification.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: GabColors.muted),
+                        ),
                       const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
@@ -731,8 +816,8 @@ class _VerifyScreenState extends State<VerifyScreen> {
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: const Padding(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -1050,8 +1135,8 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
             Text(
               _otpError!,
               textAlign: TextAlign.center,
-              style:
-                  const TextStyle(color: GabColors.danger, fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                  color: GabColors.danger, fontWeight: FontWeight.w600),
             ),
           ],
           const SizedBox(height: 24),
@@ -1278,8 +1363,8 @@ class _RuleRow extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(label,
-                  style: TextStyle(
-                      color: ok ? GabColors.ink : GabColors.muted)),
+                  style:
+                      TextStyle(color: ok ? GabColors.ink : GabColors.muted)),
             ),
           ],
         ),
@@ -1375,13 +1460,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   bool _validate() {
     setState(() {
-      _firstNameError =
-          _firstName.text.trim().isEmpty ? 'Prénom requis' : null;
+      _firstNameError = _firstName.text.trim().isEmpty ? 'Prénom requis' : null;
       _lastNameError = _lastName.text.trim().isEmpty ? 'Nom requis' : null;
-      _emailError = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
-              .hasMatch(_email.text.trim())
-          ? null
-          : 'E-mail invalide';
+      _emailError =
+          RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(_email.text.trim())
+              ? null
+              : 'E-mail invalide';
       _phoneError =
           _phone.text.trim().length < 7 ? 'Numéro de téléphone invalide' : null;
       _passwordError = _passwordStrength >= 2
@@ -1589,8 +1673,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             const SizedBox(height: 16),
                             const Text('E-mail',
                                 style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13)),
+                                    fontWeight: FontWeight.w600, fontSize: 13)),
                             const SizedBox(height: 8),
                             TextField(
                               controller: _email,
@@ -1604,8 +1687,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             const SizedBox(height: 16),
                             const Text('Téléphone',
                                 style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13)),
+                                    fontWeight: FontWeight.w600, fontSize: 13)),
                             const SizedBox(height: 8),
                             IntrinsicHeight(
                               child: Row(
@@ -1632,7 +1714,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     child: TextField(
                                       controller: _phone,
                                       keyboardType: TextInputType.phone,
-                                      textAlignVertical: TextAlignVertical.center,
+                                      textAlignVertical:
+                                          TextAlignVertical.center,
                                       decoration: InputDecoration(
                                         hintText: '07 00 00 00',
                                         errorText: _phoneError,
@@ -1661,8 +1744,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             const SizedBox(height: 16),
                             const Text('Mot de passe',
                                 style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13)),
+                                    fontWeight: FontWeight.w600, fontSize: 13)),
                             const SizedBox(height: 8),
                             TextField(
                               controller: _password,
@@ -1686,8 +1768,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 final filled = i < _passwordStrength;
                                 return Expanded(
                                   child: Container(
-                                    margin: EdgeInsets.only(
-                                        right: i < 3 ? 4 : 0),
+                                    margin:
+                                        EdgeInsets.only(right: i < 3 ? 4 : 0),
                                     height: 4,
                                     decoration: BoxDecoration(
                                       color: filled
@@ -1713,8 +1795,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             const SizedBox(height: 16),
                             const Text('Confirmer le mot de passe',
                                 style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13)),
+                                    fontWeight: FontWeight.w600, fontSize: 13)),
                             const SizedBox(height: 8),
                             TextField(
                               controller: _confirmPassword,
@@ -1771,8 +1852,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         ),
                                         const TextSpan(text: ' et la '),
                                         TextSpan(
-                                          text:
-                                              'politique de confidentialité',
+                                          text: 'politique de confidentialité',
                                           style: TextStyle(
                                             color: GabColors.primary,
                                             fontWeight: FontWeight.w700,
@@ -1826,7 +1906,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             Center(
                               child: TextButton(
                                 onPressed: () => Navigator.pop(context),
-                                child: const Text('Déjà inscrit ? Se connecter'),
+                                child:
+                                    const Text('Déjà inscrit ? Se connecter'),
                               ),
                             ),
                           ],
@@ -2032,8 +2113,7 @@ class _TermsScreenState extends State<TermsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text('Sommaire',
-                                style:
-                                    TextStyle(fontWeight: FontWeight.w700)),
+                                style: TextStyle(fontWeight: FontWeight.w700)),
                             const SizedBox(height: 8),
                             ...List.generate(
                               _sections.length,
@@ -2274,8 +2354,7 @@ class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text('Sommaire',
-                                style:
-                                    TextStyle(fontWeight: FontWeight.w700)),
+                                style: TextStyle(fontWeight: FontWeight.w700)),
                             const SizedBox(height: 8),
                             ...List.generate(
                               _sections.length,

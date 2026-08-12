@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import 'auth_screens.dart' show TermsScreen, PrivacyPolicyScreen;
+import 'core/auth_session.dart';
 import 'core/theme.dart';
 import 'detail_screens.dart' show OrderDetailScreen;
 import 'widgets.dart';
@@ -94,223 +95,226 @@ class PatientHomeScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('Bonjour, Grâce',
-                      style: TextStyle(color: GabColors.muted)),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Prenez soin de votre santé aujourd’hui',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: GabColors.ink,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    readOnly: true,
-                    onTap: () => onSwitchTab(1),
-                    decoration: InputDecoration(
-                      hintText: 'Rechercher un médicament...',
-                      prefixIcon: const Icon(Icons.search),
-                      suffixIcon: const Icon(Icons.tune,
-                          color: GabColors.primary),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _QuickAccess(
-                          label: 'Favoris',
-                          icon: Icons.favorite,
-                          onTap: () =>
-                              Navigator.pushNamed(context, '/favorites'),
+                            style: TextStyle(color: GabColors.muted)),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Prenez soin de votre santé aujourd’hui',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: GabColors.ink,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _QuickAccess(
-                          label: 'Assurance',
-                          icon: Icons.verified_user,
-                          onTap: () =>
-                              Navigator.pushNamed(context, '/insurance'),
+                        const SizedBox(height: 20),
+                        TextField(
+                          readOnly: true,
+                          onTap: () => onSwitchTab(1),
+                          decoration: InputDecoration(
+                            hintText: 'Rechercher un médicament...',
+                            prefixIcon: const Icon(Icons.search),
+                            suffixIcon: const Icon(Icons.tune,
+                                color: GabColors.primary),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 14),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _QuickAccess(
-                          label: 'Support',
-                          icon: Icons.support_agent,
-                          onTap: () =>
-                              Navigator.pushNamed(context, '/support'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Material(
-                    color: GabColors.primary,
-                    borderRadius: BorderRadius.circular(16),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () =>
-                          Navigator.pushNamed(context, '/order-detail'),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
+                        const SizedBox(height: 20),
+                        Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: GabColors.secondary,
-                                borderRadius: BorderRadius.circular(10),
+                            Expanded(
+                              child: _QuickAccess(
+                                label: 'Favoris',
+                                icon: Icons.favorite,
+                                onTap: () =>
+                                    Navigator.pushNamed(context, '/favorites'),
                               ),
-                              child: const Icon(Icons.local_shipping,
-                                  color: Colors.white, size: 22),
                             ),
-                            const SizedBox(width: 14),
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _QuickAccess(
+                                label: 'Assurance',
+                                icon: Icons.verified_user,
+                                onTap: () =>
+                                    Navigator.pushNamed(context, '/insurance'),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _QuickAccess(
+                                label: 'Support',
+                                icon: Icons.support_agent,
+                                onTap: () =>
+                                    Navigator.pushNamed(context, '/support'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Material(
+                          color: GabColors.primary,
+                          borderRadius: BorderRadius.circular(16),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () =>
+                                Navigator.pushNamed(context, '/order-detail'),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
                                 children: [
-                                  Text(
-                                    'Commande en cours',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 16,
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: GabColors.secondary,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(Icons.local_shipping,
+                                        color: Colors.white, size: 22),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  const Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Commande en cours',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        SizedBox(height: 2),
+                                        Text(
+                                          'Livraison prévue à 14h30',
+                                          style: TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  SizedBox(height: 2),
-                                  Text(
-                                    'Livraison prévue à 14h30',
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 12,
-                                    ),
-                                  ),
+                                  const Icon(Icons.chevron_right,
+                                      color: Colors.white),
                                 ],
                               ),
                             ),
-                            const Icon(Icons.chevron_right,
-                                color: Colors.white),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  SectionTitle(
-                    'Pharmacies à proximité',
-                    action: TextButton(
-                      onPressed: () => onSwitchTab(1),
-                      child: const Text('Voir tout'),
-                    ),
-                  ),
-                  SizedBox(
-                    height: 190,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      clipBehavior: Clip.none,
-                      children: [
-                        _PharmacyCard(
-                          name: "Grande Pharmacie d'Olumi",
-                          zone: 'Libreville',
-                          distance: '1.2 km',
-                          statusLabel: 'Ouvert 24h/24',
-                          statusColor: GabColors.primary,
-                          gradientColors: const [
-                            Color(0xFF0B7A3E),
-                            Color(0xFF39B27A),
-                          ],
-                          onTap: () =>
-                              Navigator.pushNamed(context, '/pharmacy'),
-                        ),
-                        const SizedBox(width: 12),
-                        _PharmacyCard(
-                          name: 'Pharmacie du Pont-Nomba',
-                          zone: 'Owendo',
-                          distance: '3.5 km',
-                          statusLabel: 'Ouvert',
-                          statusColor: GabColors.secondary,
-                          gradientColors: const [
-                            Color(0xFF206B3D),
-                            Color(0xFF8CD79F),
-                          ],
-                          onTap: () =>
-                              Navigator.pushNamed(context, '/pharmacy'),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SectionTitle(
-                    'Médicaments populaires',
-                    action: TextButton(
-                      onPressed: () => onSwitchTab(1),
-                      child: const Text('Parcourir'),
-                    ),
-                  ),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: _ProductCard(
-                          name: 'Paracétamol 500mg',
-                          price: '2 500 FCFA',
-                          onTap: () =>
-                              Navigator.pushNamed(context, '/medication'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _ProductCard(
-                          name: 'Vitamine C Booster',
-                          price: '4 200 FCFA',
-                          onTap: () =>
-                              Navigator.pushNamed(context, '/medication'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SectionTitle('Catégories'),
-                  SizedBox(
-                    height: 208,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(
-                          child: _CategoryTile(
-                            label: 'Maman & Bébé',
-                            icon: Icons.child_care,
-                            color: const Color(0xFFFFDEA7),
-                            onSurface: const Color(0xFF271900),
-                            onTap: () => onSwitchTab(1),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
+                        SectionTitle(
+                          'Pharmacies à proximité',
+                          action: TextButton(
+                            onPressed: () => onSwitchTab(1),
+                            child: const Text('Voir tout'),
+                          ),
+                        ),
+                        SizedBox(
+                          height: 190,
+                          child: ListView(
+                            scrollDirection: Axis.horizontal,
+                            clipBehavior: Clip.none,
+                            children: [
+                              _PharmacyCard(
+                                name: "Grande Pharmacie d'Olumi",
+                                zone: 'Libreville',
+                                distance: '1.2 km',
+                                statusLabel: 'Ouvert 24h/24',
+                                statusColor: GabColors.primary,
+                                gradientColors: const [
+                                  Color(0xFF0B7A3E),
+                                  Color(0xFF39B27A),
+                                ],
+                                onTap: () =>
+                                    Navigator.pushNamed(context, '/pharmacy'),
+                              ),
+                              const SizedBox(width: 12),
+                              _PharmacyCard(
+                                name: 'Pharmacie du Pont-Nomba',
+                                zone: 'Owendo',
+                                distance: '3.5 km',
+                                statusLabel: 'Ouvert',
+                                statusColor: GabColors.secondary,
+                                gradientColors: const [
+                                  Color(0xFF206B3D),
+                                  Color(0xFF8CD79F),
+                                ],
+                                onTap: () =>
+                                    Navigator.pushNamed(context, '/pharmacy'),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SectionTitle(
+                          'Médicaments populaires',
+                          action: TextButton(
+                            onPressed: () => onSwitchTab(1),
+                            child: const Text('Parcourir'),
+                          ),
+                        ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _ProductCard(
+                                name: 'Paracétamol 500mg',
+                                price: '2 500 FCFA',
+                                onTap: () =>
+                                    Navigator.pushNamed(context, '/medication'),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _ProductCard(
+                                name: 'Vitamine C Booster',
+                                price: '4 200 FCFA',
+                                onTap: () =>
+                                    Navigator.pushNamed(context, '/medication'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SectionTitle('Catégories'),
+                        SizedBox(
+                          height: 208,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               Expanded(
                                 child: _CategoryTile(
-                                  label: 'Hygiène',
-                                  icon: Icons.clean_hands,
-                                  color: const Color(0xFFA8F4B9),
-                                  onSurface: const Color(0xFF00210D),
-                                  compact: true,
+                                  label: 'Maman & Bébé',
+                                  icon: Icons.child_care,
+                                  color: const Color(0xFFFFDEA7),
+                                  onSurface: const Color(0xFF271900),
                                   onTap: () => onSwitchTab(1),
                                 ),
                               ),
-                              const SizedBox(height: 12),
+                              const SizedBox(width: 12),
                               Expanded(
-                                child: _CategoryTile(
-                                  label: 'Premiers soins',
-                                  icon: Icons.medical_services,
-                                  color: const Color(0xFF9DF6B2),
-                                  onSurface: const Color(0xFF00210C),
-                                  compact: true,
-                                  onTap: () => onSwitchTab(1),
+                                child: Column(
+                                  children: [
+                                    Expanded(
+                                      child: _CategoryTile(
+                                        label: 'Hygiène',
+                                        icon: Icons.clean_hands,
+                                        color: const Color(0xFFA8F4B9),
+                                        onSurface: const Color(0xFF00210D),
+                                        compact: true,
+                                        onTap: () => onSwitchTab(1),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Expanded(
+                                      child: _CategoryTile(
+                                        label: 'Premiers soins',
+                                        icon: Icons.medical_services,
+                                        color: const Color(0xFF9DF6B2),
+                                        onSurface: const Color(0xFF00210C),
+                                        compact: true,
+                                        onTap: () => onSwitchTab(1),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -319,9 +323,6 @@ class PatientHomeScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
                 ],
               ),
             ),
@@ -587,9 +588,7 @@ class _CategoryTile extends StatelessWidget {
                       color: onSurface.withValues(alpha: 0.2)),
                 ),
                 Align(
-                  alignment: compact
-                      ? Alignment.centerLeft
-                      : Alignment.topLeft,
+                  alignment: compact ? Alignment.centerLeft : Alignment.topLeft,
                   child: Text(
                     label,
                     style: TextStyle(
@@ -702,8 +701,8 @@ class _SearchScreenState extends State<SearchScreen> {
   void _showUnavailableFilter(String label) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content:
-            Text('Filtre "$label" disponible une fois le catalogue connecté à l\'API.'),
+        content: Text(
+            'Filtre "$label" disponible une fois le catalogue connecté à l\'API.'),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -848,9 +847,8 @@ class _FilterChipPill extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
-              border: selected
-                  ? null
-                  : Border.all(color: GabColors.outlineVariant),
+              border:
+                  selected ? null : Border.all(color: GabColors.outlineVariant),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -914,8 +912,7 @@ class _SearchResultCard extends StatelessWidget {
                                   fontSize: 16, fontWeight: FontWeight.w700)),
                           const SizedBox(height: 2),
                           Text(result.details,
-                              style:
-                                  const TextStyle(color: GabColors.muted)),
+                              style: const TextStyle(color: GabColors.muted)),
                         ],
                       ),
                     ),
@@ -1002,8 +999,8 @@ class _SearchResultCard extends StatelessWidget {
                         onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content:
-                                  Text('${result.name} ajouté au panier (démo).'),
+                              content: Text(
+                                  '${result.name} ajouté au panier (démo).'),
                               duration: const Duration(seconds: 2),
                             ),
                           );
@@ -1052,13 +1049,12 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartItem {
-  _CartItem(this.name, this.details, this.unitPrice, this.quantity,
-      {this.maxQuantity = 9});
+  _CartItem(this.name, this.details, this.unitPrice, this.quantity);
   final String name;
   final String details;
   final int unitPrice;
   int quantity;
-  final int maxQuantity;
+  final int maxQuantity = 9;
 }
 
 class _CartScreenState extends State<CartScreen> {
@@ -1090,8 +1086,8 @@ class _CartScreenState extends State<CartScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Vider le panier ?'),
-        content: const Text(
-            'Tous les articles seront retirés de votre panier.'),
+        content:
+            const Text('Tous les articles seront retirés de votre panier.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -1194,8 +1190,7 @@ class _CartScreenState extends State<CartScreen> {
                               const Text(
                                 'Résumé',
                                 style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700),
+                                    fontSize: 18, fontWeight: FontWeight.w700),
                               ),
                               const SizedBox(height: 12),
                               Row(
@@ -1224,8 +1219,7 @@ class _CartScreenState extends State<CartScreen> {
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 12),
                                 child: Divider(
-                                    height: 1,
-                                    color: GabColors.outlineVariant),
+                                    height: 1, color: GabColors.outlineVariant),
                               ),
                               Row(
                                 children: [
@@ -1273,7 +1267,8 @@ class _CartScreenState extends State<CartScreen> {
                             style: const TextStyle(
                                 color: GabColors.muted, fontSize: 12),
                             children: [
-                              const TextSpan(text: 'En continuant, vous acceptez nos '),
+                              const TextSpan(
+                                  text: 'En continuant, vous acceptez nos '),
                               TextSpan(
                                 text: 'conditions générales de vente',
                                 style: const TextStyle(
@@ -1283,8 +1278,7 @@ class _CartScreenState extends State<CartScreen> {
                                   ..onTap = () => Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                          builder: (_) =>
-                                              const TermsScreen())),
+                                          builder: (_) => const TermsScreen())),
                               ),
                               const TextSpan(text: ' et de '),
                               TextSpan(
@@ -1420,8 +1414,7 @@ class _EmptyCart extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(Icons.shopping_bag_outlined,
-                    size: 64,
-                    color: GabColors.primary.withValues(alpha: 0.3)),
+                    size: 64, color: GabColors.primary.withValues(alpha: 0.3)),
               ),
               const SizedBox(height: 24),
               const Text(
@@ -1439,8 +1432,8 @@ class _EmptyCart extends StatelessWidget {
                 onPressed: onBrowse,
                 style: FilledButton.styleFrom(
                   shape: const StadiumBorder(),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 ),
                 child: const Text('Découvrir des produits'),
               ),
@@ -1475,8 +1468,7 @@ class _QuantityStepper extends StatelessWidget {
               icon: const Icon(Icons.remove),
               iconSize: 18,
               color: GabColors.primary,
-              constraints:
-                  const BoxConstraints(minWidth: 40, minHeight: 40),
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
               padding: EdgeInsets.zero,
               visualDensity: VisualDensity.compact,
             ),
@@ -1493,8 +1485,7 @@ class _QuantityStepper extends StatelessWidget {
               icon: const Icon(Icons.add),
               iconSize: 18,
               color: GabColors.primary,
-              constraints:
-                  const BoxConstraints(minWidth: 40, minHeight: 40),
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
               padding: EdgeInsets.zero,
               visualDensity: VisualDensity.compact,
             ),
@@ -2036,11 +2027,15 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
-                    onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      '/login',
-                      (route) => false,
-                    ),
+                    onPressed: () async {
+                      await AuthSession.instance.clear();
+                      if (!context.mounted) return;
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        '/login',
+                        (route) => false,
+                      );
+                    },
                     icon: const Icon(Icons.logout),
                     label: const Text('Se déconnecter'),
                   ),
