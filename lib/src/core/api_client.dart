@@ -39,7 +39,13 @@ class ApiClient {
     if (accessToken case final token?) {
       request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
     }
-    if (body != null) request.write(jsonEncode(body));
+    if (body != null) {
+      // Sans Content-Length explicite, dart:io bascule en Transfer-Encoding:
+      // chunked, que le serveur de dev Django (wsgiref) ne sait pas parser.
+      final bytes = utf8.encode(jsonEncode(body));
+      request.contentLength = bytes.length;
+      request.add(bytes);
+    }
 
     final response = await request.close();
     final raw = await utf8.decoder.bind(response).join();
