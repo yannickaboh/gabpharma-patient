@@ -1,7 +1,7 @@
 # Gab'Pharma Patient — suivi d'implémentation Flutter
 
-**Dernière mise à jour :** 14 juillet 2026 (soir)
-**Mode actuel :** démonstration statique, aucune connexion à l'API mobile (pas encore construite côté Django).
+**Dernière mise à jour :** 17 août 2026
+**Mode actuel :** branchement à l'API Django réelle en cours (`AppConfig.demoMode=false` par défaut). Les 24 écrans de la spec sont terminés visuellement depuis le 14 juillet ; le branchement module par module a démarré le 13 août. **Voir `branchement_patient.md` pour le détail module par module et l'ordre convenu — c'est la source de vérité pour cette phase, pas cette section.** Résumé : authentification complète (login/2FA/session) et écran Accueil (`/mobile/patient/summary/`) branchés et vérifiés sur S8 physique ; tout le reste (recherche, catalogue, panier, checkout, commandes, assurance, notifications, support, profil, inscription, mot de passe oublié) est encore en données locales statiques.
 
 ## Méthode de travail (à respecter pour chaque nouvel écran)
 
@@ -103,7 +103,15 @@ flutter run -d <device-id>
 
 ## Prochaine étape
 
-**Les 24 écrans cibles de la spec sont terminés et validés (Lots 1 à 4 complets).** Deux sujets restent ouverts avant la suite :
+**Les 24 écrans cibles de la spec sont terminés et validés (Lots 1 à 4 complets).** Deux sujets restent ouverts :
 
 1. **Écrans 25/26 (Mes vaccins, Certificat numérique)** : hors spec originale des 24 écrans — demander à l'utilisateur s'il faut les implémenter ou les laisser de côté.
-2. **Connexion à l'API mobile réelle** (Django) : toute l'app tourne encore en mode démonstration statique (`AppConfig.demoMode`, bandeau jaune `DemoBanner`, aucune donnée persistée). La prochaine grande étape naturelle est de brancher les vrais endpoints (authentification/2FA, catalogue et stocks, favoris, panier, checkout, commandes, paiement, livraison, affiliation, support, notifications, profil) — à confirmer avec l'utilisateur avant de commencer, et probablement à mener une fois l'API mobile construite côté Django.
+2. **Connexion à l'API mobile réelle** (Django) : en cours depuis le 13 août 2026, suivie module par module dans `branchement_patient.md`. Authentification et Accueil faits ; prochaine étape du fichier de suivi : **Recherche + catalogue** (`/mobile/patient/catalog/categories/`, `/catalog/`, `/catalog/stocks/<id>/`).
+
+### Repères pratiques pour reprendre une session de branchement
+
+- Backend local : `cd "C:\Users\24174\Documents\projets\django projects\gabpharma"`, `python manage.py runserver 8004` (venv `C:\Users\24174\Envs\DSI\Scripts\python.exe`).
+- MailHog (OTP e-mail) : vérifier s'il tourne déjà nativement (`MailHog_windows_386.exe`, ports 1025/8025) avant de relancer quoi que ce soit — inutile de passer par `docker compose up` si c'est déjà le cas.
+- S8 physique : `adb reverse tcp:8004 tcp:8004` à refaire à chaque reconnexion USB (le tunnel ne survit pas à une déconnexion), puis build avec `--dart-define=API_BASE_URL=http://127.0.0.1:8004/api/v1/ --dart-define=DEMO_MODE=false`.
+- Compte de démo pratique (mêmes identifiants que ceux pré-remplis par défaut sur l'écran de connexion, donc zéro saisie manuelle nécessaire) : `patient.demo@gabpharma.ga` / `demonstration`, créé via `manage.py shell` le 13 août.
+- Le code OTP par e-mail expire en 5 minutes — préférer que l'utilisateur tape lui-même « Se connecter »/« Vérifier » sur le téléphone plutôt que de le simuler via ADB (source de lenteurs et d'échecs répétés en session, voir historique de conversation du 13-17 août).
