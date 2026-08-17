@@ -2,7 +2,9 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import 'auth_screens.dart' show TermsScreen, PrivacyPolicyScreen;
+import 'core/api_client.dart' show ApiException;
 import 'core/auth_session.dart';
+import 'core/patient_summary.dart';
 import 'core/theme.dart';
 import 'detail_screens.dart' show OrderDetailScreen;
 import 'widgets.dart';
@@ -16,16 +18,58 @@ class PatientShell extends StatefulWidget {
 
 class _PatientShellState extends State<PatientShell> {
   int _index = 0;
+  PatientSummary? _summary;
+  bool _summaryLoading = true;
+  String? _summaryError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSummary();
+  }
+
+  Future<void> _loadSummary() async {
+    setState(() {
+      _summaryLoading = true;
+      _summaryError = null;
+    });
+    try {
+      final summary = await fetchPatientSummary();
+      if (!mounted) return;
+      setState(() {
+        _summary = summary;
+        _summaryLoading = false;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _summaryLoading = false;
+        _summaryError = error.message;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _summaryLoading = false;
+        _summaryError = "Impossible de joindre l'API Gab'Pharma.";
+      });
+    }
+  }
 
   void _switchTab(int index) => setState(() => _index = index);
 
-  late final _screens = [
-    PatientHomeScreen(onSwitchTab: _switchTab),
-    SearchScreen(onSwitchTab: _switchTab),
-    CartScreen(onSwitchTab: _switchTab),
-    OrdersScreen(onSwitchTab: _switchTab),
-    ProfileScreen(onSwitchTab: _switchTab),
-  ];
+  List<Widget> get _screens => [
+        PatientHomeScreen(
+          onSwitchTab: _switchTab,
+          summary: _summary,
+          loading: _summaryLoading,
+          error: _summaryError,
+          onRefresh: _loadSummary,
+        ),
+        SearchScreen(onSwitchTab: _switchTab),
+        CartScreen(onSwitchTab: _switchTab),
+        OrdersScreen(onSwitchTab: _switchTab),
+        ProfileScreen(onSwitchTab: _switchTab),
+      ];
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -47,7 +91,7 @@ class _PatientShellState extends State<PatientShell> {
           child: NavigationBar(
             selectedIndex: _index,
             onDestinationSelected: (value) => setState(() => _index = value),
-            destinations: const [
+            destinations: [
               NavigationDestination(
                 icon: Icon(Icons.home_outlined),
                 label: 'Accueil',
@@ -56,8 +100,9 @@ class _PatientShellState extends State<PatientShell> {
                   icon: Icon(Icons.search), label: 'Recherche'),
               NavigationDestination(
                 icon: Badge(
-                  label: Text('2'),
-                  child: Icon(Icons.shopping_bag_outlined),
+                  isLabelVisible: (_summary?.cart.itemsCount ?? 0) > 0,
+                  label: Text('${_summary?.cart.itemsCount ?? 0}'),
+                  child: const Icon(Icons.shopping_bag_outlined),
                 ),
                 label: 'Panier',
               ),
@@ -75,260 +120,327 @@ class _PatientShellState extends State<PatientShell> {
       );
 }
 
+const _kCategoryPalette = [
+  (Color(0xFFFFDEA7), Color(0xFF271900)),
+  (Color(0xFFA8F4B9), Color(0xFF00210D)),
+  (Color(0xFF9DF6B2), Color(0xFF00210C)),
+  (Color(0xFFBFE3FF), Color(0xFF001D33)),
+  (Color(0xFFFFD6D6), Color(0xFF3A0A0A)),
+];
+
+const _kPharmacyGradientPalette = [
+  [Color(0xFF0B7A3E), Color(0xFF39B27A)],
+  [Color(0xFF206B3D), Color(0xFF8CD79F)],
+  [Color(0xFF0E5C8A), Color(0xFF4FB3E8)],
+];
+
 class PatientHomeScreen extends StatelessWidget {
-  const PatientHomeScreen({required this.onSwitchTab, super.key});
+  const PatientHomeScreen({
+    required this.onSwitchTab,
+    required this.summary,
+    required this.loading,
+    required this.error,
+    required this.onRefresh,
+    super.key,
+  });
 
   final ValueChanged<int> onSwitchTab;
+  final PatientSummary? summary;
+  final bool loading;
+  final String? error;
+  final Future<void> Function() onRefresh;
+
+  String _formatFcfa(int amount) {
+    final s = amount.toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) buffer.write(' ');
+      buffer.write(s[i]);
+    }
+    return '$buffer FCFA';
+  }
 
   @override
   Widget build(BuildContext context) => SafeArea(
         child: Column(
           children: [
             PatientTopBar(onSwitchTab: onSwitchTab),
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Bonjour, Grâce',
-                            style: TextStyle(color: GabColors.muted)),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Prenez soin de votre santé aujourd’hui',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                            color: GabColors.ink,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        TextField(
-                          readOnly: true,
-                          onTap: () => onSwitchTab(1),
-                          decoration: InputDecoration(
-                            hintText: 'Rechercher un médicament...',
-                            prefixIcon: const Icon(Icons.search),
-                            suffixIcon: const Icon(Icons.tune,
-                                color: GabColors.primary),
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 14),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
+            Expanded(child: _buildBody(context)),
+          ],
+        ),
+      );
+
+  Widget _buildBody(BuildContext context) {
+    final summary = this.summary;
+    if (summary == null && loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (summary == null && error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off,
+                  size: 52, color: GabColors.secondary),
+              const SizedBox(height: 16),
+              Text('Impossible de charger l\'accueil',
+                  style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 8),
+              Text(error!, textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              FilledButton(onPressed: onRefresh, child: const Text('Réessayer')),
+            ],
+          ),
+        ),
+      );
+    }
+    if (summary == null) return const SizedBox.shrink();
+
+    final pharmacies = <int, PatientPharmacySummary>{};
+    for (final stock in summary.featuredStocks) {
+      pharmacies.putIfAbsent(stock.pharmacy.id, () => stock.pharmacy);
+    }
+    final pharmacyList = pharmacies.values.toList();
+
+    final categories = <String>{};
+    for (final stock in summary.featuredStocks) {
+      if (stock.medication.categoryName.isNotEmpty) {
+        categories.add(stock.medication.categoryName);
+      }
+    }
+    final categoryList = categories.toList();
+
+    final displayName = summary.profile.firstName.isNotEmpty
+        ? summary.profile.firstName
+        : (summary.profile.email.isNotEmpty ? summary.profile.email : '');
+
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Bonjour, $displayName',
+                    style: const TextStyle(color: GabColors.muted)),
+                const SizedBox(height: 4),
+                Text(
+                  'Prenez soin de votre santé aujourd’hui',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: GabColors.ink,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  readOnly: true,
+                  onTap: () => onSwitchTab(1),
+                  decoration: InputDecoration(
+                    hintText: 'Rechercher un médicament...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon:
+                        const Icon(Icons.tune, color: GabColors.primary),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _QuickAccess(
+                        label: 'Favoris',
+                        icon: Icons.favorite,
+                        badgeCount: summary.favoriteCount,
+                        onTap: () =>
+                            Navigator.pushNamed(context, '/favorites'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _QuickAccess(
+                        label: 'Assurance',
+                        icon: Icons.verified_user,
+                        onTap: () =>
+                            Navigator.pushNamed(context, '/insurance'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _QuickAccess(
+                        label: 'Support',
+                        icon: Icons.support_agent,
+                        badgeCount: summary.supportOpenCount,
+                        onTap: () =>
+                            Navigator.pushNamed(context, '/support'),
+                      ),
+                    ),
+                  ],
+                ),
+                if (summary.activeOrder != null) ...[
+                  const SizedBox(height: 20),
+                  Material(
+                    color: GabColors.primary,
+                    borderRadius: BorderRadius.circular(16),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () =>
+                          Navigator.pushNamed(context, '/order-detail'),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
                           children: [
-                            Expanded(
-                              child: _QuickAccess(
-                                label: 'Favoris',
-                                icon: Icons.favorite,
-                                onTap: () =>
-                                    Navigator.pushNamed(context, '/favorites'),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: GabColors.secondary,
+                                borderRadius: BorderRadius.circular(10),
                               ),
+                              child: const Icon(Icons.local_shipping,
+                                  color: Colors.white, size: 22),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 14),
                             Expanded(
-                              child: _QuickAccess(
-                                label: 'Assurance',
-                                icon: Icons.verified_user,
-                                onTap: () =>
-                                    Navigator.pushNamed(context, '/insurance'),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _QuickAccess(
-                                label: 'Support',
-                                icon: Icons.support_agent,
-                                onTap: () =>
-                                    Navigator.pushNamed(context, '/support'),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        Material(
-                          color: GabColors.primary,
-                          borderRadius: BorderRadius.circular(16),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(16),
-                            onTap: () =>
-                                Navigator.pushNamed(context, '/order-detail'),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: GabColors.secondary,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: const Icon(Icons.local_shipping,
-                                        color: Colors.white, size: 22),
-                                  ),
-                                  const SizedBox(width: 14),
-                                  const Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Commande en cours',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        SizedBox(height: 2),
-                                        Text(
-                                          'Livraison prévue à 14h30',
-                                          style: TextStyle(
-                                            color: Colors.white70,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
+                                  Text(
+                                    'Commande ${summary.activeOrder!.reference}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 16,
                                     ),
                                   ),
-                                  const Icon(Icons.chevron_right,
-                                      color: Colors.white),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${summary.activeOrder!.statusLabel} • ${summary.activeOrder!.deliveryModeLabel}',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
-                          ),
-                        ),
-                        SectionTitle(
-                          'Pharmacies à proximité',
-                          action: TextButton(
-                            onPressed: () => onSwitchTab(1),
-                            child: const Text('Voir tout'),
-                          ),
-                        ),
-                        SizedBox(
-                          height: 190,
-                          child: ListView(
-                            scrollDirection: Axis.horizontal,
-                            clipBehavior: Clip.none,
-                            children: [
-                              _PharmacyCard(
-                                name: "Grande Pharmacie d'Olumi",
-                                zone: 'Libreville',
-                                distance: '1.2 km',
-                                statusLabel: 'Ouvert 24h/24',
-                                statusColor: GabColors.primary,
-                                gradientColors: const [
-                                  Color(0xFF0B7A3E),
-                                  Color(0xFF39B27A),
-                                ],
-                                onTap: () =>
-                                    Navigator.pushNamed(context, '/pharmacy'),
-                              ),
-                              const SizedBox(width: 12),
-                              _PharmacyCard(
-                                name: 'Pharmacie du Pont-Nomba',
-                                zone: 'Owendo',
-                                distance: '3.5 km',
-                                statusLabel: 'Ouvert',
-                                statusColor: GabColors.secondary,
-                                gradientColors: const [
-                                  Color(0xFF206B3D),
-                                  Color(0xFF8CD79F),
-                                ],
-                                onTap: () =>
-                                    Navigator.pushNamed(context, '/pharmacy'),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SectionTitle(
-                          'Médicaments populaires',
-                          action: TextButton(
-                            onPressed: () => onSwitchTab(1),
-                            child: const Text('Parcourir'),
-                          ),
-                        ),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: _ProductCard(
-                                name: 'Paracétamol 500mg',
-                                price: '2 500 FCFA',
-                                onTap: () =>
-                                    Navigator.pushNamed(context, '/medication'),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _ProductCard(
-                                name: 'Vitamine C Booster',
-                                price: '4 200 FCFA',
-                                onTap: () =>
-                                    Navigator.pushNamed(context, '/medication'),
-                              ),
-                            ),
+                            const Icon(Icons.chevron_right,
+                                color: Colors.white),
                           ],
                         ),
-                        const SectionTitle('Catégories'),
-                        SizedBox(
-                          height: 208,
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Expanded(
-                                child: _CategoryTile(
-                                  label: 'Maman & Bébé',
-                                  icon: Icons.child_care,
-                                  color: const Color(0xFFFFDEA7),
-                                  onSurface: const Color(0xFF271900),
-                                  onTap: () => onSwitchTab(1),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  children: [
-                                    Expanded(
-                                      child: _CategoryTile(
-                                        label: 'Hygiène',
-                                        icon: Icons.clean_hands,
-                                        color: const Color(0xFFA8F4B9),
-                                        onSurface: const Color(0xFF00210D),
-                                        compact: true,
-                                        onTap: () => onSwitchTab(1),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Expanded(
-                                      child: _CategoryTile(
-                                        label: 'Premiers soins',
-                                        icon: Icons.medical_services,
-                                        color: const Color(0xFF9DF6B2),
-                                        onSurface: const Color(0xFF00210C),
-                                        compact: true,
-                                        onTap: () => onSwitchTab(1),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                if (pharmacyList.isNotEmpty) ...[
+                  SectionTitle(
+                    'Pharmacies à proximité',
+                    action: TextButton(
+                      onPressed: () => onSwitchTab(1),
+                      child: const Text('Voir tout'),
+                    ),
+                  ),
+                  SizedBox(
+                    height: 190,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      clipBehavior: Clip.none,
+                      children: [
+                        for (var i = 0; i < pharmacyList.length; i++) ...[
+                          if (i > 0) const SizedBox(width: 12),
+                          Builder(builder: (context) {
+                            final pharmacy = pharmacyList[i];
+                            final String statusLabel;
+                            final Color statusColor;
+                            if (pharmacy.is24h) {
+                              statusLabel = 'Ouvert 24h/24';
+                              statusColor = GabColors.primary;
+                            } else if (pharmacy.isOnDuty) {
+                              statusLabel = 'Ouvert';
+                              statusColor = GabColors.secondary;
+                            } else {
+                              statusLabel = 'Fermé';
+                              statusColor = GabColors.muted;
+                            }
+                            return _PharmacyCard(
+                              name: pharmacy.name,
+                              zone: pharmacy.zoneLabel,
+                              statusLabel: statusLabel,
+                              statusColor: statusColor,
+                              gradientColors: _kPharmacyGradientPalette[
+                                  i % _kPharmacyGradientPalette.length],
+                              onTap: () =>
+                                  Navigator.pushNamed(context, '/pharmacy'),
+                            );
+                          }),
+                        ],
                       ],
                     ),
                   ),
                 ],
-              ),
+                if (summary.featuredStocks.isNotEmpty) ...[
+                  SectionTitle(
+                    'Médicaments populaires',
+                    action: TextButton(
+                      onPressed: () => onSwitchTab(1),
+                      child: const Text('Parcourir'),
+                    ),
+                  ),
+                  GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 0.58,
+                    children: [
+                      for (final stock in summary.featuredStocks)
+                        _ProductCard(
+                          name: stock.medication.name,
+                          price: _formatFcfa(stock.priceFcfa),
+                          onTap: () =>
+                              Navigator.pushNamed(context, '/medication'),
+                        ),
+                    ],
+                  ),
+                ],
+                if (categoryList.isNotEmpty) ...[
+                  const SectionTitle('Catégories'),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      for (var i = 0; i < categoryList.length; i++)
+                        SizedBox(
+                          width:
+                              (MediaQuery.of(context).size.width - 52) / 2,
+                          height: 90,
+                          child: _CategoryTile(
+                            label: categoryList[i],
+                            icon: Icons.medication_liquid,
+                            color: _kCategoryPalette[
+                                i % _kCategoryPalette.length].$1,
+                            onSurface: _kCategoryPalette[
+                                i % _kCategoryPalette.length].$2,
+                            compact: true,
+                            onTap: () => onSwitchTab(1),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
             ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _QuickAccess extends StatelessWidget {
@@ -336,11 +448,13 @@ class _QuickAccess extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.onTap,
+    this.badgeCount = 0,
   });
 
   final String label;
   final IconData icon;
   final VoidCallback onTap;
+  final int badgeCount;
 
   @override
   Widget build(BuildContext context) => Material(
@@ -353,14 +467,19 @@ class _QuickAccess extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 14),
             child: Column(
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFA8F4B9),
-                    shape: BoxShape.circle,
+                Badge(
+                  isLabelVisible: badgeCount > 0,
+                  label: Text('$badgeCount'),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFA8F4B9),
+                      shape: BoxShape.circle,
+                    ),
+                    child:
+                        Icon(icon, color: const Color(0xFF00210D), size: 22),
                   ),
-                  child: Icon(icon, color: const Color(0xFF00210D), size: 22),
                 ),
                 const SizedBox(height: 8),
                 Text(label,
@@ -377,7 +496,6 @@ class _PharmacyCard extends StatelessWidget {
   const _PharmacyCard({
     required this.name,
     required this.zone,
-    required this.distance,
     required this.statusLabel,
     required this.statusColor,
     required this.gradientColors,
@@ -386,7 +504,6 @@ class _PharmacyCard extends StatelessWidget {
 
   final String name;
   final String zone;
-  final String distance;
   final String statusLabel;
   final Color statusColor;
   final List<Color> gradientColors;
@@ -462,7 +579,7 @@ class _PharmacyCard extends StatelessWidget {
                       const Icon(Icons.location_on_outlined,
                           size: 16, color: GabColors.muted),
                       const SizedBox(width: 4),
-                      Text('$zone • $distance',
+                      Text(zone,
                           style: const TextStyle(
                               color: GabColors.muted, fontSize: 12)),
                     ],
@@ -536,9 +653,10 @@ class _ProductCard extends StatelessWidget {
                     ),
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('$name ajouté au panier (démo).'),
-                          duration: const Duration(seconds: 2),
+                        const SnackBar(
+                          content: Text(
+                              'Panier pas encore connecté à l\'API — disponible prochainement.'),
+                          duration: Duration(seconds: 2),
                         ),
                       );
                     },

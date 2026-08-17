@@ -14,7 +14,7 @@
 
 ## Ordre convenu pour la suite
 
-1. [ ] **Accueil** — `GET /mobile/patient/summary/` (profil, panier, commande active, commandes récentes, notifications, favoris, offres). Fondation : badge panier et carte "commande en cours" dans `patient_shell.dart` en dépendent.
+1. [x] **Accueil** — `GET /mobile/patient/summary/` (profil, panier, commande active, commandes récentes, notifications, favoris, offres). Vérifié sur S8 le 17 août 2026 : prénom réel, badge panier masqué si vide, bannière "commande en cours" masquée si aucune commande active (pas de fausse donnée), pharmacies/produits/catégories dérivés de `featured_stocks` (dédupliqués), statut pharmacie réel (Ouvert 24h/24 / Ouvert / Fermé selon `is_24_7`/`is_on_duty`). Bug corrigé au passage : overflow de 49px sur les cartes produits (`GridView childAspectRatio` 0.72 trop serré → 0.58). Bouton "Ajouter" (home) et détail médicament/pharmacie restent sur les données démo — hors scope de ce module (voir étapes 2-3).
 2. [ ] **Recherche + catalogue** — `GET /mobile/patient/catalog/categories/`, `GET /mobile/patient/catalog/`, `GET /mobile/patient/catalog/stocks/<id>/`
 3. [ ] **Détail médicament / pharmacie** — `GET /mobile/patient/pharmacies/<id>/`, `GET /mobile/patient/pharmacies/<id>/catalog/`
 4. [ ] **Favoris** — `GET/POST /mobile/patient/favorites/`, `DELETE /mobile/patient/favorites/<id>/`
