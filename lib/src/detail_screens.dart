@@ -45,6 +45,8 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
   int _quantity = 1;
   bool _loading = true;
   String? _error;
+  bool? _favoriteOverride;
+  bool _favoriteBusy = false;
 
   @override
   void didChangeDependencies() {
@@ -125,6 +127,34 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
     );
   }
 
+  bool get _isFavorite => _favoriteOverride ?? _stock?.medication.isFavorite ?? false;
+
+  Future<void> _toggleFavorite() async {
+    final stock = _stock;
+    if (stock == null || _favoriteBusy) return;
+    final currentlyFavorite = _isFavorite;
+    setState(() => _favoriteBusy = true);
+    try {
+      if (currentlyFavorite) {
+        final favorites = await fetchFavorites();
+        final match = favorites.where(
+            (f) => f.medication.medicationId == stock.medication.medicationId);
+        if (match.isNotEmpty) await removeFavorite(match.first.id);
+      } else {
+        await addFavorite(stock.medication.medicationId);
+      }
+      if (!mounted) return;
+      setState(() {
+        _favoriteOverride = !currentlyFavorite;
+        _favoriteBusy = false;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() => _favoriteBusy = false);
+      _showNotConnected('Impossible de mettre à jour les favoris pour le moment.');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final stock = _stock;
@@ -153,16 +183,21 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
                   ),
                   const Spacer(),
                   IconButton(
-                    onPressed: () => _showNotConnected(
-                        'Favoris pas encore connectés à l\'API.'),
-                    icon: Icon(
-                      (stock?.medication.isFavorite ?? false)
-                          ? Icons.favorite
-                          : Icons.favorite_border,
-                      color: (stock?.medication.isFavorite ?? false)
-                          ? GabColors.danger
-                          : GabColors.primary,
-                    ),
+                    onPressed: stock == null ? null : _toggleFavorite,
+                    icon: _favoriteBusy
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            _isFavorite
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color: _isFavorite
+                                ? GabColors.danger
+                                : GabColors.primary,
+                          ),
                   ),
                   IconButton(
                     onPressed: () => ScaffoldMessenger.of(context)
@@ -7428,22 +7463,7 @@ class _PharmacyProductCard extends StatelessWidget {
       );
 }
 
-enum _StockStatus { inStock, lowStock, outOfStock }
-
-class _FavoriteItem {
-  _FavoriteItem({
-    required this.name,
-    required this.details,
-    required this.price,
-    required this.stock,
-  });
-
-  final String name;
-  final String details;
-  final int? price;
-  final _StockStatus stock;
-  bool isFavorite = true;
-}
+enum _StockStatus { inStock, lowStock }
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -7457,32 +7477,47 @@ enum _FavoritesSort { recent, name, price }
 class _FavoritesScreenState extends State<FavoritesScreen> {
   final _queryController = TextEditingController();
   _FavoritesSort _sort = _FavoritesSort.recent;
+  List<PatientFavorite> _favorites = [];
+  bool _loading = true;
+  String? _error;
 
-  final _items = [
-    _FavoriteItem(
-      name: 'Doliprane 1000mg',
-      details: 'Boîte de 8 gélules',
-      price: 2450,
-      stock: _StockStatus.inStock,
-    ),
-    _FavoriteItem(
-      name: 'Vitamine C 500mg',
-      details: 'Flacon de 30 comprimés',
-      price: 5000,
-      stock: _StockStatus.lowStock,
-    ),
-    _FavoriteItem(
-      name: 'Biafine Emulsion',
-      details: 'Tube de 93g',
-      price: null,
-      stock: _StockStatus.outOfStock,
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
 
   @override
   void dispose() {
     _queryController.dispose();
     super.dispose();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final favorites = await fetchFavorites();
+      if (!mounted) return;
+      setState(() {
+        _favorites = favorites;
+        _loading = false;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = error.message;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = "Impossible de joindre l'API Gab'Pharma.";
+      });
+    }
   }
 
   String _formatFcfa(int amount) {
@@ -7495,37 +7530,72 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     return '$buffer FCFA';
   }
 
-  List<_FavoriteItem> get _visibleItems {
+  List<PatientFavorite> get _visibleItems {
     final query = _queryController.text.trim().toLowerCase();
     final list = query.isEmpty
-        ? [..._items]
-        : _items
-            .where((item) => item.name.toLowerCase().contains(query))
+        ? [..._favorites]
+        : _favorites
+            .where((item) => item.medication.name.toLowerCase().contains(query))
             .toList();
     switch (_sort) {
       case _FavoritesSort.name:
-        list.sort((a, b) => a.name.compareTo(b.name));
+        list.sort((a, b) => a.medication.name.compareTo(b.medication.name));
       case _FavoritesSort.price:
-        list.sort((a, b) => (a.price ?? 1 << 30).compareTo(b.price ?? 1 << 30));
+        list.sort((a, b) =>
+            (a.bestPriceFcfa ?? 1 << 30).compareTo(b.bestPriceFcfa ?? 1 << 30));
       case _FavoritesSort.recent:
         break;
     }
     return list;
   }
 
-  void _removeItem(_FavoriteItem item) {
-    final index = _items.indexOf(item);
-    setState(() => _items.remove(item));
+  void _removeItem(PatientFavorite favorite) {
+    final index = _favorites.indexOf(favorite);
+    setState(() => _favorites.remove(favorite));
+    removeFavorite(favorite.id).catchError((_) {
+      if (mounted) {
+        setState(
+            () => _favorites.insert(index.clamp(0, _favorites.length), favorite));
+      }
+    });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${item.name} retiré des favoris.'),
+        content: Text('${favorite.medication.name} retiré des favoris.'),
         action: SnackBarAction(
           label: 'Annuler',
-          onPressed: () => setState(
-              () => _items.insert(index.clamp(0, _items.length), item)),
+          onPressed: () async {
+            try {
+              final restored =
+                  await addFavorite(favorite.medication.medicationId);
+              if (!mounted) return;
+              setState(() =>
+                  _favorites.insert(index.clamp(0, _favorites.length), restored));
+            } on Object {
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content: Text('Impossible de restaurer ce favori.')),
+              );
+            }
+          },
         ),
       ),
     );
+  }
+
+  Future<void> _openMedication(PatientFavorite favorite) async {
+    final stockId = await findCheapestStockId(favorite.medication.name);
+    if (!mounted) return;
+    if (stockId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Aucune pharmacie ne propose actuellement ${favorite.medication.name}.'),
+        ),
+      );
+      return;
+    }
+    Navigator.pushNamed(context, '/medication', arguments: stockId);
   }
 
   @override
@@ -7575,74 +7645,96 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 ),
               ),
               const Divider(height: 1, color: GabColors.outlineVariant),
-              Expanded(
-                child: _items.isEmpty
-                    ? _EmptyFavorites(
-                        onBrowse: () => Navigator.pop(context),
-                      )
-                    : ListView(
-                        padding: const EdgeInsets.all(20),
-                        children: [
-                          TextField(
-                            controller: _queryController,
-                            onChanged: (_) => setState(() {}),
-                            decoration: const InputDecoration(
-                              hintText: 'Rechercher dans vos favoris',
-                              prefixIcon: Icon(Icons.search),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          for (final item in _visibleItems)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: _FavoriteCard(
-                                item: item,
-                                formatFcfa: _formatFcfa,
-                                onToggleFavorite: () => setState(
-                                    () => item.isFavorite = !item.isFavorite),
-                                onDelete: () => _removeItem(item),
-                                onAddToCart: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                          '${item.name} ajouté au panier (démo).'),
-                                      duration: const Duration(seconds: 2),
-                                    ),
-                                  );
-                                },
-                                onTap: () =>
-                                    Navigator.pushNamed(context, '/medication'),
-                              ),
-                            ),
-                        ],
-                      ),
-              ),
+              Expanded(child: _buildBody(context)),
             ],
           ),
         ),
       );
+
+  Widget _buildBody(BuildContext context) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off,
+                  size: 52, color: GabColors.secondary),
+              const SizedBox(height: 16),
+              Text(_error!, textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              FilledButton(onPressed: _load, child: const Text('Réessayer')),
+            ],
+          ),
+        ),
+      );
+    }
+    if (_favorites.isEmpty) {
+      return _EmptyFavorites(onBrowse: () => Navigator.pop(context));
+    }
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        TextField(
+          controller: _queryController,
+          onChanged: (_) => setState(() {}),
+          decoration: const InputDecoration(
+            hintText: 'Rechercher dans vos favoris',
+            prefixIcon: Icon(Icons.search),
+          ),
+        ),
+        const SizedBox(height: 16),
+        for (final item in _visibleItems)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: _FavoriteCard(
+              favorite: item,
+              formatFcfa: _formatFcfa,
+              onDelete: () => _removeItem(item),
+              onAddToCart: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                        'Panier pas encore connecté à l\'API — disponible prochainement.'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+              onTap: () => _openMedication(item),
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 class _FavoriteCard extends StatelessWidget {
   const _FavoriteCard({
-    required this.item,
+    required this.favorite,
     required this.formatFcfa,
-    required this.onToggleFavorite,
     required this.onDelete,
     required this.onAddToCart,
     required this.onTap,
   });
 
-  final _FavoriteItem item;
+  final PatientFavorite favorite;
   final String Function(int) formatFcfa;
-  final VoidCallback onToggleFavorite;
   final VoidCallback onDelete;
   final VoidCallback onAddToCart;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final outOfStock = item.stock == _StockStatus.outOfStock;
+    final outOfStock = favorite.offerCount == 0;
+    final details = [
+      if (favorite.medication.dosage.isNotEmpty) favorite.medication.dosage,
+      if (favorite.medication.formLabel.isNotEmpty)
+        favorite.medication.formLabel,
+    ].join(' • ');
     return Opacity(
       opacity: outOfStock ? 0.7 : 1,
       child: Material(
@@ -7650,7 +7742,7 @@ class _FavoriteCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
+          onTap: outOfStock ? null : onTap,
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -7683,34 +7775,13 @@ class _FavoriteCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Text(item.name,
-                                    style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700)),
-                              ),
-                              IconButton(
-                                onPressed: onToggleFavorite,
-                                icon: Icon(
-                                  item.isFavorite
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                  color: item.isFavorite
-                                      ? GabColors.primary
-                                      : GabColors.muted,
-                                ),
-                                constraints: const BoxConstraints(),
-                                padding: EdgeInsets.zero,
-                                visualDensity: VisualDensity.compact,
-                              ),
-                            ],
-                          ),
-                          Text(item.details,
+                          Text(favorite.medication.name,
                               style: const TextStyle(
-                                  color: GabColors.muted, fontSize: 12)),
+                                  fontSize: 16, fontWeight: FontWeight.w700)),
+                          if (details.isNotEmpty)
+                            Text(details,
+                                style: const TextStyle(
+                                    color: GabColors.muted, fontSize: 12)),
                           const SizedBox(height: 8),
                           if (outOfStock)
                             const Text(
@@ -7727,14 +7798,18 @@ class _FavoriteCard extends StatelessWidget {
                               runSpacing: 4,
                               children: [
                                 Text(
-                                  formatFcfa(item.price!),
+                                  formatFcfa(favorite.bestPriceFcfa!),
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w800,
                                     color: GabColors.primary,
                                   ),
                                 ),
-                                _StockChip(status: item.stock),
+                                _StockChip(
+                                  status: favorite.isLowStock
+                                      ? _StockStatus.lowStock
+                                      : _StockStatus.inStock,
+                                ),
                               ],
                             ),
                         ],

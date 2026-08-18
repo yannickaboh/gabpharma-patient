@@ -27,6 +27,7 @@ class PatientZone {
 
 class CatalogMedication {
   const CatalogMedication({
+    required this.medicationId,
     required this.name,
     required this.dci,
     required this.dosage,
@@ -35,6 +36,7 @@ class CatalogMedication {
     required this.isFavorite,
   });
 
+  final int medicationId;
   final String name;
   final String dci;
   final String dosage;
@@ -44,6 +46,7 @@ class CatalogMedication {
 
   factory CatalogMedication.fromJson(Map<String, dynamic> json) =>
       CatalogMedication(
+        medicationId: (json['id'] as num?)?.toInt() ?? 0,
         name: json['name']?.toString() ?? '',
         dci: json['dci']?.toString() ?? '',
         dosage: json['dosage']?.toString() ?? '',
@@ -243,4 +246,63 @@ Future<CatalogPage> fetchPharmacyCatalog(int pharmacyId, {int page = 1}) async {
         .map((e) => CatalogStock.fromJson(Map<String, dynamic>.from(e as Map)))
         .toList(),
   );
+}
+
+class PatientFavorite {
+  const PatientFavorite({
+    required this.id,
+    required this.medication,
+    required this.offerCount,
+    required this.bestPriceFcfa,
+    required this.isLowStock,
+  });
+
+  final int id;
+  final CatalogMedication medication;
+  final int offerCount;
+  final int? bestPriceFcfa;
+  final bool isLowStock;
+
+  factory PatientFavorite.fromJson(Map<String, dynamic> json) =>
+      PatientFavorite(
+        id: (json['id'] as num).toInt(),
+        medication: CatalogMedication.fromJson(
+          Map<String, dynamic>.from(json['medication'] as Map),
+        ),
+        offerCount: (json['offer_count'] as num?)?.toInt() ?? 0,
+        bestPriceFcfa: (json['best_price_fcfa'] as num?)?.toInt(),
+        isLowStock: json['is_low_stock'] == true,
+      );
+}
+
+Future<List<PatientFavorite>> fetchFavorites() async {
+  final json =
+      await AuthSession.instance.api.getJson('mobile/patient/favorites/');
+  return ((json['favorites'] as List?) ?? [])
+      .map((e) => PatientFavorite.fromJson(Map<String, dynamic>.from(e as Map)))
+      .toList();
+}
+
+Future<PatientFavorite> addFavorite(int medicationId) async {
+  final json = await AuthSession.instance.api.postJson(
+    'mobile/patient/favorites/',
+    {'medication_id': medicationId},
+  );
+  return PatientFavorite.fromJson(json);
+}
+
+Future<void> removeFavorite(int favoriteId) async {
+  await AuthSession.instance.api.deleteJson('mobile/patient/favorites/$favoriteId/');
+}
+
+/// Trouve un stock réel pour une fiche médicament (l'API n'expose pas de
+/// détail "médicament tous pharmacies" — même approximation que le détail
+/// médicament) : renvoie l'id du stock le moins cher, ou null si plus
+/// aucune pharmacie n'a ce médicament en stock.
+Future<int?> findCheapestStockId(String medicationName) async {
+  final page = await fetchCatalog(query: medicationName);
+  if (page.results.isEmpty) return null;
+  final sorted = [...page.results]
+    ..sort((a, b) => a.priceFcfa.compareTo(b.priceFcfa));
+  return sorted.first.id;
 }
