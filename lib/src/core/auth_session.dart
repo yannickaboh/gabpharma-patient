@@ -1,6 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'api_client.dart';
+import 'app_config.dart';
 
 class AuthUser {
   const AuthUser({
@@ -76,7 +77,9 @@ class AuthChallenge {
 }
 
 class AuthSession {
-  AuthSession._();
+  AuthSession._() {
+    api.onUnauthorized = _handleUnauthorized;
+  }
 
   static final AuthSession instance = AuthSession._();
 
@@ -88,17 +91,40 @@ class AuthSession {
 
   AuthUser? currentUser;
 
+  // Le token d'accès n'a pas de rafraîchissement automatique côté API pour
+  // l'instant (pas d'endpoint /mobile/auth/refresh/) : il expire au bout de
+  // 20 min et toute requête échoue alors en 401. On détecte ça ici pour
+  // renvoyer proprement au login plutôt que de laisser chaque écran afficher
+  // une erreur générique qui ne se résoudra jamais toute seule.
+  bool _handlingUnauthorized = false;
+  // Pendant restoreSession(), un 401 sur /me/ est un cas normal (token
+  // périmé depuis la dernière ouverture) déjà géré par son propre
+  // catch — on évite que _handleUnauthorized navigue en double par-dessus.
+  bool _restoring = false;
+
+  void _handleUnauthorized() {
+    if (_handlingUnauthorized || _restoring) return;
+    _handlingUnauthorized = true;
+    clear();
+    AppConfig.navigatorKey.currentState
+        ?.pushNamedAndRemoveUntil('/login', (route) => false);
+  }
+
   Future<bool> restoreSession() async {
     final accessToken = await _storage.read(key: _accessTokenKey);
     if (accessToken == null || accessToken.isEmpty) return false;
 
     api.accessToken = accessToken;
+    _restoring = true;
     try {
       currentUser = await me();
+      _handlingUnauthorized = false;
       return currentUser?.role == 'patient' && currentUser?.status == 'active';
     } on ApiException {
       await clear();
       return false;
+    } finally {
+      _restoring = false;
     }
   }
 
@@ -168,6 +194,7 @@ class AuthSession {
       throw const ApiException('La réponse de connexion est incomplète.');
     }
     api.accessToken = accessToken;
+    _handlingUnauthorized = false;
     await _storage.write(key: _accessTokenKey, value: accessToken);
     await _storage.write(key: _refreshTokenKey, value: refreshToken);
   }

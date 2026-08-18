@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import 'auth_screens.dart' show TermsScreen, PrivacyPolicyScreen;
 import 'core/api_client.dart' show ApiException;
 import 'core/auth_session.dart';
+import 'core/patient_catalog.dart';
 import 'core/patient_summary.dart';
 import 'core/theme.dart';
 import 'detail_screens.dart' show OrderDetailScreen;
@@ -730,7 +733,6 @@ class _SearchResult {
     required this.pharmacy,
     required this.price,
     required this.inStock,
-    this.zone,
   });
 
   final String name;
@@ -738,7 +740,6 @@ class _SearchResult {
   final String pharmacy;
   final int price;
   final bool inStock;
-  final String? zone;
 }
 
 class SearchScreen extends StatefulWidget {
@@ -753,47 +754,118 @@ class SearchScreen extends StatefulWidget {
 enum _SortMode { price, proximity }
 
 class _SearchScreenState extends State<SearchScreen> {
-  final _queryController = TextEditingController(text: 'Paracétamol');
-  String? _selectedZone = 'Akanda';
+  final _queryController = TextEditingController();
+  Timer? _debounce;
+
+  List<PatientCategory> _categories = [];
+  List<PatientZone> _zones = [];
+
+  String? _selectedZoneCode;
+  int? _selectedCategoryId;
   _SortMode _sort = _SortMode.price;
 
-  final _results = [
-    _SearchResult(
-      name: 'Paracétamol Mylan',
-      details: '500mg • Boîte de 16 gélules',
-      pharmacy: 'Pharmacie du Centre, Akanda',
-      price: 1250,
-      inStock: true,
-      zone: 'Akanda',
-    ),
-    _SearchResult(
-      name: 'Doliprane',
-      details: '1000mg • 8 comprimés sécables',
-      pharmacy: "Pharmacie de l'Estuaire",
-      price: 2100,
-      inStock: true,
-    ),
-    _SearchResult(
-      name: 'Efferalgan',
-      details: 'Pédiatrique • Sirop 90ml',
-      pharmacy: 'Pharmacie Les Palmiers',
-      price: 1850,
-      inStock: false,
-    ),
-    _SearchResult(
-      name: 'Panadol Ultra',
-      details: '500mg/65mg • Boîte de 12',
-      pharmacy: "Grande Pharmacie d'Owendo",
-      price: 3400,
-      inStock: true,
-      zone: 'Owendo',
-    ),
-  ];
+  List<CatalogStock> _results = [];
+  int _resultCount = 0;
+  int _page = 1;
+  bool _hasMore = false;
+  bool _loading = true;
+  bool _loadingMore = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFilters();
+    _loadResults();
+    _queryController.addListener(_onQueryChanged);
+  }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _queryController.dispose();
     super.dispose();
+  }
+
+  void _onQueryChanged() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), _loadResults);
+  }
+
+  Future<void> _loadFilters() async {
+    try {
+      final categories = await fetchPatientCategories();
+      final zones = await fetchPatientZones();
+      if (!mounted) return;
+      setState(() {
+        _categories = categories;
+        _zones = zones;
+      });
+    } on Object {
+      // Filtres indisponibles : les chips resteront simplement vides.
+    }
+  }
+
+  Future<void> _loadResults() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+      _page = 1;
+    });
+    try {
+      final page = await fetchCatalog(
+        query: _queryController.text.trim(),
+        categoryId: _selectedCategoryId,
+        zoneCode: _selectedZoneCode,
+      );
+      if (!mounted) return;
+      setState(() {
+        _results = page.results;
+        _resultCount = page.count;
+        _hasMore = page.hasMore;
+        _loading = false;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = error.message;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = "Impossible de joindre l'API Gab'Pharma.";
+      });
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore || !_hasMore) return;
+    setState(() => _loadingMore = true);
+    try {
+      final page = await fetchCatalog(
+        query: _queryController.text.trim(),
+        categoryId: _selectedCategoryId,
+        zoneCode: _selectedZoneCode,
+        page: _page + 1,
+      );
+      if (!mounted) return;
+      setState(() {
+        _results = [..._results, ...page.results];
+        _hasMore = page.hasMore;
+        _page += 1;
+        _loadingMore = false;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() => _loadingMore = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Impossible de charger la suite des résultats.'),
+        ),
+      );
+    }
   }
 
   String _formatFcfa(int amount) {
@@ -806,10 +878,21 @@ class _SearchScreenState extends State<SearchScreen> {
     return '$buffer FCFA';
   }
 
-  List<_SearchResult> get _filteredResults {
-    final list = _selectedZone == null
-        ? [..._results]
-        : _results.where((r) => r.zone == _selectedZone).toList();
+  List<_SearchResult> get _displayResults {
+    final list = _results
+        .map((stock) => _SearchResult(
+              name: stock.medication.name,
+              details: [
+                if (stock.medication.dosage.isNotEmpty)
+                  stock.medication.dosage,
+                if (stock.medication.formLabel.isNotEmpty)
+                  stock.medication.formLabel,
+              ].join(' • '),
+              pharmacy: '${stock.pharmacy.name}, ${stock.pharmacy.zoneLabel}',
+              price: stock.priceFcfa,
+              inStock: stock.inStock,
+            ))
+        .toList();
     if (_sort == _SortMode.price) {
       list.sort((a, b) => a.price.compareTo(b.price));
     }
@@ -819,11 +902,60 @@ class _SearchScreenState extends State<SearchScreen> {
   void _showUnavailableFilter(String label) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-            'Filtre "$label" disponible une fois le catalogue connecté à l\'API.'),
+        content: Text('Filtre "$label" pas encore disponible côté API.'),
         duration: const Duration(seconds: 2),
       ),
     );
+  }
+
+  Future<void> _pickCategory() async {
+    if (_categories.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Aucune catégorie disponible pour le moment.'),
+        ),
+      );
+      return;
+    }
+    const clearSentinel = -1;
+    final selected = await showModalBottomSheet<int>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('Toutes les catégories'),
+              trailing: _selectedCategoryId == null
+                  ? const Icon(Icons.check, color: GabColors.primary)
+                  : null,
+              onTap: () => Navigator.pop(context, clearSentinel),
+            ),
+            for (final category in _categories)
+              ListTile(
+                title: Text(category.name),
+                trailing: _selectedCategoryId == category.id
+                    ? const Icon(Icons.check, color: GabColors.primary)
+                    : null,
+                onTap: () => Navigator.pop(context, category.id),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (selected == null) return;
+    setState(
+      () => _selectedCategoryId = selected == clearSentinel ? null : selected,
+    );
+    _loadResults();
+  }
+
+  String? get _selectedCategoryName {
+    if (_selectedCategoryId == null) return null;
+    for (final category in _categories) {
+      if (category.id == _selectedCategoryId) return category.name;
+    }
+    return null;
   }
 
   @override
@@ -842,7 +974,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon: IconButton(
                         icon: const Icon(Icons.close),
-                        onPressed: () => setState(_queryController.clear),
+                        onPressed: () => _queryController.clear(),
                       ),
                     ),
                   ),
@@ -852,25 +984,25 @@ class _SearchScreenState extends State<SearchScreen> {
                     child: ListView(
                       scrollDirection: Axis.horizontal,
                       children: [
+                        for (final zone in _zones) ...[
+                          _FilterChipPill(
+                            label: zone.label,
+                            selected: _selectedZoneCode == zone.code,
+                            onTap: () {
+                              setState(() => _selectedZoneCode =
+                                  _selectedZoneCode == zone.code
+                                      ? null
+                                      : zone.code);
+                              _loadResults();
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                        ],
                         _FilterChipPill(
-                          label: 'Akanda',
-                          selected: _selectedZone == 'Akanda',
-                          trailingIcon: Icons.keyboard_arrow_down,
-                          onTap: () => setState(() => _selectedZone =
-                              _selectedZone == 'Akanda' ? null : 'Akanda'),
-                        ),
-                        const SizedBox(width: 8),
-                        _FilterChipPill(
-                          label: 'Owendo',
-                          selected: _selectedZone == 'Owendo',
-                          onTap: () => setState(() => _selectedZone =
-                              _selectedZone == 'Owendo' ? null : 'Owendo'),
-                        ),
-                        const SizedBox(width: 8),
-                        _FilterChipPill(
-                          label: 'Catégorie',
+                          label: _selectedCategoryName ?? 'Catégorie',
+                          selected: _selectedCategoryId != null,
                           trailingIcon: Icons.filter_list,
-                          onTap: () => _showUnavailableFilter('Catégorie'),
+                          onTap: _pickCategory,
                         ),
                         const SizedBox(width: 8),
                         _FilterChipPill(
@@ -885,7 +1017,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          'Résultats (${_filteredResults.length})',
+                          'Résultats ($_resultCount)',
                           style: const TextStyle(
                               fontSize: 16, fontWeight: FontWeight.w700),
                         ),
@@ -923,16 +1055,62 @@ class _SearchScreenState extends State<SearchScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  for (final result in _filteredResults)
+                  if (_loading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 32),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (_error != null)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _SearchResultCard(
-                        result: result,
-                        formatFcfa: _formatFcfa,
-                        onTap: () =>
-                            Navigator.pushNamed(context, '/medication'),
+                      padding: const EdgeInsets.symmetric(vertical: 32),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.cloud_off,
+                              size: 44, color: GabColors.secondary),
+                          const SizedBox(height: 12),
+                          Text(_error!, textAlign: TextAlign.center),
+                          const SizedBox(height: 12),
+                          FilledButton(
+                            onPressed: _loadResults,
+                            child: const Text('Réessayer'),
+                          ),
+                        ],
                       ),
-                    ),
+                    )
+                  else if (_displayResults.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 32),
+                      child: EmptyState(
+                        icon: Icons.search_off,
+                        title: 'Aucun résultat',
+                        message:
+                            'Essayez un autre médicament, une autre zone ou une autre catégorie.',
+                      ),
+                    )
+                  else ...[
+                    for (final result in _displayResults)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _SearchResultCard(
+                          result: result,
+                          formatFcfa: _formatFcfa,
+                          onTap: () =>
+                              Navigator.pushNamed(context, '/medication'),
+                        ),
+                      ),
+                    if (_hasMore)
+                      Center(
+                        child: _loadingMore
+                            ? const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                                child: CircularProgressIndicator(),
+                              )
+                            : TextButton(
+                                onPressed: _loadMore,
+                                child: const Text('Charger plus'),
+                              ),
+                      ),
+                  ],
                 ],
               ),
             ),
@@ -1116,10 +1294,10 @@ class _SearchResultCard extends StatelessWidget {
                       FilledButton(
                         onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
+                            const SnackBar(
                               content: Text(
-                                  '${result.name} ajouté au panier (démo).'),
-                              duration: const Duration(seconds: 2),
+                                  'Panier pas encore connecté à l\'API — disponible prochainement.'),
+                              duration: Duration(seconds: 2),
                             ),
                           );
                         },
@@ -1134,10 +1312,10 @@ class _SearchResultCard extends StatelessWidget {
                       OutlinedButton(
                         onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
+                            const SnackBar(
                               content: Text(
-                                  'Alerte activée pour ${result.name} (démo).'),
-                              duration: const Duration(seconds: 2),
+                                  'Alertes de stock pas encore connectées à l\'API.'),
+                              duration: Duration(seconds: 2),
                             ),
                           );
                         },

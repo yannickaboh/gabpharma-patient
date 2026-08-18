@@ -20,6 +20,10 @@ class ApiClient {
   final HttpClient _httpClient;
   String? accessToken;
 
+  /// Appelé quand une requête authentifiée reçoit un 401 (token expiré,
+  /// pas de rafraîchissement automatique côté API pour l'instant).
+  void Function()? onUnauthorized;
+
   Future<Map<String, dynamic>> getJson(String path) => _send('GET', path);
 
   Future<Map<String, dynamic>> postJson(
@@ -57,6 +61,9 @@ class ApiClient {
               _firstValidationError(decoded) ??
               'Une erreur est survenue.'
           : 'Une erreur est survenue.';
+      if (response.statusCode == 401 && accessToken != null) {
+        onUnauthorized?.call();
+      }
       throw ApiException(message, statusCode: response.statusCode);
     }
     return Map<String, dynamic>.from(decoded as Map);

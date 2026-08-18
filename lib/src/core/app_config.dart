@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart';
+
 abstract final class AppConfig {
   static const apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
@@ -6,4 +8,6 @@ abstract final class AppConfig {
 
   static const demoMode =
       bool.fromEnvironment('DEMO_MODE', defaultValue: false);
+
+  static final navigatorKey = GlobalKey<NavigatorState>();
 }
