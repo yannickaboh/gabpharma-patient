@@ -4,24 +4,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'auth_screens.dart' show TermsScreen, PrivacyPolicyScreen;
+import 'core/api_client.dart' show ApiException;
 import 'core/auth_session.dart';
+import 'core/patient_catalog.dart';
 import 'core/theme.dart';
 import 'widgets.dart' show EmptyState;
 
 class _MedicationPharmacy {
   const _MedicationPharmacy({
+    required this.pharmacyId,
     required this.name,
     required this.location,
-    required this.distance,
     required this.price,
+    required this.inStock,
     required this.stockLabel,
     required this.stockLow,
   });
 
+  final int pharmacyId;
   final String name;
   final String location;
-  final String distance;
   final int price;
+  final bool inStock;
   final String stockLabel;
   final bool stockLow;
 }
@@ -34,40 +38,76 @@ class MedicationDetailScreen extends StatefulWidget {
 }
 
 class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
-  static const _pharmacies = [
-    _MedicationPharmacy(
-      name: "Pharmacie de l'Estuaire",
-      location: 'Libreville, Centre-ville',
-      distance: '1.2 km',
-      price: 2500,
-      stockLabel: 'Stock: 50+',
-      stockLow: false,
-    ),
-    _MedicationPharmacy(
-      name: 'Pharmacie du Pont',
-      location: 'Akanda',
-      distance: '4.5 km',
-      price: 2450,
-      stockLabel: 'Stock limité (5)',
-      stockLow: true,
-    ),
-    _MedicationPharmacy(
-      name: "Pharmacie d'Owendo",
-      location: 'Owendo',
-      distance: '12 km',
-      price: 2600,
-      stockLabel: 'Stock: 24',
-      stockLow: false,
-    ),
-  ];
-
+  int? _stockId;
+  CatalogStock? _stock;
+  List<_MedicationPharmacy> _pharmacies = [];
   int _selectedPharmacy = 0;
   int _quantity = 1;
-  bool _isFavorite = false;
+  bool _loading = true;
+  String? _error;
 
-  // Simulée comme dans le mockup Stitch : le panier de démonstration
-  // contient déjà un article d'une autre pharmacie (voir CartScreen).
-  final bool _cartHasOtherPharmacyItems = true;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_stockId == null) {
+      final arg = ModalRoute.of(context)?.settings.arguments;
+      _stockId = arg is int ? arg : null;
+      _load();
+    }
+  }
+
+  _MedicationPharmacy _toOption(CatalogStock stock) => _MedicationPharmacy(
+        pharmacyId: stock.pharmacy.id,
+        name: stock.pharmacy.name,
+        location: stock.pharmacy.zoneLabel,
+        price: stock.priceFcfa,
+        inStock: stock.inStock,
+        stockLabel: stock.isLowStock
+            ? 'Stock limité (${stock.quantity})'
+            : 'Stock: ${stock.quantity}',
+        stockLow: stock.isLowStock,
+      );
+
+  Future<void> _load() async {
+    final stockId = _stockId;
+    if (stockId == null) {
+      setState(() {
+        _loading = false;
+        _error = 'Article introuvable.';
+      });
+      return;
+    }
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final stock = await fetchStockDetail(stockId);
+      final page = await fetchCatalog(query: stock.medication.name);
+      if (!mounted) return;
+      final pharmacies = page.results.map(_toOption).toList();
+      final selectedIndex =
+          pharmacies.indexWhere((p) => p.pharmacyId == stock.pharmacy.id);
+      setState(() {
+        _stock = stock;
+        _pharmacies = pharmacies.isEmpty ? [_toOption(stock)] : pharmacies;
+        _selectedPharmacy = selectedIndex >= 0 ? selectedIndex : 0;
+        _loading = false;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = error.message;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = "Impossible de joindre l'API Gab'Pharma.";
+      });
+    }
+  }
 
   String _formatFcfa(int amount) {
     final s = amount.toString();
@@ -79,47 +119,15 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
     return '$buffer FCFA';
   }
 
-  Future<void> _handleAddToCart() async {
-    if (_cartHasOtherPharmacyItems) {
-      final emptyAndContinue = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          icon:
-              const Icon(Icons.warning_amber_rounded, color: GabColors.danger),
-          title: const Text("Panier d'une autre pharmacie"),
-          content: const Text(
-            'Votre panier contient déjà des articles de la Pharmacie du '
-            'Centre. Un panier ne peut contenir que les produits d\'une '
-            'seule pharmacie. Voulez-vous vider votre panier pour ajouter '
-            'cet article ?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Annuler'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Vider le panier et continuer'),
-            ),
-          ],
-        ),
-      );
-      if (emptyAndContinue != true || !mounted) return;
-    }
-    if (!mounted) return;
-    final pharmacy = _pharmacies[_selectedPharmacy];
+  void _showNotConnected(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-            '$_quantity × Doliprane 1000mg ajouté au panier (${pharmacy.name}, démo).'),
-        duration: const Duration(seconds: 2),
-      ),
+      SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final stock = _stock;
     return Scaffold(
       backgroundColor: GabColors.background,
       body: SafeArea(
@@ -145,10 +153,15 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
                   ),
                   const Spacer(),
                   IconButton(
-                    onPressed: () => setState(() => _isFavorite = !_isFavorite),
+                    onPressed: () => _showNotConnected(
+                        'Favoris pas encore connectés à l\'API.'),
                     icon: Icon(
-                      _isFavorite ? Icons.favorite : Icons.favorite_border,
-                      color: _isFavorite ? GabColors.danger : GabColors.primary,
+                      (stock?.medication.isFavorite ?? false)
+                          ? Icons.favorite
+                          : Icons.favorite_border,
+                      color: (stock?.medication.isFavorite ?? false)
+                          ? GabColors.danger
+                          : GabColors.primary,
                     ),
                   ),
                   IconButton(
@@ -163,192 +176,230 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
               ),
             ),
             const Divider(height: 1, color: GabColors.outlineVariant),
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius:
-                          BorderRadius.vertical(bottom: Radius.circular(32)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AspectRatio(
-                          aspectRatio: 1.4,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: GabColors.softGreen,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Center(
-                              child: Icon(Icons.medication_outlined,
-                                  size: 72, color: GabColors.primary),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Expanded(
-                              child: Text(
-                                'Doliprane 1000mg',
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w700,
-                                  color: GabColors.primary,
-                                ),
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 5),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFA8F4B9),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: const Text(
-                                'En Stock',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF287243),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        const Text('Paracétamol',
-                            style: TextStyle(
-                                fontSize: 18, color: GabColors.muted)),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          children: const [
-                            _InfoTag('Comprimé sécable'),
-                            _InfoTag('Boîte de 8'),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Expanded(
-                              child: Text(
-                                'Pharmacies Disponibles',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                  color: GabColors.primary,
-                                ),
-                              ),
-                            ),
-                            Text('${_pharmacies.length} trouvées',
-                                style: const TextStyle(color: GabColors.muted)),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        for (var i = 0; i < _pharmacies.length; i++)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _PharmacyOptionCard(
-                              pharmacy: _pharmacies[i],
-                              selected: i == _selectedPharmacy,
-                              formatFcfa: _formatFcfa,
-                              onTap: () =>
-                                  setState(() => _selectedPharmacy = i),
-                              onOpenDetail: () =>
-                                  Navigator.pushNamed(context, '/pharmacy'),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            DecoratedBox(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border:
-                    Border(top: BorderSide(color: GabColors.outlineVariant)),
-              ),
-              child: SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: GabColors.softGreen,
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              onPressed: _quantity > 1
-                                  ? () => setState(() => _quantity--)
-                                  : null,
-                              icon: const Icon(Icons.remove),
-                              color: GabColors.primary,
-                              constraints: const BoxConstraints(
-                                  minWidth: 44, minHeight: 44),
-                            ),
-                            SizedBox(
-                              width: 24,
-                              child: Text(
-                                '$_quantity',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    color: GabColors.primary,
-                                    fontSize: 16),
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => setState(() => _quantity++),
-                              icon: const Icon(Icons.add),
-                              color: GabColors.primary,
-                              constraints: const BoxConstraints(
-                                  minWidth: 44, minHeight: 44),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: SizedBox(
-                          height: 48,
-                          child: FilledButton.icon(
-                            onPressed: _handleAddToCart,
-                            icon: const Icon(Icons.shopping_cart_outlined),
-                            label: const Text('Ajouter au panier'),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+            Expanded(child: _buildBody(context)),
+            if (stock != null) _buildFooter(context),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildBody(BuildContext context) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off,
+                  size: 52, color: GabColors.secondary),
+              const SizedBox(height: 16),
+              Text(_error!, textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              FilledButton(onPressed: _load, child: const Text('Réessayer')),
+            ],
+          ),
+        ),
+      );
+    }
+    final stock = _stock!;
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AspectRatio(
+                aspectRatio: 1.4,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: GabColors.softGreen,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.medication_outlined,
+                        size: 72, color: GabColors.primary),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      stock.medication.name,
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        color: GabColors.primary,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: stock.inStock
+                          ? const Color(0xFFA8F4B9)
+                          : GabColors.softGreen,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      stock.inStock ? 'En Stock' : 'Épuisé',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: stock.inStock
+                            ? const Color(0xFF287243)
+                            : GabColors.muted,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (stock.medication.dci.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(stock.medication.dci,
+                    style: const TextStyle(
+                        fontSize: 18, color: GabColors.muted)),
+              ],
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                children: [
+                  if (stock.medication.dosage.isNotEmpty)
+                    _InfoTag(stock.medication.dosage),
+                  if (stock.medication.formLabel.isNotEmpty)
+                    _InfoTag(stock.medication.formLabel),
+                  if (stock.medication.requiresPrescription)
+                    const _InfoTag('Ordonnance requise'),
+                ],
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Pharmacies Disponibles',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: GabColors.primary,
+                      ),
+                    ),
+                  ),
+                  Text(
+                      _pharmacies.length > 1
+                          ? '${_pharmacies.length} trouvées'
+                          : '${_pharmacies.length} trouvée',
+                      style: const TextStyle(color: GabColors.muted)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              for (var i = 0; i < _pharmacies.length; i++)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _PharmacyOptionCard(
+                    pharmacy: _pharmacies[i],
+                    selected: i == _selectedPharmacy,
+                    formatFcfa: _formatFcfa,
+                    onTap: () => setState(() => _selectedPharmacy = i),
+                    onOpenDetail: () => Navigator.pushNamed(
+                        context, '/pharmacy',
+                        arguments: _pharmacies[i].pharmacyId),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFooter(BuildContext context) => DecoratedBox(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: GabColors.outlineVariant)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: GabColors.softGreen,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        onPressed: _quantity > 1
+                            ? () => setState(() => _quantity--)
+                            : null,
+                        icon: const Icon(Icons.remove),
+                        color: GabColors.primary,
+                        constraints:
+                            const BoxConstraints(minWidth: 44, minHeight: 44),
+                      ),
+                      SizedBox(
+                        width: 24,
+                        child: Text(
+                          '$_quantity',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              color: GabColors.primary,
+                              fontSize: 16),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => setState(() => _quantity++),
+                        icon: const Icon(Icons.add),
+                        color: GabColors.primary,
+                        constraints:
+                            const BoxConstraints(minWidth: 44, minHeight: 44),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: FilledButton.icon(
+                      onPressed: () => _showNotConnected(
+                          'Panier pas encore connecté à l\'API — disponible prochainement.'),
+                      icon: const Icon(Icons.shopping_cart_outlined),
+                      label: const Text('Ajouter au panier'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
 }
 
 class _InfoTag extends StatelessWidget {
@@ -419,7 +470,7 @@ class _PharmacyOptionCard extends StatelessWidget {
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              '${pharmacy.location} • ${pharmacy.distance}',
+                              pharmacy.location,
                               style: const TextStyle(color: GabColors.muted),
                             ),
                           ),
@@ -6711,12 +6762,14 @@ class _SettingsToggleRow extends StatelessWidget {
 
 class _PharmacyProduct {
   const _PharmacyProduct({
+    required this.stockId,
     required this.category,
     required this.name,
     required this.details,
     required this.price,
   });
 
+  final int stockId;
   final String category;
   final String name;
   final String details;
@@ -6731,28 +6784,73 @@ class PharmacyDetailScreen extends StatefulWidget {
 }
 
 class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
-  bool _isFavorite = false;
+  int? _pharmacyId;
+  PharmacyDetail? _pharmacy;
+  List<_PharmacyProduct> _products = [];
+  bool _loading = true;
+  String? _error;
 
-  static const _products = [
-    _PharmacyProduct(
-      category: 'Médicament',
-      name: 'Doliprane 1000mg',
-      details: 'Boîte de 8 gélules',
-      price: 1250,
-    ),
-    _PharmacyProduct(
-      category: 'Vitamines',
-      name: 'Alvityl Vitalité',
-      details: 'Sirop 150ml',
-      price: 4800,
-    ),
-    _PharmacyProduct(
-      category: 'Hygiène',
-      name: 'Biseptine Spray',
-      details: 'Spray 100ml',
-      price: 3100,
-    ),
-  ];
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_pharmacyId == null) {
+      final arg = ModalRoute.of(context)?.settings.arguments;
+      _pharmacyId = arg is int ? arg : null;
+      _load();
+    }
+  }
+
+  Future<void> _load() async {
+    final pharmacyId = _pharmacyId;
+    if (pharmacyId == null) {
+      setState(() {
+        _loading = false;
+        _error = 'Pharmacie introuvable.';
+      });
+      return;
+    }
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final pharmacy = await fetchPharmacyDetail(pharmacyId);
+      final page = await fetchPharmacyCatalog(pharmacyId);
+      if (!mounted) return;
+      setState(() {
+        _pharmacy = pharmacy;
+        _products = page.results
+            .map((stock) => _PharmacyProduct(
+                  stockId: stock.id,
+                  category: stock.medication.dci.isNotEmpty
+                      ? stock.medication.dci
+                      : stock.medication.name,
+                  name: stock.medication.name,
+                  details: [
+                    if (stock.medication.dosage.isNotEmpty)
+                      stock.medication.dosage,
+                    if (stock.medication.formLabel.isNotEmpty)
+                      stock.medication.formLabel,
+                  ].join(' • '),
+                  price: stock.priceFcfa,
+                ))
+            .toList();
+        _loading = false;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = error.message;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = "Impossible de joindre l'API Gab'Pharma.";
+      });
+    }
+  }
 
   String _formatFcfa(int amount) {
     final s = amount.toString();
@@ -6764,364 +6862,379 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
     return '$buffer FCFA';
   }
 
+  void _showNotConnected(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
+    );
+  }
+
+  Widget _buildTopBar(BuildContext context) => SizedBox(
+        height: 56,
+        child: Row(
+          children: [
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.arrow_back, color: GabColors.primary),
+            ),
+            const Text(
+              "Gab'Pharma",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: GabColors.primary,
+              ),
+            ),
+            const Spacer(),
+            IconButton(
+              onPressed: () => ScaffoldMessenger.of(context)
+                  .showSnackBar(const SnackBar(
+                content: Text('Partage indisponible en démonstration.'),
+              )),
+              icon: const Icon(Icons.share_outlined, color: GabColors.primary),
+            ),
+            IconButton(
+              onPressed: () => _showNotConnected(
+                  'Les pharmacies ne peuvent pas être mises en favori.'),
+              icon: const Icon(Icons.favorite_border,
+                  color: GabColors.primary),
+            ),
+          ],
+        ),
+      );
+
   @override
-  Widget build(BuildContext context) => Scaffold(
-        backgroundColor: GabColors.background,
-        body: SafeArea(
-          child: Column(
-            children: [
-              SizedBox(
-                height: 56,
-                child: Row(
+  Widget build(BuildContext context) {
+    final pharmacy = _pharmacy;
+    return Scaffold(
+      backgroundColor: GabColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildTopBar(context),
+            const Divider(height: 1, color: GabColors.outlineVariant),
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : (_error != null || pharmacy == null)
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.cloud_off,
+                                    size: 52, color: GabColors.secondary),
+                                const SizedBox(height: 16),
+                                Text(_error ?? 'Pharmacie introuvable.',
+                                    textAlign: TextAlign.center),
+                                const SizedBox(height: 16),
+                                FilledButton(
+                                    onPressed: _load,
+                                    child: const Text('Réessayer')),
+                              ],
+                            ),
+                          ),
+                        )
+                      : _buildBody(context, pharmacy),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, PharmacyDetail pharmacy) {
+    final serviceChips = [
+      for (final service in pharmacy.services)
+        _ServiceChip(icon: Icons.check_circle_outline, label: service.label),
+      if (pharmacy.acceptsCashOnDelivery)
+        const _ServiceChip(
+          icon: Icons.payments_outlined,
+          label: 'Paiement à la livraison',
+        ),
+      if (pharmacy.acceptedPlanCount > 0)
+        _ServiceChip(
+          icon: Icons.verified_outlined,
+          label: pharmacy.acceptedPlanCount > 1
+              ? '${pharmacy.acceptedPlanCount} assurances acceptées'
+              : '${pharmacy.acceptedPlanCount} assurance acceptée',
+          accent: true,
+        ),
+    ];
+    final scheduleValue = pharmacy.is24h
+        ? 'Ouvert tous les jours, 24h/24.'
+        : pharmacy.isOpenNow
+            ? 'Actuellement ouverte.'
+            : 'Actuellement fermée.';
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        Stack(
+          children: [
+            Container(
+              height: 176,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFF0B7A3E),
+                    Color(0xFF39B27A),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: const Center(
+                child: Icon(Icons.storefront, color: Colors.white, size: 56),
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(16, 32, 16, 12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.black.withValues(alpha: 0.55),
+                      Colors.transparent,
+                    ],
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back,
-                          color: GabColors.primary),
+                    if (pharmacy.isOnDuty)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: GabColors.primary,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: const Text(
+                          'PHARMACIE DE GARDE',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                      ),
+                    Text(
+                      pharmacy.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                    const Text(
-                      "Gab'Pharma",
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: GabColors.softGreen,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  children: [
+                    _InfoRow(
+                      icon: Icons.location_on_outlined,
+                      title: 'Adresse',
+                      value: pharmacy.address.isNotEmpty
+                          ? '${pharmacy.address}, ${pharmacy.zoneLabel}'
+                          : '${pharmacy.zoneLabel} (adresse non renseignée)',
+                    ),
+                    const SizedBox(height: 14),
+                    _InfoRow(
+                      icon: Icons.call_outlined,
+                      title: 'Contact',
+                      value: pharmacy.phone.isNotEmpty
+                          ? pharmacy.phone
+                          : 'Non renseigné',
+                    ),
+                    const SizedBox(height: 14),
+                    _InfoRow(
+                      icon: Icons.schedule_outlined,
+                      title: 'Horaires',
+                      value: scheduleValue,
+                      trailing: Text(
+                        pharmacy.is24h
+                            ? 'Ouvert 24h/24'
+                            : pharmacy.isOpenNow
+                                ? 'Ouvert'
+                                : 'Fermé',
+                        style: TextStyle(
+                          color: pharmacy.is24h || pharmacy.isOpenNow
+                              ? GabColors.primary
+                              : GabColors.muted,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Stack(
+                  children: [
+                    Container(
+                      height: 140,
+                      width: double.infinity,
+                      color: const Color(0xFFDCECE3),
+                      child: const Center(
+                        child: Icon(Icons.map_outlined,
+                            size: 40, color: GabColors.muted),
+                      ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Material(
+                        color: Colors.white,
+                        shape: const CircleBorder(),
+                        child: IconButton(
+                          onPressed: () => _showNotConnected(
+                              'Navigation indisponible en démonstration.'),
+                          icon: const Icon(Icons.directions,
+                              color: GabColors.primary),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Services & Assurances',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: GabColors.primary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (serviceChips.isEmpty)
+                const Text('Aucun service renseigné pour cette pharmacie.',
+                    style: TextStyle(color: GabColors.muted))
+              else
+                Wrap(spacing: 8, runSpacing: 8, children: serviceChips),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Produits disponibles',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: GabColors.primary,
                       ),
                     ),
-                    const Spacer(),
-                    IconButton(
-                      onPressed: () => ScaffoldMessenger.of(context)
-                          .showSnackBar(const SnackBar(
-                        content: Text('Partage indisponible en démonstration.'),
-                      )),
-                      icon: const Icon(Icons.share_outlined,
-                          color: GabColors.primary),
-                    ),
-                    IconButton(
-                      onPressed: () =>
-                          setState(() => _isFavorite = !_isFavorite),
-                      icon: Icon(
-                        _isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color:
-                            _isFavorite ? GabColors.danger : GabColors.primary,
-                      ),
-                    ),
+                    Text('Parcourir le stock de cette pharmacie',
+                        style: TextStyle(color: GabColors.muted)),
                   ],
                 ),
               ),
-              const Divider(height: 1, color: GabColors.outlineVariant),
-              Expanded(
-                child: ListView(
-                  padding: EdgeInsets.zero,
-                  children: [
-                    Stack(
-                      children: [
-                        Container(
-                          height: 176,
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                Color(0xFF0B7A3E),
-                                Color(0xFF39B27A),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                          ),
-                          child: const Center(
-                            child: Icon(Icons.storefront,
-                                color: Colors.white, size: 56),
-                          ),
-                        ),
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          child: Container(
-                            padding: const EdgeInsets.fromLTRB(16, 32, 16, 12),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.black.withValues(alpha: 0.55),
-                                  Colors.transparent,
-                                ],
-                                begin: Alignment.bottomCenter,
-                                end: Alignment.topCenter,
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: GabColors.primary,
-                                    borderRadius: BorderRadius.circular(999),
-                                  ),
-                                  child: const Text(
-                                    'PHARMACIE DE GARDE',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 0.6,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                const Text(
-                                  'Pharmacie de la Garde',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+              TextButton(
+                onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                    context, '/home', (route) => false),
+                child: const Text('Voir tout'),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (_products.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Text('Aucun produit en stock actuellement.',
+                style: TextStyle(color: GabColors.muted)),
+          )
+        else
+          SizedBox(
+            height: 228,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              children: [
+                for (final product in _products)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: _PharmacyProductCard(
+                      product: product,
+                      formatFcfa: _formatFcfa,
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: GabColors.softGreen,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Column(
-                              children: [
-                                const _InfoRow(
-                                  icon: Icons.location_on_outlined,
-                                  title: 'Adresse',
-                                  value:
-                                      'Boulevard Triomphal, Face au Sénat, Libreville, Gabon',
-                                ),
-                                const SizedBox(height: 14),
-                                const _InfoRow(
-                                  icon: Icons.call_outlined,
-                                  title: 'Contact',
-                                  value: '+241 01 76 54 32',
-                                ),
-                                const SizedBox(height: 14),
-                                _InfoRow(
-                                  icon: Icons.schedule_outlined,
-                                  title: 'Horaires',
-                                  value:
-                                      'Ouvert tous les jours, dimanches et jours fériés inclus.',
-                                  trailing: const Text(
-                                    'Ouvert 24h/24',
-                                    style: TextStyle(
-                                      color: GabColors.primary,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Stack(
-                              children: [
-                                Container(
-                                  height: 140,
-                                  width: double.infinity,
-                                  color: const Color(0xFFDCECE3),
-                                  child: const Center(
-                                    child: Icon(Icons.map_outlined,
-                                        size: 40, color: GabColors.muted),
-                                  ),
-                                ),
-                                Positioned(
-                                  top: 8,
-                                  right: 8,
-                                  child: Material(
-                                    color: Colors.white,
-                                    shape: const CircleBorder(),
-                                    child: IconButton(
-                                      onPressed: () =>
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(const SnackBar(
-                                        content: Text(
-                                            'Navigation indisponible en démonstration.'),
-                                      )),
-                                      icon: const Icon(Icons.directions,
-                                          color: GabColors.primary),
-                                    ),
-                                  ),
-                                ),
-                                Positioned(
-                                  left: 8,
-                                  bottom: 8,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.9),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
-                                          color: GabColors.outlineVariant),
-                                    ),
-                                    child: const Text(
-                                      '850m de votre position',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: GabColors.primary,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          const Text(
-                            'Services & Assurances',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: GabColors.primary,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: const [
-                              _ServiceChip(
-                                icon: Icons.local_shipping_outlined,
-                                label: 'Zones: Libreville, Akanda, Owendo',
-                              ),
-                              _ServiceChip(
-                                icon: Icons.payments_outlined,
-                                label: 'Paiement à la livraison',
-                              ),
-                              _ServiceChip(
-                                icon: Icons.verified_outlined,
-                                label: 'CNAMGS Acceptée',
-                                accent: true,
-                              ),
-                              _ServiceChip(
-                                icon: Icons.verified_outlined,
-                                label: 'AXA Gabon',
-                                accent: true,
-                              ),
-                              _ServiceChip(
-                                icon: Icons.verified_outlined,
-                                label: 'ASCOMA',
-                                accent: true,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Produits disponibles',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                    color: GabColors.primary,
-                                  ),
-                                ),
-                                Text('Parcourir le stock de cette pharmacie',
-                                    style: TextStyle(color: GabColors.muted)),
-                              ],
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                                context, '/home', (route) => false),
-                            child: const Text('Voir tout'),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 228,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        children: [
-                          for (final product in _products)
-                            Padding(
-                              padding: const EdgeInsets.only(right: 12),
-                              child: _PharmacyProductCard(
-                                product: product,
-                                formatFcfa: _formatFcfa,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-                      child: Column(
-                        children: [
-                          SizedBox(
-                            width: double.infinity,
-                            child: FilledButton.icon(
-                              onPressed: () =>
-                                  Navigator.pushNamedAndRemoveUntil(
-                                      context, '/home', (route) => false),
-                              icon: const Icon(Icons.shopping_bag_outlined),
-                              label:
-                                  const Text('Commander dans cette pharmacie'),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            width: double.infinity,
-                            child: FilledButton.tonal(
-                              onPressed: () => ScaffoldMessenger.of(context)
-                                  .showSnackBar(const SnackBar(
-                                content: Text(
-                                    'Appel vers +241 01 76 54 32 — composition indisponible en démonstration.'),
-                              )),
-                              style: FilledButton.styleFrom(
-                                backgroundColor: GabColors.softGreen,
-                                foregroundColor: GabColors.primary,
-                              ),
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.call_outlined, size: 18),
-                                  SizedBox(width: 8),
-                                  Text('Appeler la pharmacie'),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
+              ],
+            ),
+          ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+          child: Column(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                      context, '/home', (route) => false),
+                  icon: const Icon(Icons.shopping_bag_outlined),
+                  label: const Text('Commander dans cette pharmacie'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.tonal(
+                  onPressed: () => _showNotConnected(
+                      pharmacy.phone.isNotEmpty
+                          ? 'Appel vers ${pharmacy.phone} — composition indisponible en démonstration.'
+                          : 'Numéro de téléphone non renseigné pour cette pharmacie.'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: GabColors.softGreen,
+                    foregroundColor: GabColors.primary,
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.call_outlined, size: 18),
+                      SizedBox(width: 8),
+                      Text('Appeler la pharmacie'),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
         ),
-      );
+      ],
+    );
+  }
 }
 
 class _InfoRow extends StatelessWidget {
@@ -7226,7 +7339,8 @@ class _PharmacyProductCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () => Navigator.pushNamed(context, '/medication'),
+          onTap: () => Navigator.pushNamed(context, '/medication',
+              arguments: product.stockId),
           child: Container(
             width: 150,
             padding: const EdgeInsets.all(10),
@@ -7287,10 +7401,10 @@ class _PharmacyProductCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(999),
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
+                          const SnackBar(
                             content: Text(
-                                '${product.name} ajouté au panier (démo).'),
-                            duration: const Duration(seconds: 2),
+                                'Panier pas encore connecté à l\'API — disponible prochainement.'),
+                            duration: Duration(seconds: 2),
                           ),
                         );
                       },

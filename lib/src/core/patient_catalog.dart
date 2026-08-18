@@ -28,30 +28,45 @@ class PatientZone {
 class CatalogMedication {
   const CatalogMedication({
     required this.name,
+    required this.dci,
     required this.dosage,
     required this.formLabel,
+    required this.requiresPrescription,
+    required this.isFavorite,
   });
 
   final String name;
+  final String dci;
   final String dosage;
   final String formLabel;
+  final bool requiresPrescription;
+  final bool isFavorite;
 
   factory CatalogMedication.fromJson(Map<String, dynamic> json) =>
       CatalogMedication(
         name: json['name']?.toString() ?? '',
+        dci: json['dci']?.toString() ?? '',
         dosage: json['dosage']?.toString() ?? '',
         formLabel: json['form_label']?.toString() ?? '',
+        requiresPrescription: json['requires_prescription'] == true,
+        isFavorite: json['is_favorite'] == true,
       );
 }
 
 class CatalogPharmacy {
-  const CatalogPharmacy({required this.name, required this.zoneLabel});
+  const CatalogPharmacy({
+    required this.id,
+    required this.name,
+    required this.zoneLabel,
+  });
 
+  final int id;
   final String name;
   final String zoneLabel;
 
   factory CatalogPharmacy.fromJson(Map<String, dynamic> json) =>
       CatalogPharmacy(
+        id: (json['id'] as num).toInt(),
         name: json['name']?.toString() ?? '',
         zoneLabel: json['zone_label']?.toString() ?? '',
       );
@@ -65,6 +80,7 @@ class CatalogStock {
     required this.priceFcfa,
     required this.quantity,
     required this.isAvailable,
+    required this.lowStockThreshold,
   });
 
   final int id;
@@ -73,8 +89,11 @@ class CatalogStock {
   final int priceFcfa;
   final int quantity;
   final bool isAvailable;
+  final int? lowStockThreshold;
 
   bool get inStock => isAvailable && quantity > 0;
+  bool get isLowStock =>
+      lowStockThreshold != null && quantity <= lowStockThreshold!;
 
   factory CatalogStock.fromJson(Map<String, dynamic> json) => CatalogStock(
         id: (json['id'] as num).toInt(),
@@ -87,6 +106,67 @@ class CatalogStock {
         priceFcfa: (json['price_fcfa'] as num).toInt(),
         quantity: (json['quantity'] as num).toInt(),
         isAvailable: json['is_available'] == true,
+        lowStockThreshold: (json['low_stock_threshold'] as num?)?.toInt(),
+      );
+}
+
+class PharmacyService {
+  const PharmacyService({required this.code, required this.label});
+
+  final String code;
+  final String label;
+
+  factory PharmacyService.fromJson(Map<String, dynamic> json) =>
+      PharmacyService(
+        code: json['code']?.toString() ?? '',
+        label: json['label']?.toString() ?? '',
+      );
+}
+
+class PharmacyDetail {
+  const PharmacyDetail({
+    required this.id,
+    required this.name,
+    required this.zoneLabel,
+    required this.address,
+    required this.phone,
+    required this.isOnDuty,
+    required this.is24h,
+    required this.isOpenNow,
+    required this.acceptsCashOnDelivery,
+    required this.services,
+    required this.acceptedPlanCount,
+  });
+
+  final int id;
+  final String name;
+  final String zoneLabel;
+  final String address;
+  final String phone;
+  final bool isOnDuty;
+  final bool is24h;
+  final bool isOpenNow;
+  final bool acceptsCashOnDelivery;
+  final List<PharmacyService> services;
+  final int acceptedPlanCount;
+
+  factory PharmacyDetail.fromJson(Map<String, dynamic> json) =>
+      PharmacyDetail(
+        id: (json['id'] as num).toInt(),
+        name: json['name']?.toString() ?? '',
+        zoneLabel: json['zone_label']?.toString() ?? '',
+        address: json['address']?.toString() ?? '',
+        phone: json['phone']?.toString() ?? '',
+        isOnDuty: json['is_on_duty'] == true,
+        is24h: json['is_24_7'] == true,
+        isOpenNow: json['is_open_now'] == true,
+        acceptsCashOnDelivery: json['accepts_cash_on_delivery'] == true,
+        services: ((json['services'] as List?) ?? [])
+            .map((e) =>
+                PharmacyService.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList(),
+        acceptedPlanCount:
+            ((json['accepted_plan_ids'] as List?) ?? []).length,
       );
 }
 
@@ -132,6 +212,30 @@ Future<CatalogPage> fetchCatalog({
       .join('&');
   final json =
       await AuthSession.instance.api.getJson('mobile/patient/catalog/?$qs');
+  return CatalogPage(
+    count: (json['count'] as num?)?.toInt() ?? 0,
+    hasMore: json['next'] != null,
+    results: ((json['results'] as List?) ?? [])
+        .map((e) => CatalogStock.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList(),
+  );
+}
+
+Future<CatalogStock> fetchStockDetail(int stockId) async {
+  final json = await AuthSession.instance.api
+      .getJson('mobile/patient/catalog/stocks/$stockId/');
+  return CatalogStock.fromJson(json);
+}
+
+Future<PharmacyDetail> fetchPharmacyDetail(int pharmacyId) async {
+  final json = await AuthSession.instance.api
+      .getJson('mobile/patient/pharmacies/$pharmacyId/');
+  return PharmacyDetail.fromJson(json);
+}
+
+Future<CatalogPage> fetchPharmacyCatalog(int pharmacyId, {int page = 1}) async {
+  final json = await AuthSession.instance.api
+      .getJson('mobile/patient/pharmacies/$pharmacyId/catalog/?page=$page');
   return CatalogPage(
     count: (json['count'] as num?)?.toInt() ?? 0,
     hasMore: json['next'] != null,

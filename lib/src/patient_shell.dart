@@ -377,8 +377,9 @@ class PatientHomeScreen extends StatelessWidget {
                               statusColor: statusColor,
                               gradientColors: _kPharmacyGradientPalette[
                                   i % _kPharmacyGradientPalette.length],
-                              onTap: () =>
-                                  Navigator.pushNamed(context, '/pharmacy'),
+                              onTap: () => Navigator.pushNamed(
+                                  context, '/pharmacy',
+                                  arguments: pharmacy.id),
                             );
                           }),
                         ],
@@ -406,8 +407,9 @@ class PatientHomeScreen extends StatelessWidget {
                         _ProductCard(
                           name: stock.medication.name,
                           price: _formatFcfa(stock.priceFcfa),
-                          onTap: () =>
-                              Navigator.pushNamed(context, '/medication'),
+                          onTap: () => Navigator.pushNamed(
+                              context, '/medication',
+                              arguments: stock.id),
                         ),
                     ],
                   ),
@@ -728,6 +730,7 @@ class _CategoryTile extends StatelessWidget {
 
 class _SearchResult {
   _SearchResult({
+    required this.stockId,
     required this.name,
     required this.details,
     required this.pharmacy,
@@ -735,6 +738,7 @@ class _SearchResult {
     required this.inStock,
   });
 
+  final int stockId;
   final String name;
   final String details;
   final String pharmacy;
@@ -881,6 +885,7 @@ class _SearchScreenState extends State<SearchScreen> {
   List<_SearchResult> get _displayResults {
     final list = _results
         .map((stock) => _SearchResult(
+              stockId: stock.id,
               name: stock.medication.name,
               details: [
                 if (stock.medication.dosage.isNotEmpty)
@@ -1094,8 +1099,9 @@ class _SearchScreenState extends State<SearchScreen> {
                         child: _SearchResultCard(
                           result: result,
                           formatFcfa: _formatFcfa,
-                          onTap: () =>
-                              Navigator.pushNamed(context, '/medication'),
+                          onTap: () => Navigator.pushNamed(
+                              context, '/medication',
+                              arguments: result.stockId),
                         ),
                       ),
                     if (_hasMore)
