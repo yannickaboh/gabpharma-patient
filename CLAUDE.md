@@ -106,7 +106,7 @@ flutter run -d <device-id>
 **Les 24 écrans cibles de la spec sont terminés et validés (Lots 1 à 4 complets).** Deux sujets restent ouverts :
 
 1. **Écrans 25/26 (Mes vaccins, Certificat numérique)** : hors spec originale des 24 écrans — demander à l'utilisateur s'il faut les implémenter ou les laisser de côté.
-2. **Connexion à l'API mobile réelle** (Django) : en cours depuis le 13 août 2026, suivie module par module dans `branchement_patient.md`. Authentification, Accueil, Recherche+catalogue et Détail médicament/pharmacie faits ; prochaine étape du fichier de suivi : **Favoris** (`/mobile/patient/favorites/`). Gap connu non corrigé : pas de rafraîchissement de token JWT (expire à 20 min, pas d'endpoint côté Django) — l'app déconnecte proprement au lieu de planter, mais l'utilisateur doit se reconnecter manuellement toutes les 20 min pendant les sessions de test.
+2. **Connexion à l'API mobile réelle** (Django) : en cours depuis le 13 août 2026, suivie module par module dans `branchement_patient.md`. Authentification, Accueil, Recherche+catalogue, Détail médicament/pharmacie et Favoris faits ; prochaine étape du fichier de suivi : **Panier** (`/mobile/patient/cart/...`). Gap connu non corrigé : pas de rafraîchissement de token JWT (expire à 20 min, pas d'endpoint côté Django) — l'app déconnecte proprement au lieu de planter, mais l'utilisateur doit se reconnecter manuellement toutes les 20 min pendant les sessions de test.
 
 ### Repères pratiques pour reprendre une session de branchement
 
