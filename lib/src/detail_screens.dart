@@ -8,10 +8,11 @@ import 'core/api_client.dart' show ApiException;
 import 'core/auth_session.dart';
 import 'core/patient_catalog.dart';
 import 'core/theme.dart';
-import 'widgets.dart' show EmptyState;
+import 'widgets.dart' show EmptyState, addToCartWithFeedback;
 
 class _MedicationPharmacy {
   const _MedicationPharmacy({
+    required this.stockId,
     required this.pharmacyId,
     required this.name,
     required this.location,
@@ -21,6 +22,7 @@ class _MedicationPharmacy {
     required this.stockLow,
   });
 
+  final int stockId;
   final int pharmacyId;
   final String name;
   final String location;
@@ -59,6 +61,7 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
   }
 
   _MedicationPharmacy _toOption(CatalogStock stock) => _MedicationPharmacy(
+        stockId: stock.id,
         pharmacyId: stock.pharmacy.id,
         name: stock.pharmacy.name,
         location: stock.pharmacy.zoneLabel,
@@ -423,8 +426,11 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
                   child: SizedBox(
                     height: 48,
                     child: FilledButton.icon(
-                      onPressed: () => _showNotConnected(
-                          'Panier pas encore connecté à l\'API — disponible prochainement.'),
+                      onPressed: () => addToCartWithFeedback(
+                        context,
+                        _pharmacies[_selectedPharmacy].stockId,
+                        quantity: _quantity,
+                      ),
                       icon: const Icon(Icons.shopping_cart_outlined),
                       label: const Text('Ajouter au panier'),
                     ),
@@ -7434,15 +7440,8 @@ class _PharmacyProductCard extends StatelessWidget {
                     ),
                     InkWell(
                       borderRadius: BorderRadius.circular(999),
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'Panier pas encore connecté à l\'API — disponible prochainement.'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      },
+                      onTap: () =>
+                          addToCartWithFeedback(context, product.stockId),
                       child: Container(
                         width: 32,
                         height: 32,
@@ -7598,6 +7597,21 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     Navigator.pushNamed(context, '/medication', arguments: stockId);
   }
 
+  Future<void> _addFavoriteToCart(PatientFavorite favorite) async {
+    final stockId = await findCheapestStockId(favorite.medication.name);
+    if (!mounted) return;
+    if (stockId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Aucune pharmacie ne propose actuellement ${favorite.medication.name}.'),
+        ),
+      );
+      return;
+    }
+    await addToCartWithFeedback(context, stockId);
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
         backgroundColor: GabColors.background,
@@ -7695,15 +7709,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               favorite: item,
               formatFcfa: _formatFcfa,
               onDelete: () => _removeItem(item),
-              onAddToCart: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                        'Panier pas encore connecté à l\'API — disponible prochainement.'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              },
+              onAddToCart: () => _addFavoriteToCart(item),
               onTap: () => _openMedication(item),
             ),
           ),

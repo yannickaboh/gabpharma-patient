@@ -1,7 +1,37 @@
 import 'package:flutter/material.dart';
 
+import 'core/api_client.dart' show ApiException;
 import 'core/app_config.dart';
+import 'core/patient_catalog.dart' show addCartItem;
 import 'core/theme.dart';
+
+/// Ajoute un article au panier réel et affiche un retour honnête (succès,
+/// conflit de pharmacie, quantité indisponible, etc.) — utilisé partout où
+/// un bouton "Ajouter" est proposé (accueil, recherche, détails, favoris).
+Future<void> addToCartWithFeedback(
+  BuildContext context,
+  int stockId, {
+  int quantity = 1,
+}) async {
+  try {
+    await addCartItem(stockId, quantity);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text('Ajouté au panier.'), duration: Duration(seconds: 2)),
+    );
+  } on ApiException catch (error) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(error.message)));
+  } on Object {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text("Impossible d'ajouter cet article au panier.")),
+    );
+  }
+}
 
 class DemoBanner extends StatelessWidget {
   const DemoBanner({super.key});

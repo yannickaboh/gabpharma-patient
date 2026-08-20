@@ -1,4 +1,12 @@
+import 'package:flutter/foundation.dart';
+
 import 'auth_session.dart';
+
+/// Incrémenté à chaque mutation réussie du panier (ajout/maj/suppression/
+/// vidage), quel que soit l'écran d'origine. CartScreen et le badge de la
+/// barre de navigation l'écoutent pour rester synchronisés sans dépendre
+/// d'un unique écran source de vérité.
+final ValueNotifier<int> cartUpdates = ValueNotifier<int>(0);
 
 class PatientCategory {
   const PatientCategory({required this.id, required this.name});
@@ -305,4 +313,104 @@ Future<int?> findCheapestStockId(String medicationName) async {
   final sorted = [...page.results]
     ..sort((a, b) => a.priceFcfa.compareTo(b.priceFcfa));
   return sorted.first.id;
+}
+
+class PatientCartItem {
+  const PatientCartItem({
+    required this.id,
+    required this.stock,
+    required this.quantity,
+    required this.lineTotalFcfa,
+    required this.availableQuantity,
+    required this.isValid,
+  });
+
+  final int id;
+  final CatalogStock stock;
+  final int quantity;
+  final int lineTotalFcfa;
+  final int availableQuantity;
+  final bool isValid;
+
+  factory PatientCartItem.fromJson(Map<String, dynamic> json) =>
+      PatientCartItem(
+        id: (json['id'] as num).toInt(),
+        stock: CatalogStock.fromJson(
+          Map<String, dynamic>.from(json['stock'] as Map),
+        ),
+        quantity: (json['quantity'] as num).toInt(),
+        lineTotalFcfa: (json['line_total_fcfa'] as num).toInt(),
+        availableQuantity: (json['available_quantity'] as num).toInt(),
+        isValid: json['is_valid'] == true,
+      );
+}
+
+class PatientCart {
+  const PatientCart({
+    required this.id,
+    required this.pharmacyName,
+    required this.items,
+    required this.itemsCount,
+    required this.subtotalFcfa,
+    required this.isEmpty,
+    required this.isValidForCheckout,
+  });
+
+  final int id;
+  final String? pharmacyName;
+  final List<PatientCartItem> items;
+  final int itemsCount;
+  final int subtotalFcfa;
+  final bool isEmpty;
+  final bool isValidForCheckout;
+
+  factory PatientCart.fromJson(Map<String, dynamic> json) => PatientCart(
+        id: (json['id'] as num).toInt(),
+        pharmacyName: (json['pharmacy'] as Map?)?['name']?.toString(),
+        items: ((json['items'] as List?) ?? [])
+            .map((e) =>
+                PatientCartItem.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList(),
+        itemsCount: (json['items_count'] as num?)?.toInt() ?? 0,
+        subtotalFcfa: (json['subtotal_fcfa'] as num?)?.toInt() ?? 0,
+        isEmpty: json['is_empty'] == true,
+        isValidForCheckout: json['is_valid_for_checkout'] == true,
+      );
+}
+
+Future<PatientCart> fetchCart() async {
+  final json = await AuthSession.instance.api.getJson('mobile/patient/cart/');
+  return PatientCart.fromJson(json);
+}
+
+Future<PatientCart> addCartItem(int stockId, int quantity) async {
+  final json = await AuthSession.instance.api.postJson(
+    'mobile/patient/cart/items/',
+    {'stock_id': stockId, 'quantity': quantity},
+  );
+  cartUpdates.value++;
+  return PatientCart.fromJson(Map<String, dynamic>.from(json['cart'] as Map));
+}
+
+Future<PatientCart> updateCartItemQuantity(int itemId, int quantity) async {
+  final json = await AuthSession.instance.api.patchJson(
+    'mobile/patient/cart/items/$itemId/',
+    {'quantity': quantity},
+  );
+  cartUpdates.value++;
+  return PatientCart.fromJson(Map<String, dynamic>.from(json['cart'] as Map));
+}
+
+Future<PatientCart> removeCartItem(int itemId) async {
+  final json = await AuthSession.instance.api
+      .deleteJson('mobile/patient/cart/items/$itemId/');
+  cartUpdates.value++;
+  return PatientCart.fromJson(json);
+}
+
+Future<PatientCart> clearCart() async {
+  final json =
+      await AuthSession.instance.api.postJson('mobile/patient/cart/clear/', {});
+  cartUpdates.value++;
+  return PatientCart.fromJson(json);
 }

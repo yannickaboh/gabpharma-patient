@@ -35,6 +35,12 @@ class ApiClient {
   Future<Map<String, dynamic>> deleteJson(String path) =>
       _send('DELETE', path);
 
+  Future<Map<String, dynamic>> patchJson(
+    String path,
+    Map<String, dynamic> body,
+  ) =>
+      _send('PATCH', path, body: body);
+
   Future<Map<String, dynamic>> _send(
     String method,
     String path, {
