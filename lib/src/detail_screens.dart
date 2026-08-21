@@ -2842,8 +2842,6 @@ class _ConfettiOverlayState extends State<_ConfettiOverlay> {
       );
 }
 
-enum _OrderStage { proposal, preparing, delivering, delivered, cancelled }
-
 enum _StepState { done, active, pending, cancelled }
 
 class _TimelineStep {
@@ -2860,279 +2858,93 @@ class _TimelineStep {
   final String? note;
 }
 
-class _OrderLineItem {
-  const _OrderLineItem({
-    required this.icon,
-    required this.name,
-    required this.details,
-    required this.price,
-  });
-
-  final IconData icon;
-  final String name;
-  final String details;
-  final int price;
-}
-
-class _OrderDetailData {
-  const _OrderDetailData({
-    required this.pharmacyName,
-    required this.pharmacyAddress,
-    required this.pharmacyTags,
-    required this.pharmacyPhone,
-    required this.items,
-    required this.deliveryFee,
-    required this.stage,
-    required this.steps,
-  });
-
-  final String pharmacyName;
-  final String pharmacyAddress;
-  final List<String> pharmacyTags;
-  final String pharmacyPhone;
-  final List<_OrderLineItem> items;
-  final int deliveryFee;
-  final _OrderStage stage;
-  final List<_TimelineStep> steps;
-
-  int get subtotal => items.fold(0, (sum, item) => sum + item.price);
-  int get total => subtotal + deliveryFee;
-}
-
-extension on _OrderStage {
-  String get bannerLabel => switch (this) {
-        _OrderStage.proposal => 'Proposition Reçue',
-        _OrderStage.preparing => 'Préparation en cours',
-        _OrderStage.delivering => 'Livraison en cours',
-        _OrderStage.delivered => 'Commande livrée',
-        _OrderStage.cancelled => 'Commande annulée',
-      };
-
-  IconData get bannerIcon => switch (this) {
-        _OrderStage.proposal => Icons.notifications_active,
-        _OrderStage.preparing => Icons.inventory_2_outlined,
-        _OrderStage.delivering => Icons.local_shipping,
-        _OrderStage.delivered => Icons.check_circle,
-        _OrderStage.cancelled => Icons.cancel,
-      };
-
-  Color get bannerColor => switch (this) {
-        _OrderStage.cancelled => GabColors.danger,
-        _ => GabColors.primary,
-      };
-}
-
-const _orderDetails = <String, _OrderDetailData>{
-  'GP-2607-4218': _OrderDetailData(
-    pharmacyName: "Pharmacie de l'Amitié",
-    pharmacyAddress: "Libreville, Boulevard de l'Indépendance",
-    pharmacyTags: ['Ouvert 24h/24', '1.2 km'],
-    pharmacyPhone: '+241 01 76 54 32',
-    deliveryFee: 1500,
-    stage: _OrderStage.proposal,
-    items: [
-      _OrderLineItem(
-        icon: Icons.medication_outlined,
-        name: 'Paracétamol 500mg',
-        details: 'Boîte de 16 comprimés × 2',
-        price: 4400,
-      ),
-      _OrderLineItem(
-        icon: Icons.vaccines_outlined,
-        name: 'Amoxicilline 1g',
-        details: 'Gélules × 1',
-        price: 5600,
-      ),
-      _OrderLineItem(
-        icon: Icons.medical_services_outlined,
-        name: 'Sirop Toplexil',
-        details: 'Flacon 150ml × 1',
-        price: 3000,
-      ),
-    ],
-    steps: [
-      _TimelineStep(
-        title: 'Commande envoyée',
-        time: "Aujourd'hui, 10:45",
-        state: _StepState.done,
-      ),
-      _TimelineStep(
-        title: 'Proposition de la pharmacie',
-        time: "Aujourd'hui, 11:10",
-        state: _StepState.active,
-        note: 'La pharmacie a confirmé la disponibilité des articles.',
-      ),
-      _TimelineStep(
-        title: 'Préparation en cours',
-        time: 'En attente de validation',
-        state: _StepState.pending,
-      ),
-      _TimelineStep(
-        title: 'Livraison / Retrait',
-        time: 'Prévu vers 13:00',
-        state: _StepState.pending,
-      ),
-    ],
-  ),
-  'GP-2607-4190': _OrderDetailData(
-    pharmacyName: "Grande Pharmacie d'Okala",
-    pharmacyAddress: 'Libreville, Carrefour Okala',
-    pharmacyTags: ['Ouvert 24h/24', '3.4 km'],
-    pharmacyPhone: '+241 01 44 22 18',
-    deliveryFee: 1500,
-    stage: _OrderStage.delivering,
-    items: [
-      _OrderLineItem(
-        icon: Icons.vaccines_outlined,
-        name: 'Amoxicilline 1g',
-        details: 'Gélules × 1',
-        price: 6750,
-      ),
-    ],
-    steps: [
-      _TimelineStep(
-        title: 'Commande envoyée',
-        time: 'Hier, 14:50',
-        state: _StepState.done,
-      ),
-      _TimelineStep(
-        title: 'Proposition acceptée',
-        time: 'Hier, 15:05',
-        state: _StepState.done,
-      ),
-      _TimelineStep(
-        title: 'Préparation terminée',
-        time: 'Hier, 15:20',
-        state: _StepState.done,
-      ),
-      _TimelineStep(
-        title: 'Livraison en cours',
-        time: 'Hier, 15:35',
-        state: _StepState.active,
-        note: 'Le livreur est en route vers votre adresse.',
-      ),
-    ],
-  ),
-  'GP-2606-3980': _OrderDetailData(
-    pharmacyName: 'Pharmacie du Centre',
-    pharmacyAddress: 'Libreville, Centre-ville',
-    pharmacyTags: ['Ouvert 24h/24', '0.8 km'],
-    pharmacyPhone: '+241 01 76 54 32',
-    deliveryFee: 1500,
-    stage: _OrderStage.delivered,
-    items: [
-      _OrderLineItem(
-        icon: Icons.medication_outlined,
-        name: 'Paracétamol 500mg',
-        details: 'Boîte de 16 comprimés × 2',
-        price: 4400,
-      ),
-      _OrderLineItem(
-        icon: Icons.vaccines_outlined,
-        name: 'Amoxicilline 1g',
-        details: 'Gélules × 1',
-        price: 5600,
-      ),
-      _OrderLineItem(
-        icon: Icons.medical_services_outlined,
-        name: 'Sirop Toplexil',
-        details: 'Flacon 150ml × 1',
-        price: 3000,
-      ),
-      _OrderLineItem(
-        icon: Icons.local_pharmacy_outlined,
-        name: 'Vitamine C 1000mg',
-        details: 'Flacon de 30 comprimés × 1',
-        price: 5000,
-      ),
-      _OrderLineItem(
-        icon: Icons.sanitizer_outlined,
-        name: 'Biseptine Spray',
-        details: 'Flacon 250ml × 1',
-        price: 12600,
-      ),
-    ],
-    steps: [
-      _TimelineStep(
-        title: 'Commande envoyée',
-        time: '28 juin 2026, 09:00',
-        state: _StepState.done,
-      ),
-      _TimelineStep(
-        title: 'Proposition acceptée',
-        time: '28 juin 2026, 09:20',
-        state: _StepState.done,
-      ),
-      _TimelineStep(
-        title: 'Préparation terminée',
-        time: '28 juin 2026, 10:05',
-        state: _StepState.done,
-      ),
-      _TimelineStep(
-        title: 'Livrée',
-        time: '28 juin 2026, 11:30',
-        state: _StepState.done,
-      ),
-    ],
-  ),
-  'GP-2606-3955': _OrderDetailData(
-    pharmacyName: "Pharmacie de l'Aéroport",
-    pharmacyAddress: 'Libreville, Route de Nzeng-Ayong',
-    pharmacyTags: ['08h–20h', '6.1 km'],
-    pharmacyPhone: '+241 01 55 30 09',
-    deliveryFee: 1500,
-    stage: _OrderStage.cancelled,
-    items: [
-      _OrderLineItem(
-        icon: Icons.medication_outlined,
-        name: 'Paracétamol 500mg',
-        details: 'Boîte de 16 comprimés × 1',
-        price: 1700,
-      ),
-      _OrderLineItem(
-        icon: Icons.vaccines_outlined,
-        name: 'Amoxicilline 1g',
-        details: 'Gélules × 1',
-        price: 2200,
-      ),
-    ],
-    steps: [
-      _TimelineStep(
-        title: 'Commande envoyée',
-        time: '20 juin 2026, 09:00',
-        state: _StepState.done,
-      ),
-      _TimelineStep(
-        title: 'Commande annulée',
-        time: '20 juin 2026, 09:40',
-        state: _StepState.cancelled,
-        note: 'Annulée par la pharmacie : rupture de stock.',
-      ),
-    ],
-  ),
-};
 
 class OrderDetailScreen extends StatefulWidget {
-  const OrderDetailScreen({this.reference = 'GP-2607-4218', super.key});
+  const OrderDetailScreen({required this.orderId, super.key});
 
-  final String reference;
+  final int orderId;
 
   @override
   State<OrderDetailScreen> createState() => _OrderDetailScreenState();
 }
 
-class _OrderDetailScreenState extends State<OrderDetailScreen> {
-  late _OrderStage _stage;
-  late List<_TimelineStep> _steps;
+const _inDeliveryStatuses = {'awaiting_courier', 'in_delivery'};
+const _orderDetailCancelledStatuses = {'cancelled', 'rejected', 'expired'};
 
-  _OrderDetailData get _data =>
-      _orderDetails[widget.reference] ?? _orderDetails['GP-2607-4218']!;
+IconData _orderBannerIcon(String status) {
+  if (_orderDetailCancelledStatuses.contains(status)) return Icons.cancel;
+  if (status == 'completed') return Icons.check_circle;
+  if (status == 'pending' || status == 'changes_proposed') {
+    return Icons.schedule;
+  }
+  return Icons.local_shipping;
+}
+
+String _formatOrderDate(DateTime? dt) {
+  if (dt == null) return '';
+  final local = dt.toLocal();
+  final now = DateTime.now();
+  final time =
+      '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+  final today = DateTime(now.year, now.month, now.day);
+  final day = DateTime(local.year, local.month, local.day);
+  final diff = today.difference(day).inDays;
+  if (diff == 0) return "Aujourd'hui, $time";
+  if (diff == 1) return 'Hier, $time';
+  const months = [
+    'janv.',
+    'févr.',
+    'mars',
+    'avr.',
+    'mai',
+    'juin',
+    'juil.',
+    'août',
+    'sept.',
+    'oct.',
+    'nov.',
+    'déc.',
+  ];
+  return '${local.day} ${months[local.month - 1]} ${local.year}';
+}
+
+class _OrderDetailScreenState extends State<OrderDetailScreen> {
+  PatientOrder? _order;
+  bool _loading = true;
+  bool _actionInProgress = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _stage = _data.stage;
-    _steps = _data.steps;
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final order = await fetchOrderDetail(widget.orderId);
+      if (!mounted) return;
+      setState(() {
+        _order = order;
+        _loading = false;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = error.message;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = "Impossible de joindre l'API Gab'Pharma.";
+      });
+    }
   }
 
   String _formatFcfa(int amount) {
@@ -3145,191 +2957,307 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return '$buffer FCFA';
   }
 
-  void _accept() {
-    setState(() {
-      _stage = _OrderStage.preparing;
-      _steps = [
-        for (final step in _steps)
-          if (step.state == _StepState.active)
-            _TimelineStep(
-              title: 'Proposition acceptée',
-              time: step.time,
-              state: _StepState.done,
-            )
-          else if (step.state == _StepState.pending &&
-              step.title == 'Préparation en cours')
-            const _TimelineStep(
-              title: 'Préparation en cours',
-              time: 'En cours',
-              state: _StepState.active,
-            )
-          else
-            step,
-      ];
-    });
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Proposition acceptée. Préparation en cours.'),
-    ));
-  }
-
-  Future<void> _refuse() async {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Proposition refusée — commande annulée.'),
-    ));
-    setState(() => _stage = _OrderStage.cancelled);
-  }
-
-  Future<void> _cancel() async {
-    final confirmed = await showDialog<bool>(
+  Future<String?> _promptForReason(String title, String actionLabel) async {
+    final controller = TextEditingController();
+    final reason = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Annuler la commande ?'),
-        content: const Text('Cette action est irréversible.'),
+        title: Text(title),
+        content: TextField(
+          controller: controller,
+          maxLength: 255,
+          decoration: const InputDecoration(hintText: 'Motif'),
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(context),
             child: const Text('Retour'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () {
+              final value = controller.text.trim();
+              if (value.isEmpty) return;
+              Navigator.pop(context, value);
+            },
             style: TextButton.styleFrom(foregroundColor: GabColors.danger),
-            child: const Text('Annuler la commande'),
+            child: Text(actionLabel),
           ),
         ],
       ),
     );
-    if (confirmed ?? false) {
+    // Le dialogue peut encore jouer son animation de fermeture (et donc
+    // reconstruire le TextField) une frame ou deux après que showDialog()
+    // se résout — disposer le controller immédiatement ici plante avec
+    // "A TextEditingController was used after being disposed." Attendre la
+    // fin de la frame courante avant de le disposer.
+    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
+    return reason;
+  }
+
+  Future<void> _runAction(Future<PatientOrder> Function() action) async {
+    setState(() => _actionInProgress = true);
+    try {
+      final order = await action();
       if (!mounted) return;
-      setState(() => _stage = _OrderStage.cancelled);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Commande annulée.'),
-      ));
+      setState(() {
+        _order = order;
+        _actionInProgress = false;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _actionInProgress = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.message)));
+    } on Object {
+      if (!mounted) return;
+      setState(() => _actionInProgress = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Action impossible pour le moment.')),
+      );
     }
   }
 
+  Future<void> _cancel() async {
+    final reason =
+        await _promptForReason('Annuler la commande ?', 'Annuler la commande');
+    if (reason == null || !mounted) return;
+    await _runAction(() => cancelOrder(widget.orderId, reason));
+  }
+
+  Future<void> _rejectChanges() async {
+    final reason = await _promptForReason(
+        'Refuser la proposition ?', 'Refuser la proposition');
+    if (reason == null || !mounted) return;
+    await _runAction(() => rejectOrderChanges(widget.orderId, reason));
+  }
+
+  Future<void> _acceptChanges() async {
+    await _runAction(() => acceptOrderChanges(widget.orderId));
+  }
+
+  Future<void> _retryPayment() async {
+    setState(() => _actionInProgress = true);
+    try {
+      final result = await retryOrderPayment(widget.orderId);
+      if (!mounted) return;
+      setState(() {
+        _order = result.order;
+        _actionInProgress = false;
+      });
+      final reference = result.transactionReference;
+      if (reference != null) {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SimulatedPaymentScreen(
+              transactionReference: reference,
+              orderReference: result.order.reference,
+              pharmacyName: result.order.pharmacyName,
+              totalFcfa: result.order.totalFcfa,
+            ),
+          ),
+        );
+        if (!mounted) return;
+        _load();
+      }
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _actionInProgress = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.message)));
+    } on Object {
+      if (!mounted) return;
+      setState(() => _actionInProgress = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Impossible de reprendre le paiement pour le moment.')),
+      );
+    }
+  }
+
+  List<_TimelineStep> _timelineSteps(PatientOrder order) {
+    final history = order.statusHistory;
+    if (history.isEmpty) {
+      return [
+        _TimelineStep(
+          title: order.statusLabel,
+          time: _formatOrderDate(order.createdAt),
+          state: _StepState.active,
+        ),
+      ];
+    }
+    final terminalCancelled =
+        _orderDetailCancelledStatuses.contains(order.status);
+    return [
+      for (var i = 0; i < history.length; i++)
+        _TimelineStep(
+          title: history[i].toStatusLabel,
+          time: _formatOrderDate(history[i].createdAt),
+          note: history[i].reason.isNotEmpty ? history[i].reason : null,
+          state: i < history.length - 1
+              ? _StepState.done
+              : terminalCancelled
+                  ? _StepState.cancelled
+                  : _StepState.done,
+        ),
+    ];
+  }
+
   @override
-  Widget build(BuildContext context) {
-    final data = _data;
-    return Scaffold(
-      backgroundColor: GabColors.background,
-      appBar: AppBar(
-        title: const Text('Détails de Commande'),
-        actions: [
-          IconButton(
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Options indisponibles en démonstration.'),
-              ),
-            ),
-            icon: const Icon(Icons.more_vert),
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: GabColors.background,
+        appBar: AppBar(title: const Text('Détails de Commande')),
+        body: _buildBody(),
+      );
+
+  Widget _buildBody() {
+    final order = _order;
+    if (_loading && order == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null && order == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off, size: 52, color: GabColors.secondary),
+              const SizedBox(height: 16),
+              Text(_error!, textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              FilledButton(onPressed: _load, child: const Text('Réessayer')),
+            ],
           ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: _stage.bannerColor,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'COMMANDE #${widget.reference}',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _stage.bannerLabel,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(_stage.bannerIcon, color: Colors.white),
-                  ),
-                ],
-              ),
-            ),
+        ),
+      );
+    }
+    if (order == null) return const SizedBox.shrink();
+
+    final isCancelledLike =
+        _orderDetailCancelledStatuses.contains(order.status);
+    final tags = [
+      if (order.pharmacyIs247)
+        'Ouvert 24h/24'
+      else if (order.pharmacyIsOnDuty)
+        'Ouvert',
+    ];
+    final actions = order.actions;
+    final steps = _timelineSteps(order);
+    final showProposalActions = actions.canAcceptChanges;
+    final showCancelOnly = actions.canCancel && !showProposalActions;
+
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: isCancelledLike
+                ? GabColors.danger
+                : GabColors.primary,
+            borderRadius: BorderRadius.circular(16),
           ),
-          const SizedBox(height: 16),
-          Container(
+          child: Padding(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: GabColors.outlineVariant),
-            ),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: GabColors.softGreen,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.local_pharmacy,
-                      color: GabColors.primary),
-                ),
-                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        data.pharmacyName,
+                        'COMMANDE #${order.reference}',
                         style: const TextStyle(
-                          fontSize: 16,
+                          color: Colors.white70,
+                          fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: GabColors.primary,
+                          letterSpacing: 0.5,
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(Icons.location_on,
-                              size: 16, color: GabColors.muted),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              data.pharmacyAddress,
-                              style: const TextStyle(
-                                  color: GabColors.muted, fontSize: 13),
-                            ),
-                          ),
-                        ],
+                      Text(
+                        order.statusLabel,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(_orderBannerIcon(order.status),
+                      color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: GabColors.outlineVariant),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: GabColors.softGreen,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child:
+                    const Icon(Icons.local_pharmacy, color: GabColors.primary),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      order.pharmacyName,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: GabColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.location_on,
+                            size: 16, color: GabColors.muted),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            order.pharmacyAddress.isEmpty
+                                ? 'Adresse non renseignée'
+                                : order.pharmacyAddress,
+                            style: const TextStyle(
+                                color: GabColors.muted, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (tags.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
                         runSpacing: 4,
                         children: [
-                          for (final tag in data.pharmacyTags)
+                          for (final tag in tags)
                             DecoratedBox(
                               decoration: BoxDecoration(
                                 color: GabColors.softGreen,
@@ -3350,232 +3278,261 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         ],
                       ),
                     ],
-                  ),
+                  ],
                 ),
-                IconButton(
-                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Appel vers ${data.pharmacyPhone} — composition '
-                        'indisponible en démonstration.',
-                      ),
-                    ),
-                  ),
-                  icon: const Icon(Icons.call, color: GabColors.primary),
-                  style: IconButton.styleFrom(
-                    backgroundColor: GabColors.softGreen,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: GabColors.outlineVariant),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: const BoxDecoration(
-                    color: GabColors.softGreen,
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(16),
-                    ),
-                  ),
-                  child: const Text(
-                    'Récapitulatif des articles',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
+        ),
+        const SizedBox(height: 16),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: GabColors.outlineVariant),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  color: GabColors.softGreen,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                 ),
-                for (final item in data.items) ...[
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: GabColors.background,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(item.icon,
-                              color: GabColors.primary, size: 20),
+                child: const Text(
+                  'Récapitulatif des articles',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+              for (final item in order.items) ...[
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: GabColors.background,
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+                        child: const Icon(Icons.medication_outlined,
+                            color: GabColors.primary, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(item.medicationName,
+                                style:
+                                    const TextStyle(fontWeight: FontWeight.w600)),
+                            Text(
+                              '${item.quantity} × ${item.medicationDosage}',
+                              style: const TextStyle(
+                                  color: GabColors.muted, fontSize: 12),
+                            ),
+                            if (item.proposedQuantity != null &&
+                                item.proposedQuantity != item.quantity) ...[
+                              const SizedBox(height: 2),
                               Text(
-                                item.name,
+                                'Proposition de la pharmacie : ${item.proposedQuantity} au lieu de ${item.quantity}',
                                 style: const TextStyle(
-                                    fontWeight: FontWeight.w600),
-                              ),
-                              Text(
-                                item.details,
-                                style: const TextStyle(
-                                    color: GabColors.muted, fontSize: 12),
+                                    color: GabColors.danger,
+                                    fontSize: 12,
+                                    fontStyle: FontStyle.italic),
                               ),
                             ],
-                          ),
+                          ],
                         ),
-                        Text(
-                          _formatFcfa(item.price),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: GabColors.primary,
-                          ),
+                      ),
+                      Text(
+                        _formatFcfa(item.lineTotalFcfa),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: GabColors.primary,
                         ),
-                      ],
-                    ),
-                  ),
-                  if (item != data.items.last) const Divider(height: 1),
-                ],
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: GabColors.background,
-                    borderRadius: const BorderRadius.vertical(
-                      bottom: Radius.circular(16),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Sous-total',
-                              style: TextStyle(color: GabColors.muted)),
-                          Text(_formatFcfa(data.subtotal),
-                              style: const TextStyle(color: GabColors.muted)),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Frais de livraison',
-                              style: TextStyle(color: GabColors.muted)),
-                          Text(_formatFcfa(data.deliveryFee),
-                              style: const TextStyle(color: GabColors.muted)),
-                        ],
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        child: Divider(height: 1),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'TOTAL',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                color: GabColors.primary),
-                          ),
-                          Text(
-                            _formatFcfa(data.total),
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 16,
-                                color: GabColors.primary),
-                          ),
-                        ],
                       ),
                     ],
                   ),
                 ),
+                if (item != order.items.last) const Divider(height: 1),
               ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: GabColors.outlineVariant),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Suivi de la commande',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: GabColors.background,
+                  borderRadius:
+                      const BorderRadius.vertical(bottom: Radius.circular(16)),
                 ),
-                const SizedBox(height: 16),
-                for (var i = 0; i < _steps.length; i++)
-                  _TimelineTile(
-                    step: _steps[i],
-                    isLast: i == _steps.length - 1,
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          if (_stage == _OrderStage.proposal) ...[
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: _accept,
-                icon: const Icon(Icons.check_circle),
-                label: const Text('Accepter la proposition'),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _refuse,
-                    icon: const Icon(Icons.close),
-                    label: const Text('Refuser'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _cancel,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: GabColors.danger,
-                      side: const BorderSide(color: GabColors.danger),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Sous-total',
+                            style: TextStyle(color: GabColors.muted)),
+                        Text(_formatFcfa(order.subtotalFcfa),
+                            style: const TextStyle(color: GabColors.muted)),
+                      ],
                     ),
-                    icon: const Icon(Icons.delete_outline),
-                    label: const Text('Annuler la commande'),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Frais de livraison',
+                            style: TextStyle(color: GabColors.muted)),
+                        Text(_formatFcfa(order.deliveryFeeFcfa),
+                            style: const TextStyle(color: GabColors.muted)),
+                      ],
+                    ),
+                    if (order.insuranceDiscountFcfa > 0) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Réduction assurance',
+                              style: TextStyle(color: GabColors.muted)),
+                          Text(
+                            '- ${_formatFcfa(order.insuranceDiscountFcfa)}',
+                            style: const TextStyle(color: GabColors.primary),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Divider(height: 1),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'TOTAL',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              color: GabColors.primary),
+                        ),
+                        Text(
+                          _formatFcfa(order.totalFcfa),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16,
+                              color: GabColors.primary),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Statut du paiement',
+                            style: TextStyle(
+                                color: GabColors.muted, fontSize: 12)),
+                        Text(order.paymentStatusLabel,
+                            style: const TextStyle(
+                                color: GabColors.muted, fontSize: 12)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: GabColors.outlineVariant),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Suivi de la commande',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              for (final entry in steps.asMap().entries)
+                _TimelineTile(
+                  step: entry.value,
+                  isLast: entry.key == steps.length - 1,
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        if (showProposalActions) ...[
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _actionInProgress ? null : _acceptChanges,
+              icon: const Icon(Icons.check_circle),
+              label: const Text('Accepter la proposition'),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _actionInProgress ? null : _rejectChanges,
+                  icon: const Icon(Icons.close),
+                  label: const Text('Refuser'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _actionInProgress ? null : _cancel,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: GabColors.danger,
+                    side: const BorderSide(color: GabColors.danger),
                   ),
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Annuler la commande'),
                 ),
-              ],
-            ),
-          ] else if (_stage == _OrderStage.preparing)
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _cancel,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: GabColors.danger,
-                  side: const BorderSide(color: GabColors.danger),
-                ),
-                icon: const Icon(Icons.delete_outline),
-                label: const Text('Annuler la commande'),
               ),
-            )
-          else if (_stage == _OrderStage.delivering)
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.tonal(
-                onPressed: () => Navigator.pushNamed(context, '/delivery'),
-                child: const Text('Suivre la livraison'),
+            ],
+          ),
+        ] else if (showCancelOnly)
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _actionInProgress ? null : _cancel,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: GabColors.danger,
+                side: const BorderSide(color: GabColors.danger),
               ),
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Annuler la commande'),
             ),
+          ),
+        if (actions.canRetryPayment) ...[
+          if (showProposalActions || showCancelOnly) const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.tonalIcon(
+              onPressed: _actionInProgress ? null : _retryPayment,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Reprendre le paiement'),
+            ),
+          ),
         ],
-      ),
+        if (_inDeliveryStatuses.contains(order.status)) ...[
+          const SizedBox(height: 12),
+          const Text(
+            'Suivi de livraison en temps réel pas encore branché à l\'API — disponible prochainement.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: GabColors.muted, fontSize: 12),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -5353,10 +5310,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
         );
       case _NotifTarget.orderDelivered:
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const OrderDetailScreen(reference: 'GP-2606-3980'),
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Notifications pas encore connectées à une vraie commande — '
+              'consultez "Mes commandes" pour le détail réel.',
+            ),
           ),
         );
       case _NotifTarget.security:
@@ -5704,6 +5663,15 @@ const _faqEntries = <_FaqEntry>[
   ),
 ];
 
+/// Références de commandes proposées dans le formulaire de création de
+/// ticket (module Support, encore en démonstration — pas encore branché à
+/// `GET /mobile/patient/orders/`).
+const _demoTicketOrderRefs = [
+  'CMD-00001',
+  'CMD-00002',
+  'CMD-00003',
+];
+
 enum _TicketStatus { open, resolved }
 
 enum _TicketPriority { low, normal, high }
@@ -5848,7 +5816,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                   items: [
                     const DropdownMenuItem(
                         value: null, child: Text('Aucune commande liée')),
-                    for (final ref in _orderDetails.keys)
+                    for (final ref in _demoTicketOrderRefs)
                       DropdownMenuItem(value: ref, child: Text('#$ref')),
                   ],
                   onChanged: (value) =>

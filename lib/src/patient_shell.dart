@@ -314,8 +314,13 @@ class PatientHomeScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(16),
-                      onTap: () =>
-                          Navigator.pushNamed(context, '/order-detail'),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => OrderDetailScreen(
+                              orderId: summary.activeOrder!.id),
+                        ),
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Row(
@@ -1877,90 +1882,88 @@ class _QuantityStepper extends StatelessWidget {
       );
 }
 
-enum _OrderStatus { pending, inProgress, delivered, cancelled }
+/// Regroupement visuel des 11 statuts réels de `Order.Status` en 4 familles,
+/// pour les filtres et le badge de couleur — le libellé exact affiché sur
+/// chaque carte reste `PatientOrder.statusLabel` (réel, granulaire), ce
+/// regroupement ne sert qu'à la couleur et au filtre.
+enum _OrderBucket { pending, inProgress, delivered, cancelled }
 
-extension on _OrderStatus {
+const _inProgressStatuses = {
+  'accepted',
+  'preparing',
+  'ready_for_pickup',
+  'awaiting_courier',
+  'in_delivery',
+};
+const _cancelledStatuses = {'cancelled', 'rejected', 'expired'};
+
+_OrderBucket _bucketFor(String status) {
+  if (status == 'pending' || status == 'changes_proposed') {
+    return _OrderBucket.pending;
+  }
+  if (_inProgressStatuses.contains(status)) return _OrderBucket.inProgress;
+  if (status == 'completed') return _OrderBucket.delivered;
+  assert(_cancelledStatuses.contains(status), 'Statut de commande inconnu : $status');
+  return _OrderBucket.cancelled;
+}
+
+extension on _OrderBucket {
   String get label => switch (this) {
-        _OrderStatus.pending => 'En attente',
-        _OrderStatus.inProgress => 'En cours',
-        _OrderStatus.delivered => 'Livré',
-        _OrderStatus.cancelled => 'Annulé',
+        _OrderBucket.pending => 'En attente',
+        _OrderBucket.inProgress => 'En cours',
+        _OrderBucket.delivered => 'Livré',
+        _OrderBucket.cancelled => 'Annulé',
       };
 
   IconData get icon => switch (this) {
-        _OrderStatus.pending => Icons.schedule,
-        _OrderStatus.inProgress => Icons.local_shipping,
-        _OrderStatus.delivered => Icons.check_circle,
-        _OrderStatus.cancelled => Icons.cancel,
+        _OrderBucket.pending => Icons.schedule,
+        _OrderBucket.inProgress => Icons.local_shipping,
+        _OrderBucket.delivered => Icons.check_circle,
+        _OrderBucket.cancelled => Icons.cancel,
       };
 
   Color get background => switch (this) {
-        _OrderStatus.pending => const Color(0xFFFFDEA7),
-        _OrderStatus.inProgress => const Color(0xFFA8F4B9),
-        _OrderStatus.delivered => const Color(0xFF9DF6B2),
-        _OrderStatus.cancelled => const Color(0xFFFFDAD6),
+        _OrderBucket.pending => const Color(0xFFFFDEA7),
+        _OrderBucket.inProgress => const Color(0xFFA8F4B9),
+        _OrderBucket.delivered => const Color(0xFF9DF6B2),
+        _OrderBucket.cancelled => const Color(0xFFFFDAD6),
       };
 
   Color get foreground => switch (this) {
-        _OrderStatus.pending => const Color(0xFF5E4200),
-        _OrderStatus.inProgress => const Color(0xFF287243),
-        _OrderStatus.delivered => const Color(0xFF005228),
-        _OrderStatus.cancelled => GabColors.danger,
+        _OrderBucket.pending => const Color(0xFF5E4200),
+        _OrderBucket.inProgress => const Color(0xFF287243),
+        _OrderBucket.delivered => const Color(0xFF005228),
+        _OrderBucket.cancelled => GabColors.danger,
       };
 }
 
-class _DemoOrder {
-  const _DemoOrder({
-    required this.reference,
-    required this.pharmacy,
-    required this.status,
-    required this.itemsCount,
-    required this.amount,
-    required this.dateLabel,
-  });
-
-  final String reference;
-  final String pharmacy;
-  final _OrderStatus status;
-  final int itemsCount;
-  final int amount;
-  final String dateLabel;
+String _formatOrderDate(DateTime? dt) {
+  if (dt == null) return '';
+  final local = dt.toLocal();
+  final now = DateTime.now();
+  final time =
+      '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+  final today = DateTime(now.year, now.month, now.day);
+  final day = DateTime(local.year, local.month, local.day);
+  final diff = today.difference(day).inDays;
+  if (diff == 0) return "Aujourd'hui, $time";
+  if (diff == 1) return 'Hier, $time';
+  const months = [
+    'janv.',
+    'févr.',
+    'mars',
+    'avr.',
+    'mai',
+    'juin',
+    'juil.',
+    'août',
+    'sept.',
+    'oct.',
+    'nov.',
+    'déc.',
+  ];
+  return '${local.day} ${months[local.month - 1]} ${local.year}';
 }
-
-const _demoOrders = [
-  _DemoOrder(
-    reference: 'GP-2607-4218',
-    pharmacy: "Pharmacie de l'Amitié",
-    status: _OrderStatus.pending,
-    itemsCount: 3,
-    amount: 14500,
-    dateLabel: "Aujourd'hui, 10:45",
-  ),
-  _DemoOrder(
-    reference: 'GP-2607-4190',
-    pharmacy: "Grande Pharmacie d'Okala",
-    status: _OrderStatus.inProgress,
-    itemsCount: 1,
-    amount: 8250,
-    dateLabel: 'Hier, 15:20',
-  ),
-  _DemoOrder(
-    reference: 'GP-2606-3980',
-    pharmacy: 'Pharmacie du Centre',
-    status: _OrderStatus.delivered,
-    itemsCount: 5,
-    amount: 32100,
-    dateLabel: '28 juin 2026',
-  ),
-  _DemoOrder(
-    reference: 'GP-2606-3955',
-    pharmacy: "Pharmacie de l'Aéroport",
-    status: _OrderStatus.cancelled,
-    itemsCount: 2,
-    amount: 5400,
-    dateLabel: '20 juin 2026',
-  ),
-];
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({required this.onSwitchTab, super.key});
@@ -1972,7 +1975,70 @@ class OrdersScreen extends StatefulWidget {
 }
 
 class _OrdersScreenState extends State<OrdersScreen> {
-  _OrderStatus? _filter;
+  _OrderBucket? _filter;
+  List<PatientOrder> _orders = [];
+  int _page = 1;
+  bool _hasMore = false;
+  bool _loading = true;
+  bool _loadingMore = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+      _page = 1;
+    });
+    try {
+      final page = await fetchOrders();
+      if (!mounted) return;
+      setState(() {
+        _orders = page.results;
+        _hasMore = page.hasMore;
+        _loading = false;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = error.message;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = "Impossible de joindre l'API Gab'Pharma.";
+      });
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore || !_hasMore) return;
+    setState(() => _loadingMore = true);
+    try {
+      final page = await fetchOrders(page: _page + 1);
+      if (!mounted) return;
+      setState(() {
+        _orders = [..._orders, ...page.results];
+        _hasMore = page.hasMore;
+        _page += 1;
+        _loadingMore = false;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() => _loadingMore = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Impossible de charger la suite des commandes.')),
+      );
+    }
+  }
 
   String _formatFcfa(int amount) {
     final s = amount.toString();
@@ -1984,66 +2050,105 @@ class _OrdersScreenState extends State<OrdersScreen> {
     return '$buffer FCFA';
   }
 
+  List<PatientOrder> get _filteredOrders => _filter == null
+      ? _orders
+      : _orders.where((o) => _bucketFor(o.status) == _filter).toList();
+
   @override
-  Widget build(BuildContext context) {
-    final orders = _filter == null
-        ? _demoOrders
-        : _demoOrders.where((o) => o.status == _filter).toList();
-    return SafeArea(
-      child: Column(
-        children: [
-          PatientTopBar(onSwitchTab: widget.onSwitchTab),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-              children: [
-                Text(
-                  'Mes commandes',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 40,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: [
-                      _FilterChip(
-                        label: 'Tout',
-                        selected: _filter == null,
-                        onTap: () => setState(() => _filter = null),
-                      ),
-                      for (final status in _OrderStatus.values)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8),
-                          child: _FilterChip(
-                            label: status.label,
-                            selected: _filter == status,
-                            onTap: () => setState(() => _filter = status),
-                          ),
-                        ),
-                    ],
+  Widget build(BuildContext context) => SafeArea(
+        child: Column(
+          children: [
+            PatientTopBar(onSwitchTab: widget.onSwitchTab),
+            Expanded(child: _buildBody(context)),
+          ],
+        ),
+      );
+
+  Widget _buildBody(BuildContext context) {
+    final orders = _filteredOrders;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+      children: [
+        Text(
+          'Mes commandes',
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 40,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              _FilterChip(
+                label: 'Tout',
+                selected: _filter == null,
+                onTap: () => setState(() => _filter = null),
+              ),
+              for (final bucket in _OrderBucket.values)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: _FilterChip(
+                    label: bucket.label,
+                    selected: _filter == bucket,
+                    onTap: () => setState(() => _filter = bucket),
                   ),
                 ),
-                const SizedBox(height: 16),
-                if (orders.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 40),
-                    child: EmptyState(
-                      icon: Icons.receipt_long_outlined,
-                      title: 'Aucune commande',
-                      message: 'Aucune commande ne correspond à ce filtre.',
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (_loading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 40),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_error != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 32),
+            child: Column(
+              children: [
+                const Icon(Icons.cloud_off,
+                    size: 44, color: GabColors.secondary),
+                const SizedBox(height: 12),
+                Text(_error!, textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                FilledButton(onPressed: _load, child: const Text('Réessayer')),
+              ],
+            ),
+          )
+        else if (orders.isEmpty)
+          const Padding(
+            padding: EdgeInsets.only(top: 40),
+            child: EmptyState(
+              icon: Icons.receipt_long_outlined,
+              title: 'Aucune commande',
+              message: 'Aucune commande ne correspond à ce filtre.',
+            ),
+          )
+        else ...[
+          for (final order in orders)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: _OrderCard(
+                order: order,
+                formatFcfa: _formatFcfa,
+                onChanged: _load,
+              ),
+            ),
+          if (_hasMore)
+            Center(
+              child: _loadingMore
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: CircularProgressIndicator(),
+                    )
+                  : TextButton(
+                      onPressed: _loadMore,
+                      child: const Text('Charger plus'),
                     ),
-                  )
-                else
-                  for (final order in orders)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _OrderCard(
-                        order: order,
-                        formatFcfa: _formatFcfa,
-                      ),
-                    ),
-                const SizedBox(height: 8),
+            ),
+        ],
+        const SizedBox(height: 8),
                 DecoratedBox(
                   decoration: BoxDecoration(
                     color: GabColors.primary,
@@ -2109,10 +2214,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   ),
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -2151,167 +2252,171 @@ class _FilterChip extends StatelessWidget {
 }
 
 class _OrderCard extends StatelessWidget {
-  const _OrderCard({required this.order, required this.formatFcfa});
+  const _OrderCard({
+    required this.order,
+    required this.formatFcfa,
+    required this.onChanged,
+  });
 
-  final _DemoOrder order;
+  final PatientOrder order;
   final String Function(int) formatFcfa;
+  final VoidCallback onChanged;
 
   @override
-  Widget build(BuildContext context) => Material(
-        color: Colors.white,
+  Widget build(BuildContext context) {
+    final bucket = _bucketFor(order.status);
+    final muted = bucket == _OrderBucket.cancelled;
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () => Navigator.push(
+        onTap: () async {
+          await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => OrderDetailScreen(reference: order.reference),
+              builder: (_) => OrderDetailScreen(orderId: order.id),
             ),
+          );
+          onChanged();
+        },
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: GabColors.outlineVariant),
           ),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: GabColors.outlineVariant),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'RÉF : ${order.reference}',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: GabColors.muted,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            order.pharmacy,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: order.status.background,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(order.status.icon,
-                                size: 14, color: order.status.foreground),
-                            const SizedBox(width: 4),
-                            Text(
-                              order.status.label,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: order.status.foreground,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: GabColors.softGreen,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: GabColors.outlineVariant),
-                      ),
-                      child: const Icon(Icons.medication_outlined,
-                          color: GabColors.primary),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${order.itemsCount} '
-                            '${order.itemsCount > 1 ? "articles commandés" : "article commandé"}',
-                            style: const TextStyle(
-                                color: GabColors.muted, fontSize: 13),
-                          ),
-                          Text(
-                            formatFcfa(order.amount),
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: order.status == _OrderStatus.cancelled
-                                  ? GabColors.muted
-                                  : GabColors.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                const Divider(height: 1),
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      order.dateLabel,
-                      style: const TextStyle(
-                        color: GabColors.muted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Détails',
-                          style: TextStyle(
-                            color: order.status == _OrderStatus.cancelled
-                                ? GabColors.muted
-                                : GabColors.primary,
+                          'RÉF : ${order.reference}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: GabColors.muted,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          order.pharmacyName,
+                          style: const TextStyle(
+                            fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        Icon(Icons.chevron_right,
-                            size: 18,
-                            color: order.status == _OrderStatus.cancelled
-                                ? GabColors.muted
-                                : GabColors.primary),
                       ],
                     ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: bucket.background,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(bucket.icon, size: 14, color: bucket.foreground),
+                          const SizedBox(width: 4),
+                          Text(
+                            order.statusLabel,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: bucket.foreground,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: GabColors.softGreen,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: GabColors.outlineVariant),
+                    ),
+                    child: const Icon(Icons.medication_outlined,
+                        color: GabColors.primary),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          order.deliveryModeLabel,
+                          style: const TextStyle(
+                              color: GabColors.muted, fontSize: 13),
+                        ),
+                        Text(
+                          formatFcfa(order.totalFcfa),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: muted ? GabColors.muted : GabColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _formatOrderDate(order.createdAt),
+                    style: const TextStyle(
+                      color: GabColors.muted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Détails',
+                        style: TextStyle(
+                          color: muted ? GabColors.muted : GabColors.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Icon(Icons.chevron_right,
+                          size: 18,
+                          color: muted ? GabColors.muted : GabColors.primary),
+                    ],
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 class ProfileScreen extends StatelessWidget {

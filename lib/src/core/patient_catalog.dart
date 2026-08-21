@@ -580,3 +580,238 @@ Future<PatientPaymentResolution> resolveSimulatedPayment({
   );
   return PatientPaymentResolution.fromJson(json);
 }
+
+class PatientOrderItem {
+  const PatientOrderItem({
+    required this.id,
+    required this.medicationName,
+    required this.medicationDosage,
+    required this.unitPriceFcfa,
+    required this.quantity,
+    required this.proposedQuantity,
+    required this.lineTotalFcfa,
+  });
+
+  final int id;
+  final String medicationName;
+  final String medicationDosage;
+  final int unitPriceFcfa;
+  final int quantity;
+  final int? proposedQuantity;
+  final int lineTotalFcfa;
+
+  factory PatientOrderItem.fromJson(Map<String, dynamic> json) =>
+      PatientOrderItem(
+        id: (json['id'] as num).toInt(),
+        medicationName: json['medication_name']?.toString() ?? '',
+        medicationDosage: json['medication_dosage']?.toString() ?? '',
+        unitPriceFcfa: (json['unit_price_fcfa'] as num?)?.toInt() ?? 0,
+        quantity: (json['quantity'] as num?)?.toInt() ?? 0,
+        proposedQuantity: (json['proposed_quantity'] as num?)?.toInt(),
+        lineTotalFcfa: (json['line_total_fcfa'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class PatientOrderStatusEvent {
+  const PatientOrderStatusEvent({
+    required this.toStatusLabel,
+    required this.reason,
+    required this.createdAt,
+  });
+
+  final String toStatusLabel;
+  final String reason;
+  final DateTime? createdAt;
+
+  factory PatientOrderStatusEvent.fromJson(Map<String, dynamic> json) =>
+      PatientOrderStatusEvent(
+        toStatusLabel: json['to_status_label']?.toString() ?? '',
+        reason: json['reason']?.toString() ?? '',
+        createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
+      );
+}
+
+class PatientOrderActions {
+  const PatientOrderActions({
+    required this.canCancel,
+    required this.canAcceptChanges,
+    required this.canRejectChanges,
+    required this.canRetryPayment,
+  });
+
+  final bool canCancel;
+  final bool canAcceptChanges;
+  final bool canRejectChanges;
+  final bool canRetryPayment;
+
+  static const none = PatientOrderActions(
+    canCancel: false,
+    canAcceptChanges: false,
+    canRejectChanges: false,
+    canRetryPayment: false,
+  );
+
+  factory PatientOrderActions.fromJson(Map<String, dynamic> json) =>
+      PatientOrderActions(
+        canCancel: json['can_cancel'] == true,
+        canAcceptChanges: json['can_accept_changes'] == true,
+        canRejectChanges: json['can_reject_changes'] == true,
+        canRetryPayment: json['can_retry_payment'] == true,
+      );
+}
+
+/// Représente une commande, en version resumée (liste, `items`/`statusHistory`
+/// vides et `actions` à `PatientOrderActions.none`) ou complète (détail,
+/// `include_detail=True` côté API) selon l'endpoint appelé.
+class PatientOrder {
+  const PatientOrder({
+    required this.id,
+    required this.reference,
+    required this.pharmacyName,
+    required this.pharmacyAddress,
+    required this.pharmacyIsOnDuty,
+    required this.pharmacyIs247,
+    required this.status,
+    required this.statusLabel,
+    required this.paymentStatusLabel,
+    required this.deliveryModeLabel,
+    required this.subtotalFcfa,
+    required this.deliveryFeeFcfa,
+    required this.insuranceDiscountFcfa,
+    required this.totalFcfa,
+    required this.createdAt,
+    required this.items,
+    required this.statusHistory,
+    required this.actions,
+  });
+
+  final int id;
+  final String reference;
+  final String pharmacyName;
+  final String pharmacyAddress;
+  final bool pharmacyIsOnDuty;
+  final bool pharmacyIs247;
+  final String status;
+  final String statusLabel;
+  final String paymentStatusLabel;
+  final String deliveryModeLabel;
+  final int subtotalFcfa;
+  final int deliveryFeeFcfa;
+  final int insuranceDiscountFcfa;
+  final int totalFcfa;
+  final DateTime? createdAt;
+  final List<PatientOrderItem> items;
+  final List<PatientOrderStatusEvent> statusHistory;
+  final PatientOrderActions actions;
+
+  factory PatientOrder.fromJson(Map<String, dynamic> json) {
+    final pharmacy = (json['pharmacy'] as Map?) ?? const {};
+    return PatientOrder(
+      id: (json['id'] as num).toInt(),
+      reference: json['reference']?.toString() ?? '',
+      pharmacyName: pharmacy['name']?.toString() ?? '',
+      pharmacyAddress: pharmacy['address']?.toString() ?? '',
+      pharmacyIsOnDuty: pharmacy['is_on_duty'] == true,
+      pharmacyIs247: pharmacy['is_24_7'] == true,
+      status: json['status']?.toString() ?? '',
+      statusLabel: json['status_label']?.toString() ?? '',
+      paymentStatusLabel: json['payment_status_label']?.toString() ?? '',
+      deliveryModeLabel: json['delivery_mode_label']?.toString() ?? '',
+      subtotalFcfa: (json['subtotal_fcfa'] as num?)?.toInt() ?? 0,
+      deliveryFeeFcfa: (json['delivery_fee_fcfa'] as num?)?.toInt() ?? 0,
+      insuranceDiscountFcfa:
+          (json['insurance_discount_fcfa'] as num?)?.toInt() ?? 0,
+      totalFcfa: (json['total_fcfa'] as num?)?.toInt() ?? 0,
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
+      items: ((json['items'] as List?) ?? [])
+          .map((e) =>
+              PatientOrderItem.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList(),
+      statusHistory: ((json['status_history'] as List?) ?? [])
+          .map((e) => PatientOrderStatusEvent.fromJson(
+              Map<String, dynamic>.from(e as Map)))
+          .toList(),
+      actions: json['actions'] is Map
+          ? PatientOrderActions.fromJson(
+              Map<String, dynamic>.from(json['actions'] as Map))
+          : PatientOrderActions.none,
+    );
+  }
+}
+
+class PatientOrderPage {
+  const PatientOrderPage({
+    required this.count,
+    required this.hasMore,
+    required this.results,
+  });
+
+  final int count;
+  final bool hasMore;
+  final List<PatientOrder> results;
+}
+
+Future<PatientOrderPage> fetchOrders({int page = 1}) async {
+  final json = await AuthSession.instance.api
+      .getJson('mobile/patient/orders/?page=$page');
+  return PatientOrderPage(
+    count: (json['count'] as num?)?.toInt() ?? 0,
+    hasMore: json['next'] != null,
+    results: ((json['results'] as List?) ?? [])
+        .map((e) => PatientOrder.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList(),
+  );
+}
+
+Future<PatientOrder> fetchOrderDetail(int orderId) async {
+  final json = await AuthSession.instance.api
+      .getJson('mobile/patient/orders/$orderId/');
+  return PatientOrder.fromJson(json);
+}
+
+Future<PatientOrder> cancelOrder(int orderId, String reason) async {
+  final json = await AuthSession.instance.api.postJson(
+    'mobile/patient/orders/$orderId/cancel/',
+    {'reason': reason},
+  );
+  return PatientOrder.fromJson(json);
+}
+
+Future<PatientOrder> acceptOrderChanges(int orderId) async {
+  final json = await AuthSession.instance.api
+      .postJson('mobile/patient/orders/$orderId/accept-changes/', {});
+  return PatientOrder.fromJson(json);
+}
+
+Future<PatientOrder> rejectOrderChanges(int orderId, String reason) async {
+  final json = await AuthSession.instance.api.postJson(
+    'mobile/patient/orders/$orderId/reject-changes/',
+    {'reason': reason},
+  );
+  return PatientOrder.fromJson(json);
+}
+
+class PatientRetryPaymentResult {
+  const PatientRetryPaymentResult({
+    required this.order,
+    required this.transactionReference,
+  });
+
+  final PatientOrder order;
+  final String? transactionReference;
+
+  factory PatientRetryPaymentResult.fromJson(Map<String, dynamic> json) {
+    final payment = json['payment'] as Map?;
+    return PatientRetryPaymentResult(
+      order: PatientOrder.fromJson(Map<String, dynamic>.from(json['order'] as Map)),
+      transactionReference:
+          (payment?['transaction'] as Map?)?['reference']?.toString(),
+    );
+  }
+}
+
+Future<PatientRetryPaymentResult> retryOrderPayment(int orderId) async {
+  final json = await AuthSession.instance.api
+      .postJson('mobile/patient/orders/$orderId/retry-payment/', {});
+  return PatientRetryPaymentResult.fromJson(json);
+}

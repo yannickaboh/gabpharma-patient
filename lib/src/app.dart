@@ -34,7 +34,6 @@ class GabPharmaPatientApp extends StatelessWidget {
                 discount: 1210,
               ),
           '/confirmation': (_) => const OrderConfirmationScreen(),
-          '/order-detail': (_) => const OrderDetailScreen(),
           '/delivery': (_) => const DeliveryTrackingScreen(),
           '/payments': (_) => const PaymentsHistoryScreen(),
           '/insurance': (_) => const InsuranceScreen(),
