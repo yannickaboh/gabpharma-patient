@@ -562,8 +562,6 @@ class _PharmacyOptionCard extends StatelessWidget {
 
 enum _DeliveryMethod { home, pickup }
 
-enum _PaymentMethod { mobileMoney, cash }
-
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
 
@@ -572,16 +570,23 @@ class CheckoutScreen extends StatefulWidget {
 }
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
-  static const _cartItems = [
-    ('Doliprane 1000mg', 2, 2500),
-    ('Biseptine Spray', 1, 3800),
-  ];
-  static const _insuranceReduction = 1210;
-
-  String _commune = 'Libreville';
+  PatientCart? _cart;
+  List<PatientZone> _zones = const [];
+  List<PatientPaymentMethod> _paymentMethods = const [];
+  String? _selectedZoneCode;
+  int? _selectedPaymentMethodId;
   _DeliveryMethod _deliveryMethod = _DeliveryMethod.home;
-  _PaymentMethod _paymentMethod = _PaymentMethod.mobileMoney;
   final _addressDetails = TextEditingController();
+  bool _loading = true;
+  bool _submitting = false;
+  String? _error;
+  PatientCheckoutResult? _result;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
 
   @override
   void dispose() {
@@ -589,12 +594,51 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.dispose();
   }
 
-  int get _subtotal =>
-      _cartItems.fold(0, (sum, item) => sum + item.$2 * item.$3);
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final results = await Future.wait<Object>([
+        fetchCart(),
+        fetchPatientZones(),
+        fetchPaymentMethods(),
+      ]);
+      if (!mounted) return;
+      final zones = results[1] as List<PatientZone>;
+      final paymentMethods = results[2] as List<PatientPaymentMethod>;
+      setState(() {
+        _cart = results[0] as PatientCart;
+        _zones = zones;
+        _paymentMethods = paymentMethods;
+        _selectedZoneCode = zones.isNotEmpty ? zones.first.code : null;
+        _selectedPaymentMethodId =
+            paymentMethods.isNotEmpty ? paymentMethods.first.id : null;
+        _loading = false;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = error.message;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = "Impossible de joindre l'API Gab'Pharma.";
+      });
+    }
+  }
 
-  int get _deliveryFee => _deliveryMethod == _DeliveryMethod.home ? 1500 : 0;
-
-  int get _total => _subtotal + _deliveryFee - _insuranceReduction;
+  bool get _canSubmit =>
+      !_submitting &&
+      _cart != null &&
+      !_cart!.isEmpty &&
+      _cart!.isValidForCheckout &&
+      _selectedPaymentMethodId != null &&
+      (_deliveryMethod == _DeliveryMethod.pickup || _zones.isNotEmpty);
 
   String _formatFcfa(int amount) {
     final negative = amount < 0;
@@ -607,406 +651,563 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return '${negative ? '- ' : ''}$buffer FCFA';
   }
 
+  Widget _paymentMethodIcon(String kind) {
+    Color bg = GabColors.primary;
+    Color fg = Colors.white;
+    IconData icon = Icons.payments_outlined;
+    switch (kind) {
+      case 'airtel_money':
+        bg = const Color(0xFFFFEBEE);
+        fg = const Color(0xFFD32F2F);
+        icon = Icons.account_balance_wallet;
+      case 'moov_money':
+        bg = const Color(0xFFE3F2FD);
+        fg = const Color(0xFF1976D2);
+        icon = Icons.payments;
+      case 'visa':
+        bg = GabColors.softGreen;
+        fg = GabColors.primary;
+        icon = Icons.credit_card;
+    }
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
+      alignment: Alignment.center,
+      child: Icon(icon, color: fg, size: 18),
+    );
+  }
+
+  Future<void> _submit() async {
+    if (!_canSubmit) return;
+    final deliveryAddress = _addressDetails.text.trim();
+    final deliveryZone =
+        _deliveryMethod == _DeliveryMethod.home ? (_selectedZoneCode ?? '') : '';
+    if (_deliveryMethod == _DeliveryMethod.home) {
+      if (deliveryAddress.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Renseignez une adresse pour la livraison.')),
+        );
+        return;
+      }
+      if (deliveryZone.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sélectionnez la zone de livraison.')),
+        );
+        return;
+      }
+    }
+    setState(() => _submitting = true);
+    try {
+      final result = await checkoutPatientCart(
+        deliveryMode:
+            _deliveryMethod == _DeliveryMethod.home ? 'delivery' : 'pickup',
+        deliveryAddress: deliveryAddress,
+        deliveryZone: deliveryZone,
+        paymentMethodId: _selectedPaymentMethodId!,
+      );
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _result = result;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.message)));
+    } on Object {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content:
+                Text('Impossible de confirmer la commande pour le moment.')),
+      );
+    }
+  }
+
   @override
-  Widget build(BuildContext context) => Scaffold(
-        backgroundColor: GabColors.background,
-        body: SafeArea(
-          child: Column(
-            children: [
-              SizedBox(
-                height: 56,
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back,
-                          color: GabColors.primary),
+  Widget build(BuildContext context) {
+    final result = _result;
+    if (result != null) return _buildSuccess(result);
+    return Scaffold(
+      backgroundColor: GabColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            SizedBox(
+              height: 56,
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.arrow_back,
+                        color: GabColors.primary),
+                  ),
+                  const Text(
+                    'Caisse',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: GabColors.primary,
                     ),
-                    const Text(
-                      'Caisse',
+                  ),
+                  const Spacer(),
+                  const Padding(
+                    padding: EdgeInsets.only(right: 16),
+                    child: Text(
+                      "Gab'Pharma",
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: GabColors.primary,
                       ),
                     ),
-                    const Spacer(),
-                    const Padding(
-                      padding: EdgeInsets.only(right: 16),
-                      child: Text(
-                        "Gab'Pharma",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: GabColors.primary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const Divider(height: 1, color: GabColors.outlineVariant),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.all(20),
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _StepDot(number: '1', label: 'Livraison', active: true),
-                        Container(
-                            width: 32,
-                            height: 2,
-                            color: GabColors.outlineVariant),
-                        const _StepDot(
-                            number: '2', label: 'Paiement', active: false),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    _CheckoutCard(
-                      icon: Icons.local_shipping_outlined,
-                      title: 'Adresse de livraison',
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              for (final commune in const [
-                                'Libreville',
-                                'Akanda',
-                                'Owendo'
-                              ])
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(right: 8),
-                                    child: _SelectableChip(
-                                      label: commune,
-                                      selected: _commune == commune,
-                                      onTap: () =>
-                                          setState(() => _commune = commune),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          const Text(
-                            "Précisions sur l'adresse (Quartier, Immeuble, Repères)",
-                            style:
-                                TextStyle(fontSize: 12, color: GabColors.muted),
-                          ),
-                          const SizedBox(height: 8),
-                          TextField(
-                            controller: _addressDetails,
-                            decoration: const InputDecoration(
-                              hintText:
-                                  'Ex: Face à la pharmacie de la cité, immeuble vert',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _CheckoutCard(
-                      icon: Icons.inventory_2_outlined,
-                      title: 'Méthode de réception',
-                      child: Column(
-                        children: [
-                          _OptionCard(
-                            icon: Icons.home_outlined,
-                            title: 'Livraison à domicile',
-                            subtitle: 'Sous 2 à 4 heures',
-                            trailing: '1 500 FCFA',
-                            selected: _deliveryMethod == _DeliveryMethod.home,
-                            onTap: () => setState(
-                                () => _deliveryMethod = _DeliveryMethod.home),
-                          ),
-                          const SizedBox(height: 10),
-                          _OptionCard(
-                            icon: Icons.storefront_outlined,
-                            title: 'Retrait en pharmacie',
-                            subtitle: 'Prêt en 30 minutes',
-                            trailing: 'Gratuit',
-                            selected: _deliveryMethod == _DeliveryMethod.pickup,
-                            onTap: () => setState(
-                                () => _deliveryMethod = _DeliveryMethod.pickup),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: GabColors.softGreen,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                            color: GabColors.primary.withValues(alpha: 0.3),
-                            style: BorderStyle.solid),
-                      ),
-                      child: const Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(Icons.info_outline,
-                              color: GabColors.primary, size: 20),
-                          SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Affiliation Assurance (CNAMGS)',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      color: GabColors.primary),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  'Cette commande sera traitée avec votre affiliation enregistrée. Veuillez présenter votre carte lors de la réception : le tiers-payant final reste validé par la pharmacie.',
-                                  style: TextStyle(color: GabColors.muted),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _CheckoutCard(
-                      icon: Icons.account_balance_wallet_outlined,
-                      title: 'Mode de paiement',
-                      child: Column(
-                        children: [
-                          _OptionCard(
-                            leading: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFC107),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              alignment: Alignment.center,
-                              child: const Text('M',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w800)),
-                            ),
-                            title: 'Airtel Money / Moov',
-                            selected:
-                                _paymentMethod == _PaymentMethod.mobileMoney,
-                            onTap: () => setState(() =>
-                                _paymentMethod = _PaymentMethod.mobileMoney),
-                          ),
-                          const SizedBox(height: 10),
-                          _OptionCard(
-                            leading: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: GabColors.primary,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              alignment: Alignment.center,
-                              child: const Icon(Icons.payments_outlined,
-                                  color: Colors.white, size: 18),
-                            ),
-                            title: 'Espèces à la livraison',
-                            selected: _paymentMethod == _PaymentMethod.cash,
-                            onTap: () => setState(
-                                () => _paymentMethod = _PaymentMethod.cash),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: GabColors.outlineVariant),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Récapitulatif',
-                              style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.w700)),
-                          const SizedBox(height: 12),
-                          for (final item in _cartItems)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 6),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 28,
-                                    height: 28,
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      color: GabColors.background,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text('${item.$2}x',
-                                        style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w700)),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(child: Text(item.$1)),
-                                  Text(_formatFcfa(item.$2 * item.$3),
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w600)),
-                                ],
-                              ),
-                            ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 10),
-                            child: Divider(
-                                height: 1, color: GabColors.outlineVariant),
-                          ),
-                          _SummaryLine('Sous-total', _formatFcfa(_subtotal)),
-                          const SizedBox(height: 6),
-                          _SummaryLine(
-                              'Frais de livraison', _formatFcfa(_deliveryFee)),
-                          const SizedBox(height: 6),
-                          _SummaryLine(
-                            'Réduction (estimation CNAMGS)',
-                            _formatFcfa(-_insuranceReduction),
-                            valueColor: GabColors.primary,
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 10),
-                            child: Divider(
-                                height: 1, color: GabColors.outlineVariant),
-                          ),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              const Expanded(
-                                child: Text('Total à payer',
-                                    style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700)),
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    _formatFcfa(_total),
-                                    style: const TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w800,
-                                        color: GabColors.primary),
-                                  ),
-                                  const Text('TVA INCLUSE',
-                                      style: TextStyle(
-                                          fontSize: 10,
-                                          color: GabColors.muted,
-                                          letterSpacing: 0.5)),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: FilledButton(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => PaymentScreen(
-                              orderNumber: 'GP-1051',
-                              itemsTotal: _subtotal,
-                              deliveryFee: _deliveryFee,
-                              discount: _insuranceReduction,
-                              deliveryLabel:
-                                  _deliveryMethod == _DeliveryMethod.home
-                                      ? 'Livraison à domicile'
-                                      : 'Retrait en pharmacie',
-                              deliverySubtitle:
-                                  _deliveryMethod == _DeliveryMethod.home
-                                      ? 'Sous 2 à 4 heures · À domicile'
-                                      : 'Prêt en 30 minutes',
-                            ),
-                          ),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text('Confirmer ma commande'),
-                            SizedBox(width: 8),
-                            Icon(Icons.arrow_forward, size: 18),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.shield_outlined,
-                            size: 14, color: GabColors.muted),
-                        SizedBox(width: 6),
-                        Text('Paiement 100% sécurisé',
-                            style: TextStyle(
-                                color: GabColors.muted, fontSize: 12)),
-                      ],
-                    ),
-                  ],
-                ),
+            ),
+            const Divider(height: 1, color: GabColors.outlineVariant),
+            Expanded(child: _buildBody(context)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context) {
+    final cart = _cart;
+    if (_loading && cart == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null && cart == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off, size: 52, color: GabColors.secondary),
+              const SizedBox(height: 16),
+              Text(_error!, textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              FilledButton(onPressed: _load, child: const Text('Réessayer')),
+            ],
+          ),
+        ),
+      );
+    }
+    if (cart == null || cart.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.shopping_cart_outlined,
+                  size: 52, color: GabColors.muted),
+              const SizedBox(height: 16),
+              const Text('Votre panier est vide.', textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Retour au panier'),
               ),
             ],
           ),
         ),
       );
-}
-
-class _StepDot extends StatelessWidget {
-  const _StepDot(
-      {required this.number, required this.label, required this.active});
-
-  final String number;
-  final String label;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: active ? GabColors.primary : Colors.transparent,
-              shape: BoxShape.circle,
-              border: active
-                  ? null
-                  : Border.all(color: GabColors.outlineVariant, width: 2),
+    }
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        _CheckoutCard(
+          icon: Icons.inventory_2_outlined,
+          title: 'Méthode de réception',
+          child: Column(
+            children: [
+              _OptionCard(
+                icon: Icons.home_outlined,
+                title: 'Livraison à domicile',
+                subtitle: 'Frais calculés à la confirmation',
+                selected: _deliveryMethod == _DeliveryMethod.home,
+                onTap: () =>
+                    setState(() => _deliveryMethod = _DeliveryMethod.home),
+              ),
+              const SizedBox(height: 10),
+              _OptionCard(
+                icon: Icons.storefront_outlined,
+                title: 'Retrait en pharmacie',
+                subtitle: 'Sur place, sans frais de livraison',
+                trailing: 'Gratuit',
+                selected: _deliveryMethod == _DeliveryMethod.pickup,
+                onTap: () =>
+                    setState(() => _deliveryMethod = _DeliveryMethod.pickup),
+              ),
+            ],
+          ),
+        ),
+        if (_deliveryMethod == _DeliveryMethod.home) ...[
+          const SizedBox(height: 16),
+          _CheckoutCard(
+            icon: Icons.local_shipping_outlined,
+            title: 'Adresse de livraison',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_zones.isEmpty)
+                  const Text(
+                    'Aucune zone de livraison active pour le moment — choisissez le retrait en pharmacie.',
+                    style: TextStyle(color: GabColors.muted),
+                  )
+                else
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final zone in _zones)
+                        _SelectableChip(
+                          label: zone.label,
+                          selected: _selectedZoneCode == zone.code,
+                          onTap: () =>
+                              setState(() => _selectedZoneCode = zone.code),
+                        ),
+                    ],
+                  ),
+                const SizedBox(height: 14),
+                const Text(
+                  "Précisions sur l'adresse (Quartier, Immeuble, Repères)",
+                  style: TextStyle(fontSize: 12, color: GabColors.muted),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _addressDetails,
+                  decoration: const InputDecoration(
+                    hintText:
+                        'Ex: Face à la pharmacie de la cité, immeuble vert',
+                  ),
+                ),
+              ],
             ),
-            child: Text(
-              number,
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: active ? Colors.white : GabColors.muted,
+          ),
+        ],
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: GabColors.softGreen,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+                color: GabColors.primary.withValues(alpha: 0.3),
+                style: BorderStyle.solid),
+          ),
+          child: const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.info_outline, color: GabColors.primary, size: 20),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Si vous êtes affilié(e) à une assurance acceptée par cette pharmacie, la réduction est calculée automatiquement et apparaîtra dans le récapitulatif final.',
+                  style: TextStyle(color: GabColors.muted),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        _CheckoutCard(
+          icon: Icons.account_balance_wallet_outlined,
+          title: 'Mode de paiement',
+          child: _paymentMethods.isEmpty
+              ? const Text(
+                  'Aucun moyen de paiement actif pour le moment.',
+                  style: TextStyle(color: GabColors.muted),
+                )
+              : Column(
+                  children: [
+                    for (final method in _paymentMethods) ...[
+                      _OptionCard(
+                        leading: _paymentMethodIcon(method.kind),
+                        title: method.label,
+                        selected: _selectedPaymentMethodId == method.id,
+                        onTap: () => setState(
+                            () => _selectedPaymentMethodId = method.id),
+                      ),
+                      if (method != _paymentMethods.last)
+                        const SizedBox(height: 10),
+                    ],
+                  ],
+                ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: GabColors.outlineVariant),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Récapitulatif',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 12),
+              for (final item in cart.items)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 28,
+                        height: 28,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: GabColors.background,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text('${item.quantity}x',
+                            style: const TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.w700)),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(child: Text(item.stock.medication.name)),
+                      Text(_formatFcfa(item.lineTotalFcfa),
+                          style: const TextStyle(fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 10),
+                child: Divider(height: 1, color: GabColors.outlineVariant),
+              ),
+              _SummaryLine('Sous-total', _formatFcfa(cart.subtotalFcfa)),
+              const SizedBox(height: 6),
+              _SummaryLine(
+                'Frais de livraison',
+                _deliveryMethod == _DeliveryMethod.pickup
+                    ? 'Gratuit'
+                    : 'Calculés à la confirmation',
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Le total exact (frais de livraison et réduction assurance éventuelle inclus) est confirmé après validation de la commande.',
+                style: TextStyle(fontSize: 12, color: GabColors.muted),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: FilledButton(
+            onPressed: _canSubmit ? _submit : null,
+            child: _submitting
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white),
+                  )
+                : const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('Confirmer ma commande'),
+                      SizedBox(width: 8),
+                      Icon(Icons.arrow_forward, size: 18),
+                    ],
+                  ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.shield_outlined, size: 14, color: GabColors.muted),
+            SizedBox(width: 6),
+            Text('Paiement 100% sécurisé',
+                style: TextStyle(color: GabColors.muted, fontSize: 12)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSuccess(PatientCheckoutResult result) {
+    final order = result.order;
+    return Scaffold(
+      backgroundColor: GabColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            SizedBox(
+              height: 56,
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                        context, '/home', (route) => false),
+                    icon: const Icon(Icons.arrow_back,
+                        color: GabColors.primary),
+                  ),
+                  const Text(
+                    'Commande créée',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: GabColors.primary,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: active ? GabColors.primary : GabColors.muted,
+            const Divider(height: 1, color: GabColors.outlineVariant),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  Center(
+                    child: Container(
+                      width: 88,
+                      height: 88,
+                      decoration: const BoxDecoration(
+                        color: GabColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.check_circle,
+                          color: Colors.white, size: 48),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    result.paymentRequired
+                        ? 'Commande transmise à ${order.pharmacyName}'
+                        : 'Commande confirmée chez ${order.pharmacyName}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: GabColors.primary),
+                  ),
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: GabColors.outlineVariant),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('RÉFÉRENCE DE COMMANDE',
+                            style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: GabColors.muted,
+                                letterSpacing: 0.6)),
+                        const SizedBox(height: 4),
+                        Text('#${order.reference}',
+                            style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 16),
+                        _SummaryLine('Livraison', order.deliveryModeLabel),
+                        const SizedBox(height: 6),
+                        _SummaryLine(
+                            'Sous-total', _formatFcfa(order.subtotalFcfa)),
+                        const SizedBox(height: 6),
+                        _SummaryLine('Frais de livraison',
+                            _formatFcfa(order.deliveryFeeFcfa)),
+                        if (order.insuranceDiscountFcfa > 0) ...[
+                          const SizedBox(height: 6),
+                          _SummaryLine(
+                            'Réduction assurance',
+                            '- ${_formatFcfa(order.insuranceDiscountFcfa)}',
+                            valueColor: GabColors.primary,
+                          ),
+                        ],
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 10),
+                          child: Divider(
+                              height: 1, color: GabColors.outlineVariant),
+                        ),
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: Text('Total',
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700)),
+                            ),
+                            Text(_formatFcfa(order.totalFcfa),
+                                style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: GabColors.primary)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text('Statut du paiement : ${order.paymentStatusLabel}',
+                            style: const TextStyle(
+                                fontSize: 12, color: GabColors.muted)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: result.paymentRequired
+                          ? const Color(0xFFFFF3E0)
+                          : GabColors.softGreen,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          result.paymentRequired
+                              ? Icons.hourglass_top
+                              : Icons.check_circle_outline,
+                          color: result.paymentRequired
+                              ? const Color(0xFF8D6E00)
+                              : GabColors.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            result.paymentRequired
+                                ? "Paiement en attente. Le règlement en ligne n'est pas encore branché dans l'application — cette étape arrive dans un prochain module."
+                                : 'Paiement à régler à la réception, comme demandé.',
+                            style: const TextStyle(color: GabColors.muted),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                          context, '/home', (route) => false),
+                      child: const Text("Retour à l'accueil"),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-        ],
-      );
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _CheckoutCard extends StatelessWidget {

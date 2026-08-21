@@ -414,3 +414,111 @@ Future<PatientCart> clearCart() async {
   cartUpdates.value++;
   return PatientCart.fromJson(json);
 }
+
+class PatientPaymentMethod {
+  const PatientPaymentMethod({
+    required this.id,
+    required this.kind,
+    required this.label,
+  });
+
+  final int id;
+  final String kind;
+  final String label;
+
+  bool get isCod => kind == 'cod';
+
+  factory PatientPaymentMethod.fromJson(Map<String, dynamic> json) =>
+      PatientPaymentMethod(
+        id: (json['id'] as num).toInt(),
+        kind: json['kind']?.toString() ?? '',
+        label: json['label']?.toString() ?? '',
+      );
+}
+
+Future<List<PatientPaymentMethod>> fetchPaymentMethods() async {
+  final json = await AuthSession.instance.api
+      .getJson('mobile/patient/payment-methods/');
+  return ((json['payment_methods'] as List?) ?? [])
+      .map((e) =>
+          PatientPaymentMethod.fromJson(Map<String, dynamic>.from(e as Map)))
+      .toList();
+}
+
+/// Sous-ensemble de la commande renvoyée par `POST /checkout/`, limité aux
+/// champs affichés par l'app pour ce module (pas de détail des articles :
+/// c'est le rôle de l'écran Détail commande, module suivant).
+class PatientCheckoutOrder {
+  const PatientCheckoutOrder({
+    required this.reference,
+    required this.pharmacyName,
+    required this.deliveryModeLabel,
+    required this.subtotalFcfa,
+    required this.deliveryFeeFcfa,
+    required this.insuranceDiscountFcfa,
+    required this.totalFcfa,
+    required this.paymentStatusLabel,
+  });
+
+  final String reference;
+  final String pharmacyName;
+  final String deliveryModeLabel;
+  final int subtotalFcfa;
+  final int deliveryFeeFcfa;
+  final int insuranceDiscountFcfa;
+  final int totalFcfa;
+  final String paymentStatusLabel;
+
+  factory PatientCheckoutOrder.fromJson(Map<String, dynamic> json) =>
+      PatientCheckoutOrder(
+        reference: json['reference']?.toString() ?? '',
+        pharmacyName: (json['pharmacy'] as Map?)?['name']?.toString() ?? '',
+        deliveryModeLabel: json['delivery_mode_label']?.toString() ?? '',
+        subtotalFcfa: (json['subtotal_fcfa'] as num?)?.toInt() ?? 0,
+        deliveryFeeFcfa: (json['delivery_fee_fcfa'] as num?)?.toInt() ?? 0,
+        insuranceDiscountFcfa:
+            (json['insurance_discount_fcfa'] as num?)?.toInt() ?? 0,
+        totalFcfa: (json['total_fcfa'] as num?)?.toInt() ?? 0,
+        paymentStatusLabel: json['payment_status_label']?.toString() ?? '',
+      );
+}
+
+class PatientCheckoutResult {
+  const PatientCheckoutResult({
+    required this.order,
+    required this.paymentRequired,
+    required this.cart,
+  });
+
+  final PatientCheckoutOrder order;
+  final bool paymentRequired;
+  final PatientCart cart;
+
+  factory PatientCheckoutResult.fromJson(Map<String, dynamic> json) =>
+      PatientCheckoutResult(
+        order: PatientCheckoutOrder.fromJson(
+            Map<String, dynamic>.from(json['order'] as Map)),
+        paymentRequired: (json['payment'] as Map?)?['required'] == true,
+        cart: PatientCart.fromJson(
+            Map<String, dynamic>.from(json['cart'] as Map)),
+      );
+}
+
+Future<PatientCheckoutResult> checkoutPatientCart({
+  required String deliveryMode,
+  required String deliveryAddress,
+  required String deliveryZone,
+  required int paymentMethodId,
+}) async {
+  final json = await AuthSession.instance.api.postJson(
+    'mobile/patient/checkout/',
+    {
+      'delivery_mode': deliveryMode,
+      'delivery_address': deliveryAddress,
+      'delivery_zone': deliveryZone,
+      'payment_method_id': paymentMethodId,
+    },
+  );
+  cartUpdates.value++;
+  return PatientCheckoutResult.fromJson(json);
+}
