@@ -487,21 +487,27 @@ class PatientCheckoutResult {
   const PatientCheckoutResult({
     required this.order,
     required this.paymentRequired,
+    required this.paymentTransactionReference,
     required this.cart,
   });
 
   final PatientCheckoutOrder order;
   final bool paymentRequired;
+  final String? paymentTransactionReference;
   final PatientCart cart;
 
-  factory PatientCheckoutResult.fromJson(Map<String, dynamic> json) =>
-      PatientCheckoutResult(
-        order: PatientCheckoutOrder.fromJson(
-            Map<String, dynamic>.from(json['order'] as Map)),
-        paymentRequired: (json['payment'] as Map?)?['required'] == true,
-        cart: PatientCart.fromJson(
-            Map<String, dynamic>.from(json['cart'] as Map)),
-      );
+  factory PatientCheckoutResult.fromJson(Map<String, dynamic> json) {
+    final payment = json['payment'] as Map?;
+    return PatientCheckoutResult(
+      order: PatientCheckoutOrder.fromJson(
+          Map<String, dynamic>.from(json['order'] as Map)),
+      paymentRequired: payment?['required'] == true,
+      paymentTransactionReference:
+          (payment?['transaction'] as Map?)?['reference']?.toString(),
+      cart: PatientCart.fromJson(
+          Map<String, dynamic>.from(json['cart'] as Map)),
+    );
+  }
 }
 
 Future<PatientCheckoutResult> checkoutPatientCart({
@@ -521,4 +527,56 @@ Future<PatientCheckoutResult> checkoutPatientCart({
   );
   cartUpdates.value++;
   return PatientCheckoutResult.fromJson(json);
+}
+
+class PatientPaymentTransaction {
+  const PatientPaymentTransaction({
+    required this.reference,
+    required this.status,
+    required this.statusLabel,
+  });
+
+  final String reference;
+  final String status;
+  final String statusLabel;
+
+  bool get succeeded => status == 'succeeded';
+
+  factory PatientPaymentTransaction.fromJson(Map<String, dynamic> json) =>
+      PatientPaymentTransaction(
+        reference: json['reference']?.toString() ?? '',
+        status: json['status']?.toString() ?? '',
+        statusLabel: json['status_label']?.toString() ?? '',
+      );
+}
+
+class PatientPaymentResolution {
+  const PatientPaymentResolution({
+    required this.transaction,
+    required this.order,
+  });
+
+  final PatientPaymentTransaction transaction;
+  final PatientCheckoutOrder order;
+
+  factory PatientPaymentResolution.fromJson(Map<String, dynamic> json) =>
+      PatientPaymentResolution(
+        transaction: PatientPaymentTransaction.fromJson(
+          Map<String, dynamic>.from(json['transaction'] as Map),
+        ),
+        order: PatientCheckoutOrder.fromJson(
+          Map<String, dynamic>.from(json['order'] as Map),
+        ),
+      );
+}
+
+Future<PatientPaymentResolution> resolveSimulatedPayment({
+  required String reference,
+  required bool succeeded,
+}) async {
+  final json = await AuthSession.instance.api.postJson(
+    'mobile/patient/payments/$reference/simulate/resolve/',
+    {'outcome': succeeded ? 'success' : 'failed'},
+  );
+  return PatientPaymentResolution.fromJson(json);
 }

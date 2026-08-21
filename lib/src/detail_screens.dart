@@ -1182,7 +1182,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         Expanded(
                           child: Text(
                             result.paymentRequired
-                                ? "Paiement en attente. Le règlement en ligne n'est pas encore branché dans l'application — cette étape arrive dans un prochain module."
+                                ? "Paiement en attente. Aucune passerelle réelle n'est branchée : simulez l'issue du paiement pour finaliser la commande."
                                 : 'Paiement à régler à la réception, comme demandé.',
                             style: const TextStyle(color: GabColors.muted),
                           ),
@@ -1191,6 +1191,30 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
+                  if (result.paymentRequired &&
+                      result.paymentTransactionReference != null) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: FilledButton.icon(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => SimulatedPaymentScreen(
+                              transactionReference:
+                                  result.paymentTransactionReference!,
+                              orderReference: order.reference,
+                              pharmacyName: order.pharmacyName,
+                              totalFcfa: order.totalFcfa,
+                            ),
+                          ),
+                        ),
+                        icon: const Icon(Icons.payments_outlined),
+                        label: const Text('Simuler le paiement'),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   SizedBox(
                     width: double.infinity,
                     height: 52,
@@ -1206,6 +1230,288 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Résolution réelle des transactions créées par `MobilePatientCheckoutView`
+/// pour les moyens de paiement en ligne (Airtel/Moov/Visa) : aucune
+/// passerelle de paiement réelle n'est branchée côté backend en dev, donc
+/// l'API elle-même expose cet endpoint de simulation — ce n'est pas une
+/// simulation locale comme l'ancien `PaymentScreen`.
+class SimulatedPaymentScreen extends StatefulWidget {
+  const SimulatedPaymentScreen({
+    required this.transactionReference,
+    required this.orderReference,
+    required this.pharmacyName,
+    required this.totalFcfa,
+    super.key,
+  });
+
+  final String transactionReference;
+  final String orderReference;
+  final String pharmacyName;
+  final int totalFcfa;
+
+  @override
+  State<SimulatedPaymentScreen> createState() =>
+      _SimulatedPaymentScreenState();
+}
+
+class _SimulatedPaymentScreenState extends State<SimulatedPaymentScreen> {
+  bool _resolving = false;
+  PatientPaymentResolution? _resolution;
+  String? _error;
+
+  String _formatFcfa(int amount) {
+    final s = amount.toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) buffer.write(' ');
+      buffer.write(s[i]);
+    }
+    return '$buffer FCFA';
+  }
+
+  Future<void> _resolve(bool succeeded) async {
+    setState(() {
+      _resolving = true;
+      _error = null;
+    });
+    try {
+      final resolution = await resolveSimulatedPayment(
+        reference: widget.transactionReference,
+        succeeded: succeeded,
+      );
+      if (!mounted) return;
+      setState(() {
+        _resolving = false;
+        _resolution = resolution;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _resolving = false;
+        _error = error.message;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _resolving = false;
+        _error = "Impossible de joindre l'API Gab'Pharma.";
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final resolution = _resolution;
+    return Scaffold(
+      backgroundColor: GabColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            SizedBox(
+              height: 56,
+              child: Row(
+                children: [
+                  if (resolution == null)
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back,
+                          color: GabColors.primary),
+                    )
+                  else
+                    const SizedBox(width: 16),
+                  const Text(
+                    'Paiement',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: GabColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1, color: GabColors.outlineVariant),
+            Expanded(
+              child:
+                  resolution != null ? _buildResult(resolution) : _buildForm(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildForm() => ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: GabColors.outlineVariant),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('COMMANDE',
+                    style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: GabColors.muted,
+                        letterSpacing: 0.6)),
+                const SizedBox(height: 4),
+                Text('#${widget.orderReference}',
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 12),
+                _SummaryLine('Pharmacie', widget.pharmacyName),
+                const SizedBox(height: 6),
+                _SummaryLine('Total', _formatFcfa(widget.totalFcfa)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF3E0),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.science_outlined,
+                    color: Color(0xFF8D6E00), size: 20),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    "Environnement de test : aucune passerelle de paiement réelle n'est branchée. Choisissez l'issue à simuler, comme le ferait un vrai paiement Mobile Money ou carte selon qu'il passe ou échoue.",
+                    style: TextStyle(color: GabColors.muted),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 16),
+            Text(_error!,
+                style: const TextStyle(color: GabColors.danger),
+                textAlign: TextAlign.center),
+          ],
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: FilledButton(
+              onPressed: _resolving ? null : () => _resolve(true),
+              child: _resolving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('Simuler un paiement réussi'),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: OutlinedButton(
+              onPressed: _resolving ? null : () => _resolve(false),
+              child: const Text('Simuler un paiement échoué'),
+            ),
+          ),
+        ],
+      );
+
+  Widget _buildResult(PatientPaymentResolution resolution) {
+    final succeeded = resolution.transaction.succeeded;
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        Center(
+          child: Container(
+            width: 88,
+            height: 88,
+            decoration: BoxDecoration(
+              color: succeeded ? GabColors.primary : GabColors.danger,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              succeeded ? Icons.check_circle : Icons.error_outline,
+              color: Colors.white,
+              size: 48,
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          succeeded ? 'Paiement réussi' : 'Paiement échoué',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: succeeded ? GabColors.primary : GabColors.danger,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Commande #${resolution.order.reference} · ${resolution.transaction.statusLabel}',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: GabColors.muted),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: GabColors.outlineVariant),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SummaryLine('Pharmacie', resolution.order.pharmacyName),
+              const SizedBox(height: 6),
+              _SummaryLine('Total', _formatFcfa(resolution.order.totalFcfa)),
+              const SizedBox(height: 6),
+              _SummaryLine(
+                  'Statut du paiement', resolution.order.paymentStatusLabel),
+            ],
+          ),
+        ),
+        if (!succeeded) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFEBEE),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Text(
+              "Vous pourrez retenter le paiement depuis le suivi de commande, une fois cet écran branché à l'API (prochain module).",
+              style: TextStyle(color: GabColors.muted),
+            ),
+          ),
+        ],
+        const SizedBox(height: 24),
+        SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: FilledButton(
+            onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                context, '/home', (route) => false),
+            child: const Text("Retour à l'accueil"),
+          ),
+        ),
+      ],
     );
   }
 }
