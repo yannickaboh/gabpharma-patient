@@ -1,7 +1,7 @@
 # Gab'Pharma Patient — suivi d'implémentation Flutter
 
 **Dernière mise à jour :** 21 août 2026
-**Mode actuel :** branchement à l'API Django réelle en cours (`AppConfig.demoMode=false` par défaut). Les 24 écrans de la spec sont terminés visuellement depuis le 14 juillet ; le branchement module par module a démarré le 13 août. **Voir `branchement_patient.md` pour le détail module par module et l'ordre convenu — c'est la source de vérité pour cette phase, pas cette section.** Résumé : authentification, Accueil, Recherche+catalogue, Détail médicament/pharmacie, Favoris, Panier, Checkout et Paiement simulé branchés et vérifiés sur S8 physique ; le reste (commandes, assurance, notifications, support, profil, inscription, mot de passe oublié) est encore en données locales statiques.
+**Mode actuel :** branchement à l'API Django réelle en cours (`AppConfig.demoMode=false` par défaut). Les 24 écrans de la spec sont terminés visuellement depuis le 14 juillet ; le branchement module par module a démarré le 13 août. **Voir `branchement_patient.md` pour le détail module par module et l'ordre convenu — c'est la source de vérité pour cette phase, pas cette section.** Résumé : authentification, Accueil, Recherche+catalogue, Détail médicament/pharmacie, Favoris, Panier, Checkout, Paiement simulé et Commandes branchés et vérifiés sur S8 physique ; le reste (assurance, notifications, support, profil, inscription, mot de passe oublié) est encore en données locales statiques.
 
 ## Méthode de travail (à respecter pour chaque nouvel écran)
 
@@ -106,7 +106,7 @@ flutter run -d <device-id>
 **Les 24 écrans cibles de la spec sont terminés et validés (Lots 1 à 4 complets).** Deux sujets restent ouverts :
 
 1. **Écrans 25/26 (Mes vaccins, Certificat numérique)** : hors spec originale des 24 écrans — demander à l'utilisateur s'il faut les implémenter ou les laisser de côté.
-2. **Connexion à l'API mobile réelle** (Django) : en cours depuis le 13 août 2026, suivie module par module dans `branchement_patient.md`. Authentification, Accueil, Recherche+catalogue, Détail médicament/pharmacie, Favoris, Panier, Checkout et Paiement simulé faits ; prochaine étape du fichier de suivi : **Commandes** (`GET /mobile/patient/orders/`, `GET /mobile/patient/orders/<id>/`, `POST .../cancel/`, `.../accept-changes/`, `.../reject-changes/`, `.../retry-payment/`). Gap connu non corrigé : pas de rafraîchissement de token JWT (expire à 20 min, pas d'endpoint côté Django) — l'app déconnecte proprement au lieu de planter, mais l'utilisateur doit se reconnecter manuellement toutes les 20 min pendant les sessions de test.
+2. **Connexion à l'API mobile réelle** (Django) : en cours depuis le 13 août 2026, suivie module par module dans `branchement_patient.md`. Authentification, Accueil, Recherche+catalogue, Détail médicament/pharmacie, Favoris, Panier, Checkout, Paiement simulé et Commandes faits ; prochaine étape du fichier de suivi : **Assurance** (`GET /mobile/patient/insurance/insurers/`, `GET/POST/PATCH/DELETE /mobile/patient/insurance/affiliation/`). Gap connu non corrigé : pas de rafraîchissement de token JWT (expire à 20 min, pas d'endpoint côté Django) — l'app déconnecte proprement au lieu de planter, mais l'utilisateur doit se reconnecter manuellement toutes les 20 min pendant les sessions de test.
 
 ### Repères pratiques pour reprendre une session de branchement
 
