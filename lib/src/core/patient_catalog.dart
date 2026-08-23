@@ -815,3 +815,437 @@ Future<PatientRetryPaymentResult> retryOrderPayment(int orderId) async {
       .postJson('mobile/patient/orders/$orderId/retry-payment/', {});
   return PatientRetryPaymentResult.fromJson(json);
 }
+
+class InsurancePlanCategoryRate {
+  const InsurancePlanCategoryRate({
+    required this.categoryName,
+    required this.coverageRate,
+  });
+
+  final String categoryName;
+  final int coverageRate;
+
+  factory InsurancePlanCategoryRate.fromJson(Map<String, dynamic> json) =>
+      InsurancePlanCategoryRate(
+        categoryName: json['category_name']?.toString() ?? '',
+        coverageRate: (json['coverage_rate'] as num).toInt(),
+      );
+}
+
+class InsurancePlan {
+  const InsurancePlan({
+    required this.id,
+    required this.name,
+    required this.defaultCoverageRate,
+    required this.categoryRates,
+  });
+
+  final int id;
+  final String name;
+  final int defaultCoverageRate;
+  final List<InsurancePlanCategoryRate> categoryRates;
+
+  factory InsurancePlan.fromJson(Map<String, dynamic> json) => InsurancePlan(
+        id: (json['id'] as num).toInt(),
+        name: json['name']?.toString() ?? '',
+        defaultCoverageRate: (json['default_coverage_rate'] as num).toInt(),
+        categoryRates: ((json['category_rates'] as List?) ?? [])
+            .map((e) => InsurancePlanCategoryRate.fromJson(
+                Map<String, dynamic>.from(e as Map)))
+            .toList(),
+      );
+}
+
+class PatientInsurer {
+  const PatientInsurer({
+    required this.id,
+    required this.name,
+    required this.plans,
+  });
+
+  final int id;
+  final String name;
+  final List<InsurancePlan> plans;
+
+  factory PatientInsurer.fromJson(Map<String, dynamic> json) =>
+      PatientInsurer(
+        id: (json['id'] as num).toInt(),
+        name: json['name']?.toString() ?? '',
+        plans: ((json['plans'] as List?) ?? [])
+            .map((e) =>
+                InsurancePlan.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList(),
+      );
+}
+
+Future<List<PatientInsurer>> fetchInsurers() async {
+  final json = await AuthSession.instance.api
+      .getJson('mobile/patient/insurance/insurers/');
+  return ((json['insurers'] as List?) ?? [])
+      .map((e) =>
+          PatientInsurer.fromJson(Map<String, dynamic>.from(e as Map)))
+      .toList();
+}
+
+class PatientInsuranceAffiliation {
+  const PatientInsuranceAffiliation({
+    required this.id,
+    required this.planId,
+    required this.planName,
+    required this.defaultCoverageRate,
+    required this.insurerName,
+    required this.memberNumber,
+  });
+
+  final int id;
+  final int planId;
+  final String planName;
+  final int defaultCoverageRate;
+  final String insurerName;
+  final String memberNumber;
+
+  factory PatientInsuranceAffiliation.fromJson(Map<String, dynamic> json) {
+    final plan = Map<String, dynamic>.from(json['plan'] as Map);
+    final insurer = Map<String, dynamic>.from(plan['insurer'] as Map);
+    return PatientInsuranceAffiliation(
+      id: (json['id'] as num).toInt(),
+      planId: (plan['id'] as num).toInt(),
+      planName: plan['name']?.toString() ?? '',
+      defaultCoverageRate: (plan['default_coverage_rate'] as num).toInt(),
+      insurerName: insurer['name']?.toString() ?? '',
+      memberNumber: json['member_number']?.toString() ?? '',
+    );
+  }
+}
+
+Future<PatientInsuranceAffiliation?> fetchInsuranceAffiliation() async {
+  final json = await AuthSession.instance.api
+      .getJson('mobile/patient/insurance/affiliation/');
+  final affiliation = json['affiliation'];
+  if (affiliation == null) return null;
+  return PatientInsuranceAffiliation.fromJson(
+      Map<String, dynamic>.from(affiliation as Map));
+}
+
+Future<PatientInsuranceAffiliation> saveInsuranceAffiliation({
+  required int planId,
+  required String memberNumber,
+}) async {
+  final json = await AuthSession.instance.api.postJson(
+    'mobile/patient/insurance/affiliation/',
+    {'plan_id': planId, 'member_number': memberNumber},
+  );
+  return PatientInsuranceAffiliation.fromJson(
+      Map<String, dynamic>.from(json['affiliation'] as Map));
+}
+
+Future<void> deleteInsuranceAffiliation() async {
+  await AuthSession.instance.api
+      .deleteJson('mobile/patient/insurance/affiliation/');
+}
+
+class PatientNotification {
+  const PatientNotification({
+    required this.icon,
+    required this.tone,
+    required this.title,
+    required this.description,
+    required this.timestamp,
+    required this.targetType,
+    required this.targetId,
+  });
+
+  final String icon;
+  final String tone;
+  final String title;
+  final String description;
+  final DateTime timestamp;
+  final String targetType;
+  final int? targetId;
+
+  factory PatientNotification.fromJson(Map<String, dynamic> json) =>
+      PatientNotification(
+        icon: json['icon']?.toString() ?? 'notifications',
+        tone: json['tone']?.toString() ?? '',
+        title: json['title']?.toString() ?? '',
+        description: json['description']?.toString() ?? '',
+        timestamp: DateTime.parse(json['timestamp'].toString()),
+        targetType: json['target_type']?.toString() ?? '',
+        targetId: (json['target_id'] as num?)?.toInt(),
+      );
+}
+
+Future<List<PatientNotification>> fetchNotifications() async {
+  final json =
+      await AuthSession.instance.api.getJson('mobile/notifications/');
+  return ((json['notifications'] as List?) ?? [])
+      .map((e) => PatientNotification.fromJson(
+          Map<String, dynamic>.from(e as Map)))
+      .toList();
+}
+
+class PatientSupportCategory {
+  const PatientSupportCategory({required this.code, required this.label});
+
+  final String code;
+  final String label;
+
+  factory PatientSupportCategory.fromJson(Map<String, dynamic> json) =>
+      PatientSupportCategory(
+        code: json['code']?.toString() ?? '',
+        label: json['label']?.toString() ?? '',
+      );
+}
+
+Future<List<PatientSupportCategory>> fetchSupportCategories() async {
+  final json =
+      await AuthSession.instance.api.getJson('mobile/support/categories/');
+  return ((json['categories'] as List?) ?? [])
+      .map((e) => PatientSupportCategory.fromJson(
+          Map<String, dynamic>.from(e as Map)))
+      .toList();
+}
+
+class PatientTicketAttachment {
+  const PatientTicketAttachment({
+    required this.id,
+    required this.originalName,
+  });
+
+  final int id;
+  final String originalName;
+
+  factory PatientTicketAttachment.fromJson(Map<String, dynamic> json) =>
+      PatientTicketAttachment(
+        id: (json['id'] as num).toInt(),
+        originalName: json['original_name']?.toString() ?? '',
+      );
+}
+
+class PatientTicketMessage {
+  const PatientTicketMessage({
+    required this.id,
+    required this.authorId,
+    required this.authorName,
+    required this.body,
+    required this.createdAt,
+    required this.attachments,
+  });
+
+  final int id;
+  final int? authorId;
+  final String authorName;
+  final String body;
+  final DateTime createdAt;
+  final List<PatientTicketAttachment> attachments;
+
+  factory PatientTicketMessage.fromJson(Map<String, dynamic> json) =>
+      PatientTicketMessage(
+        id: (json['id'] as num).toInt(),
+        authorId: (json['author_id'] as num?)?.toInt(),
+        authorName: json['author_name']?.toString() ?? '',
+        body: json['body']?.toString() ?? '',
+        createdAt: DateTime.parse(json['created_at'].toString()),
+        attachments: ((json['attachments'] as List?) ?? [])
+            .map((e) => PatientTicketAttachment.fromJson(
+                Map<String, dynamic>.from(e as Map)))
+            .toList(),
+      );
+}
+
+class PatientSupportTicket {
+  const PatientSupportTicket({
+    required this.id,
+    required this.reference,
+    required this.subject,
+    required this.category,
+    required this.categoryLabel,
+    required this.priority,
+    required this.priorityLabel,
+    required this.status,
+    required this.statusLabel,
+    required this.isSlaOverdue,
+    required this.orderReference,
+    required this.lastActivityAt,
+    required this.createdAt,
+    required this.messages,
+  });
+
+  final int id;
+  final String reference;
+  final String subject;
+  final String category;
+  final String categoryLabel;
+  final String priority;
+  final String priorityLabel;
+  final String status;
+  final String statusLabel;
+  final bool isSlaOverdue;
+  final String? orderReference;
+  final DateTime lastActivityAt;
+  final DateTime createdAt;
+  final List<PatientTicketMessage>? messages;
+
+  factory PatientSupportTicket.fromJson(Map<String, dynamic> json) {
+    final order = json['order'] as Map?;
+    return PatientSupportTicket(
+      id: (json['id'] as num).toInt(),
+      reference: json['reference']?.toString() ?? '',
+      subject: json['subject']?.toString() ?? '',
+      category: json['category']?.toString() ?? '',
+      categoryLabel: json['category_label']?.toString() ?? '',
+      priority: json['priority']?.toString() ?? '',
+      priorityLabel: json['priority_label']?.toString() ?? '',
+      status: json['status']?.toString() ?? '',
+      statusLabel: json['status_label']?.toString() ?? '',
+      isSlaOverdue: json['is_sla_overdue'] == true,
+      orderReference: order?['reference']?.toString(),
+      lastActivityAt: DateTime.parse(json['last_activity_at'].toString()),
+      createdAt: DateTime.parse(json['created_at'].toString()),
+      messages: json['messages'] == null
+          ? null
+          : (json['messages'] as List)
+              .map((e) => PatientTicketMessage.fromJson(
+                  Map<String, dynamic>.from(e as Map)))
+              .toList(),
+    );
+  }
+}
+
+class PatientSupportTicketPage {
+  const PatientSupportTicketPage({
+    required this.hasMore,
+    required this.results,
+  });
+
+  final bool hasMore;
+  final List<PatientSupportTicket> results;
+}
+
+Future<PatientSupportTicketPage> fetchSupportTickets({int page = 1}) async {
+  final json = await AuthSession.instance.api
+      .getJson('mobile/support/tickets/?page=$page');
+  return PatientSupportTicketPage(
+    hasMore: json['next'] != null,
+    results: ((json['results'] as List?) ?? [])
+        .map((e) => PatientSupportTicket.fromJson(
+            Map<String, dynamic>.from(e as Map)))
+        .toList(),
+  );
+}
+
+Future<PatientSupportTicket> createSupportTicket({
+  required String subject,
+  required String category,
+  required String message,
+  int? orderId,
+}) async {
+  final json = await AuthSession.instance.api.postJson(
+    'mobile/support/tickets/',
+    {
+      'subject': subject,
+      'category': category,
+      'message': message,
+      if (orderId != null) 'order': orderId,
+    },
+  );
+  return PatientSupportTicket.fromJson(json);
+}
+
+Future<PatientSupportTicket> fetchSupportTicketDetail(int ticketId) async {
+  final json = await AuthSession.instance.api
+      .getJson('mobile/support/tickets/$ticketId/');
+  return PatientSupportTicket.fromJson(json);
+}
+
+Future<PatientSupportTicket> replySupportTicket(
+  int ticketId,
+  String body,
+) async {
+  final json = await AuthSession.instance.api.postJson(
+    'mobile/support/tickets/$ticketId/reply/',
+    {'body': body},
+  );
+  return PatientSupportTicket.fromJson(json);
+}
+
+class PatientProfile {
+  const PatientProfile({
+    required this.id,
+    required this.email,
+    required this.phone,
+    required this.username,
+    required this.firstName,
+    required this.lastName,
+    required this.fullName,
+    required this.roleLabel,
+    required this.statusLabel,
+  });
+
+  final int id;
+  final String email;
+  final String phone;
+  final String username;
+  final String firstName;
+  final String lastName;
+  final String fullName;
+  final String roleLabel;
+  final String statusLabel;
+
+  String get initials {
+    final first = firstName.trim();
+    final last = lastName.trim();
+    final combined =
+        '${first.isNotEmpty ? first[0] : ''}${last.isNotEmpty ? last[0] : ''}'
+            .toUpperCase();
+    if (combined.isNotEmpty) return combined;
+    return email.isNotEmpty ? email[0].toUpperCase() : '?';
+  }
+
+  factory PatientProfile.fromJson(Map<String, dynamic> json) =>
+      PatientProfile(
+        id: (json['id'] as num).toInt(),
+        email: json['email']?.toString() ?? '',
+        phone: json['phone']?.toString() ?? '',
+        username: json['username']?.toString() ?? '',
+        firstName: json['first_name']?.toString() ?? '',
+        lastName: json['last_name']?.toString() ?? '',
+        fullName: json['full_name']?.toString() ?? '',
+        roleLabel: json['role_label']?.toString() ?? '',
+        statusLabel: json['status_label']?.toString() ?? '',
+      );
+}
+
+Future<PatientProfile> fetchProfile() async {
+  final json = await AuthSession.instance.api.getJson('mobile/profile/');
+  return PatientProfile.fromJson(
+      Map<String, dynamic>.from(json['profile'] as Map));
+}
+
+Future<PatientProfile> updateProfile({
+  required String firstName,
+  required String lastName,
+  String phone = '',
+  String username = '',
+}) async {
+  final json = await AuthSession.instance.api.patchJson('mobile/profile/', {
+    'first_name': firstName,
+    'last_name': lastName,
+    'phone': phone,
+    'username': username,
+  });
+  return PatientProfile.fromJson(
+      Map<String, dynamic>.from(json['profile'] as Map));
+}
+
+Future<void> changePassword({
+  required String currentPassword,
+  required String newPassword1,
+  required String newPassword2,
+}) async {
+  await AuthSession.instance.api.postJson('mobile/profile/password/', {
+    'current_password': currentPassword,
+    'new_password1': newPassword1,
+    'new_password2': newPassword2,
+  });
+}

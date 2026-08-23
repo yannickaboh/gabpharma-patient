@@ -2419,116 +2419,196 @@ class _OrderCard extends StatelessWidget {
   }
 }
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({required this.onSwitchTab, super.key});
 
   final ValueChanged<int> onSwitchTab;
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  bool _loading = true;
+  String? _error;
+  PatientProfile? _profile;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final profile = await fetchProfile();
+      if (!mounted) return;
+      setState(() {
+        _profile = profile;
+        _loading = false;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = error.message;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = "Impossible de joindre l'API Gab'Pharma.";
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) => SafeArea(
         child: Column(
           children: [
-            PatientTopBar(onSwitchTab: onSwitchTab),
+            PatientTopBar(onSwitchTab: widget.onSwitchTab),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  Text('Mon profil',
-                      style: Theme.of(context).textTheme.headlineMedium),
-                  const SizedBox(height: 20),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          const CircleAvatar(
-                            radius: 28,
-                            backgroundColor: GabColors.primary,
-                            child: Text('GN',
-                                style: TextStyle(color: Colors.white)),
-                          ),
-                          const SizedBox(width: 14),
-                          const Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(32),
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  'Grâce Nziengui',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 18,
-                                  ),
-                                ),
-                                Text('patient.demo@gabpharma.ga'),
+                                const Icon(Icons.cloud_off,
+                                    size: 52, color: GabColors.secondary),
+                                const SizedBox(height: 16),
+                                Text(_error!, textAlign: TextAlign.center),
+                                const SizedBox(height: 16),
+                                FilledButton(
+                                    onPressed: _load,
+                                    child: const Text('Réessayer')),
                               ],
                             ),
                           ),
-                          IconButton(
-                            onPressed: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const ProfileEditScreen(),
+                        )
+                      : ListView(
+                          padding: const EdgeInsets.all(20),
+                          children: [
+                            Text('Mon profil',
+                                style:
+                                    Theme.of(context).textTheme.headlineMedium),
+                            const SizedBox(height: 20),
+                            Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 28,
+                                      backgroundColor: GabColors.primary,
+                                      child: Text(_profile!.initials,
+                                          style: const TextStyle(
+                                              color: Colors.white)),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            _profile!.fullName.isEmpty
+                                                ? _profile!.email
+                                                : _profile!.fullName,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 18,
+                                            ),
+                                          ),
+                                          Text(_profile!.email),
+                                        ],
+                                      ),
+                                    ),
+                                    IconButton(
+                                      onPressed: () async {
+                                        final updated = await Navigator.push<
+                                            PatientProfile>(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => ProfileEditScreen(
+                                                profile: _profile!),
+                                          ),
+                                        );
+                                        if (updated != null && mounted) {
+                                          setState(() => _profile = updated);
+                                        }
+                                      },
+                                      icon: const Icon(Icons.edit_outlined,
+                                          color: GabColors.primary),
+                                      tooltip: 'Modifier mes informations',
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                            icon: const Icon(Icons.edit_outlined,
-                                color: GabColors.primary),
-                            tooltip: 'Modifier mes informations',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  for (final item in const [
-                    (
-                      'Mon assurance',
-                      Icons.health_and_safety_outlined,
-                      '/insurance'
-                    ),
-                    (
-                      'Paiements et remboursements',
-                      Icons.payments_outlined,
-                      '/payments'
-                    ),
-                    (
-                      'Notifications',
-                      Icons.notifications_outlined,
-                      '/notifications'
-                    ),
-                    ('Aide et tickets', Icons.support_agent, '/support'),
-                    (
-                      'Sécurité et paramètres',
-                      Icons.security_outlined,
-                      '/security'
-                    ),
-                  ])
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Card(
-                        child: ListTile(
-                          onTap: () => Navigator.pushNamed(context, item.$3),
-                          leading: Icon(item.$2),
-                          title: Text(item.$1),
-                          trailing: const Icon(Icons.chevron_right),
+                            const SizedBox(height: 20),
+                            for (final item in const [
+                              (
+                                'Mon assurance',
+                                Icons.health_and_safety_outlined,
+                                '/insurance'
+                              ),
+                              (
+                                'Paiements et remboursements',
+                                Icons.payments_outlined,
+                                '/payments'
+                              ),
+                              (
+                                'Notifications',
+                                Icons.notifications_outlined,
+                                '/notifications'
+                              ),
+                              (
+                                'Aide et tickets',
+                                Icons.support_agent,
+                                '/support'
+                              ),
+                              (
+                                'Sécurité et paramètres',
+                                Icons.security_outlined,
+                                '/security'
+                              ),
+                            ])
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: Card(
+                                  child: ListTile(
+                                    onTap: () => Navigator.pushNamed(
+                                        context, item.$3),
+                                    leading: Icon(item.$2),
+                                    title: Text(item.$1),
+                                    trailing: const Icon(Icons.chevron_right),
+                                  ),
+                                ),
+                              ),
+                            const SizedBox(height: 8),
+                            OutlinedButton.icon(
+                              onPressed: () async {
+                                await AuthSession.instance.clear();
+                                if (!context.mounted) return;
+                                Navigator.pushNamedAndRemoveUntil(
+                                  context,
+                                  '/login',
+                                  (route) => false,
+                                );
+                              },
+                              icon: const Icon(Icons.logout),
+                              label: const Text('Se déconnecter'),
+                            ),
+                          ],
                         ),
-                      ),
-                    ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      await AuthSession.instance.clear();
-                      if (!context.mounted) return;
-                      Navigator.pushNamedAndRemoveUntil(
-                        context,
-                        '/login',
-                        (route) => false,
-                      );
-                    },
-                    icon: const Icon(Icons.logout),
-                    label: const Text('Se déconnecter'),
-                  ),
-                ],
-              ),
             ),
           ],
         ),
@@ -2536,17 +2616,20 @@ class ProfileScreen extends StatelessWidget {
 }
 
 class ProfileEditScreen extends StatefulWidget {
-  const ProfileEditScreen({super.key});
+  const ProfileEditScreen({required this.profile, super.key});
+
+  final PatientProfile profile;
 
   @override
   State<ProfileEditScreen> createState() => _ProfileEditScreenState();
 }
 
 class _ProfileEditScreenState extends State<ProfileEditScreen> {
-  final _firstName = TextEditingController(text: 'Grâce');
-  final _lastName = TextEditingController(text: 'Nziengui');
-  final _username = TextEditingController(text: 'grace.nziengui');
-  final _phone = TextEditingController(text: '07 12 34 56');
+  late final _firstName =
+      TextEditingController(text: widget.profile.firstName);
+  late final _lastName = TextEditingController(text: widget.profile.lastName);
+  late final _username = TextEditingController(text: widget.profile.username);
+  late final _phone = TextEditingController(text: widget.profile.phone);
   bool _saving = false;
   String? _firstNameError;
   String? _lastNameError;
@@ -2568,13 +2651,31 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     });
     if (_firstNameError != null || _lastNameError != null) return;
     setState(() => _saving = true);
-    await Future<void>.delayed(const Duration(milliseconds: 700));
-    if (!mounted) return;
-    setState(() => _saving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Informations mises à jour.')),
-    );
-    Navigator.pop(context);
+    try {
+      final updated = await updateProfile(
+        firstName: _firstName.text.trim(),
+        lastName: _lastName.text.trim(),
+        phone: _phone.text.trim(),
+        username: _username.text.trim(),
+      );
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Informations mises à jour.')),
+      );
+      Navigator.pop(context, updated);
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.message)));
+    } on Object {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("Impossible de joindre l'API Gab'Pharma."),
+      ));
+    }
   }
 
   @override
@@ -2663,8 +2764,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       const SizedBox(height: 8),
                       TextField(
                         enabled: false,
-                        controller: TextEditingController(
-                            text: 'patient.demo@gabpharma.ga'),
+                        controller:
+                            TextEditingController(text: widget.profile.email),
                         decoration: const InputDecoration(
                           prefixIcon: Icon(Icons.mail_outline),
                           helperText: 'Lecture seule',

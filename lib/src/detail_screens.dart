@@ -4001,11 +4001,13 @@ class DeliveryTrackingScreen extends StatelessWidget {
                             ),
                             const SizedBox(width: 6),
                             IconButton(
-                              onPressed: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const ConversationScreen(
-                                    ticketReference: 'TK-45920',
+                              onPressed: () =>
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Messagerie avec le livreur indisponible '
+                                    'pour le moment — utilisez le Centre '
+                                    "d'aide pour contacter le support.",
                                   ),
                                 ),
                               ),
@@ -4704,49 +4706,6 @@ class _TransactionCard extends StatelessWidget {
   }
 }
 
-class _InsurerInfo {
-  const _InsurerInfo({
-    required this.name,
-    required this.defaultRate,
-    required this.exceptions,
-  });
-
-  final String name;
-  final double defaultRate;
-  final List<String> exceptions;
-}
-
-const _insurers = <_InsurerInfo>[
-  _InsurerInfo(
-    name: 'CNAMGS',
-    defaultRate: 0.8,
-    exceptions: [
-      'Médicaments de confort non remboursés',
-      'Plafond mensuel : 150 000 FCFA',
-    ],
-  ),
-  _InsurerInfo(
-    name: 'AXA Gabon',
-    defaultRate: 0.7,
-    exceptions: ['Génériques : ticket modérateur de 20 %'],
-  ),
-  _InsurerInfo(
-    name: 'Allianz Gabon',
-    defaultRate: 0.75,
-    exceptions: ['Médicaments hors liste : couverture à 50 %'],
-  ),
-  _InsurerInfo(
-    name: 'Ascoma',
-    defaultRate: 0.65,
-    exceptions: ['Franchise annuelle de 20 000 FCFA'],
-  ),
-  _InsurerInfo(
-    name: 'SUNU Assurances',
-    defaultRate: 0.7,
-    exceptions: ['Parapharmacie exclue de la couverture'],
-  ),
-];
-
 class InsuranceScreen extends StatefulWidget {
   const InsuranceScreen({super.key});
 
@@ -4755,56 +4714,130 @@ class InsuranceScreen extends StatefulWidget {
 }
 
 class _InsuranceScreenState extends State<InsuranceScreen> {
-  _InsurerInfo? _savedInsurer;
-  String? _savedPlan;
-  String? _savedMemberNumber;
+  bool _loading = true;
+  String? _error;
+  List<PatientInsurer> _insurers = [];
+  PatientInsuranceAffiliation? _affiliation;
 
-  _InsurerInfo? _insurer;
-  final _planController = TextEditingController();
+  bool _editing = false;
+  bool _saving = false;
+  PatientInsurer? _insurer;
+  InsurancePlan? _plan;
   final _memberController = TextEditingController();
 
-  bool get _hasProfile => _savedInsurer != null;
+  bool get _hasProfile => _affiliation != null;
 
   @override
   void initState() {
     super.initState();
-    _savedInsurer = _insurers.first;
-    _savedPlan = 'Formule Confort';
-    _savedMemberNumber = 'CNAM-2026-0417';
+    _load();
   }
 
   @override
   void dispose() {
-    _planController.dispose();
     _memberController.dispose();
     super.dispose();
   }
 
-  void _startEditing() {
+  Future<void> _load() async {
     setState(() {
-      _insurer = _savedInsurer;
-      _planController.text = _savedPlan ?? '';
-      _memberController.text = _savedMemberNumber ?? '';
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final results = await Future.wait([
+        fetchInsurers(),
+        fetchInsuranceAffiliation(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _insurers = results[0] as List<PatientInsurer>;
+        _affiliation = results[1] as PatientInsuranceAffiliation?;
+        _loading = false;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = error.message;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = "Impossible de joindre l'API Gab'Pharma.";
+      });
+    }
+  }
+
+  InsurancePlan? _planById(int planId) {
+    for (final insurer in _insurers) {
+      for (final plan in insurer.plans) {
+        if (plan.id == planId) return plan;
+      }
+    }
+    return null;
+  }
+
+  void _startEditing() {
+    final affiliation = _affiliation;
+    PatientInsurer? matchedInsurer;
+    InsurancePlan? matchedPlan;
+    if (affiliation != null) {
+      for (final insurer in _insurers) {
+        for (final plan in insurer.plans) {
+          if (plan.id == affiliation.planId) {
+            matchedInsurer = insurer;
+            matchedPlan = plan;
+          }
+        }
+      }
+    }
+    setState(() {
+      _editing = true;
+      _insurer = matchedInsurer;
+      _plan = matchedPlan;
+      _memberController.text = affiliation?.memberNumber ?? '';
     });
   }
 
-  void _save() {
-    if (_insurer == null || _memberController.text.trim().isEmpty) {
+  Future<void> _save() async {
+    if (_plan == null || _memberController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Choisissez un assureur et indiquez votre numéro '
-            'de membre.'),
+        content: Text('Choisissez un assureur, une formule et indiquez '
+            'votre numéro de membre.'),
       ));
       return;
     }
-    setState(() {
-      _savedInsurer = _insurer;
-      _savedPlan = _planController.text.trim();
-      _savedMemberNumber = _memberController.text.trim();
-      _insurer = null;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Profil assurance enregistré.'),
-    ));
+    setState(() => _saving = true);
+    try {
+      final affiliation = await saveInsuranceAffiliation(
+        planId: _plan!.id,
+        memberNumber: _memberController.text.trim(),
+      );
+      if (!mounted) return;
+      setState(() {
+        _affiliation = affiliation;
+        _editing = false;
+        _saving = false;
+        _insurer = null;
+        _plan = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Profil assurance enregistré.'),
+      ));
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.message)));
+    } on Object {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("Impossible de joindre l'API Gab'Pharma."),
+      ));
+    }
   }
 
   Future<void> _withdraw() async {
@@ -4831,22 +4864,29 @@ class _InsuranceScreenState extends State<InsuranceScreen> {
       ),
     );
     if (confirmed ?? false) {
-      setState(() {
-        _savedInsurer = null;
-        _savedPlan = null;
-        _savedMemberNumber = null;
-        _insurer = null;
-      });
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Affiliation retirée.'),
-      ));
+      try {
+        await deleteInsuranceAffiliation();
+        if (!mounted) return;
+        setState(() {
+          _affiliation = null;
+          _insurer = null;
+          _plan = null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Affiliation retirée.'),
+        ));
+      } on Object {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Impossible de retirer l'affiliation."),
+        ));
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isEditing = _insurer != null || !_hasProfile;
+    final isEditing = _editing || (!_loading && !_hasProfile);
     return Scaffold(
       backgroundColor: GabColors.background,
       appBar: AppBar(
@@ -4858,9 +4898,29 @@ class _InsuranceScreenState extends State<InsuranceScreen> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.cloud_off,
+                            size: 52, color: GabColors.secondary),
+                        const SizedBox(height: 16),
+                        Text(_error!, textAlign: TextAlign.center),
+                        const SizedBox(height: 16),
+                        FilledButton(
+                            onPressed: _load, child: const Text('Réessayer')),
+                      ],
+                    ),
+                  ),
+                )
+              : ListView(
+                  padding: const EdgeInsets.all(20),
+                  children: [
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
@@ -4940,11 +5000,11 @@ class _InsuranceScreenState extends State<InsuranceScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(_savedInsurer!.name,
+                            Text(_affiliation!.insurerName,
                                 style: const TextStyle(
                                     fontWeight: FontWeight.w700)),
-                            if ((_savedPlan ?? '').isNotEmpty)
-                              Text(_savedPlan!,
+                            if (_affiliation!.planName.isNotEmpty)
+                              Text(_affiliation!.planName,
                                   style: const TextStyle(
                                       color: GabColors.muted, fontSize: 13)),
                           ],
@@ -4959,11 +5019,15 @@ class _InsuranceScreenState extends State<InsuranceScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text('N° de membre : ${_savedMemberNumber ?? "—"}',
+                  Text('N° de membre : ${_affiliation!.memberNumber}',
                       style: const TextStyle(
                           color: GabColors.muted, fontSize: 13)),
                   const SizedBox(height: 16),
-                  _CoverageEstimate(insurer: _savedInsurer!),
+                  _CoverageEstimate(
+                    defaultCoverageRate: _affiliation!.defaultCoverageRate,
+                    categoryRates:
+                        _planById(_affiliation!.planId)?.categoryRates ?? [],
+                  ),
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
@@ -4984,7 +5048,7 @@ class _InsuranceScreenState extends State<InsuranceScreen> {
             const Text('Assureur',
                 style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            DropdownButtonFormField<_InsurerInfo>(
+            DropdownButtonFormField<PatientInsurer>(
               initialValue: _insurer,
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.corporate_fare),
@@ -4994,18 +5058,32 @@ class _InsuranceScreenState extends State<InsuranceScreen> {
                 for (final insurer in _insurers)
                   DropdownMenuItem(value: insurer, child: Text(insurer.name)),
               ],
-              onChanged: (value) => setState(() => _insurer = value),
+              onChanged: (value) => setState(() {
+                _insurer = value;
+                _plan = value != null && value.plans.contains(_plan)
+                    ? _plan
+                    : null;
+              }),
             ),
             const SizedBox(height: 16),
-            const Text("Nom de l'offre / Plan",
+            const Text('Formule',
                 style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            TextField(
-              controller: _planController,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.medical_services_outlined),
-                hintText: 'Ex : Formule Confort',
+            DropdownButtonFormField<InsurancePlan>(
+              initialValue: _plan,
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.medical_services_outlined),
+                hintText: _insurer == null
+                    ? "Choisir d'abord un assureur"
+                    : 'Choisir une formule',
               ),
+              items: [
+                for (final plan in _insurer?.plans ?? const <InsurancePlan>[])
+                  DropdownMenuItem(value: plan, child: Text(plan.name)),
+              ],
+              onChanged: _insurer == null
+                  ? null
+                  : (value) => setState(() => _plan = value),
             ),
             const SizedBox(height: 16),
             const Text('Numéro de membre',
@@ -5020,8 +5098,11 @@ class _InsuranceScreenState extends State<InsuranceScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            if (_insurer != null)
-              _CoverageEstimate(insurer: _insurer!)
+            if (_plan != null)
+              _CoverageEstimate(
+                defaultCoverageRate: _plan!.defaultCoverageRate,
+                categoryRates: _plan!.categoryRates,
+              )
             else
               Container(
                 padding: const EdgeInsets.all(16),
@@ -5064,8 +5145,15 @@ class _InsuranceScreenState extends State<InsuranceScreen> {
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: _save,
-                icon: const Icon(Icons.save_outlined),
+                onPressed: _saving ? null : _save,
+                icon: _saving
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.save_outlined),
                 label: const Text('Enregistrer mon profil'),
               ),
             ),
@@ -5075,8 +5163,9 @@ class _InsuranceScreenState extends State<InsuranceScreen> {
                 width: double.infinity,
                 child: OutlinedButton(
                   onPressed: () => setState(() {
+                    _editing = false;
                     _insurer = null;
-                    _planController.clear();
+                    _plan = null;
                     _memberController.clear();
                   }),
                   child: const Text('Annuler'),
@@ -5092,8 +5181,9 @@ class _InsuranceScreenState extends State<InsuranceScreen> {
                 onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text(
-                      'Une seule affiliation active à la fois en '
-                      'démonstration.',
+                      'Une seule affiliation active à la fois : modifiez '
+                      'votre affiliation existante ou retirez-la avant '
+                      "d'en déclarer une autre.",
                     ),
                   ),
                 ),
@@ -5114,9 +5204,13 @@ class _InsuranceScreenState extends State<InsuranceScreen> {
 }
 
 class _CoverageEstimate extends StatelessWidget {
-  const _CoverageEstimate({required this.insurer});
+  const _CoverageEstimate({
+    required this.defaultCoverageRate,
+    required this.categoryRates,
+  });
 
-  final _InsurerInfo insurer;
+  final int defaultCoverageRate;
+  final List<InsurancePlanCategoryRate> categoryRates;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -5146,8 +5240,7 @@ class _CoverageEstimate extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Taux par défaut ${insurer.name} : '
-                        '${(insurer.defaultRate * 100).round()} % du prix, '
+                        'Taux par défaut : $defaultCoverageRate % du prix, '
                         'à titre informatif.',
                         style: const TextStyle(
                             color: GabColors.muted, fontSize: 13),
@@ -5157,135 +5250,92 @@ class _CoverageEstimate extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            const Text(
-              'Dérogations par catégorie',
-              style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: GabColors.muted,
-                  letterSpacing: 0.5),
-            ),
-            const SizedBox(height: 4),
-            for (final exception in insurer.exceptions)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('•  ', style: TextStyle(color: GabColors.muted)),
-                    Expanded(
-                      child: Text(exception,
-                          style: const TextStyle(
-                              color: GabColors.muted, fontSize: 13)),
-                    ),
-                  ],
-                ),
+            if (categoryRates.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              const Text(
+                'Taux dérogatoires par catégorie',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: GabColors.muted,
+                    letterSpacing: 0.5),
               ),
+              const SizedBox(height: 4),
+              for (final rate in categoryRates)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('•  ',
+                          style: TextStyle(color: GabColors.muted)),
+                      Expanded(
+                        child: Text(
+                          '${rate.categoryName} : ${rate.coverageRate} %',
+                          style: const TextStyle(
+                              color: GabColors.muted, fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ],
         ),
       );
 }
 
-enum _NotifCategory { orders, security, offers }
+const _notificationIcons = <String, IconData>{
+  'hourglass_top': Icons.hourglass_top,
+  'edit_note': Icons.edit_note,
+  'check_circle': Icons.check_circle,
+  'inventory_2': Icons.inventory_2,
+  'store': Icons.store,
+  'local_shipping': Icons.local_shipping,
+  'task_alt': Icons.task_alt,
+  'cancel': Icons.cancel,
+  'block': Icons.block,
+  'schedule': Icons.schedule,
+};
 
-enum _NotifTarget { orderDelivering, orderDelivered, security, none }
+(Color, Color) _notificationToneColors(String tone) => switch (tone) {
+      'amber' => (const Color(0xFFFFDEA7), const Color(0xFF5E4200)),
+      'green' => (const Color(0xFFA8F4B9), const Color(0xFF005228)),
+      'red' => (const Color(0xFFFFDAD6), GabColors.danger),
+      'blue' => (const Color(0xFFD3E4FF), const Color(0xFF00468A)),
+      _ => (GabColors.softGreen, GabColors.muted),
+    };
 
-class _NotificationItem {
-  _NotificationItem({
-    required this.title,
-    required this.body,
-    required this.time,
-    required this.dayGroup,
-    required this.category,
-    required this.icon,
-    required this.iconBackground,
-    required this.iconColor,
-    required this.target,
-    this.promo = false,
-    this.actionLabel,
-    this.unread = false,
-  });
-
-  final String title;
-  final String body;
-  final String time;
-  final String dayGroup;
-  final _NotifCategory category;
-  final IconData icon;
-  final Color iconBackground;
-  final Color iconColor;
-  final _NotifTarget target;
-  final bool promo;
-  final String? actionLabel;
-  bool unread;
+String _notifDayGroup(DateTime timestamp) {
+  final local = timestamp.toLocal();
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final day = DateTime(local.year, local.month, local.day);
+  final diff = today.difference(day).inDays;
+  if (diff == 0) return "Aujourd'hui";
+  if (diff == 1) return 'Hier';
+  const months = [
+    'janv.',
+    'févr.',
+    'mars',
+    'avr.',
+    'mai',
+    'juin',
+    'juil.',
+    'août',
+    'sept.',
+    'oct.',
+    'nov.',
+    'déc.',
+  ];
+  return '${local.day} ${months[local.month - 1]}';
 }
 
-List<_NotificationItem> _buildDemoNotifications() => [
-      _NotificationItem(
-        title: 'Commande en route',
-        body: 'Votre commande #GP-2607-4190 a été récupérée par le '
-            'livreur. Livraison estimée à 15:50.',
-        time: "Aujourd'hui, 10:30",
-        dayGroup: "Aujourd'hui",
-        category: _NotifCategory.orders,
-        icon: Icons.inventory_2,
-        iconBackground: const Color(0xFFA8F4B9),
-        iconColor: const Color(0xFF00210D),
-        target: _NotifTarget.orderDelivering,
-        actionLabel: 'Suivre mon colis',
-        unread: true,
-      ),
-      _NotificationItem(
-        title: 'Nouvelle connexion',
-        body: "Un nouvel appareil s'est connecté à votre compte "
-            "Gab'Pharma depuis Libreville, Gabon.",
-        time: "Aujourd'hui, 08:15",
-        dayGroup: "Aujourd'hui",
-        category: _NotifCategory.security,
-        icon: Icons.shield,
-        iconBackground: const Color(0xFFFFDAD6),
-        iconColor: const Color(0xFF93000A),
-        target: _NotifTarget.security,
-      ),
-      _NotificationItem(
-        title: 'Commande livrée',
-        body: 'La commande #GP-2606-3980 a été livrée avec succès à '
-            'Pharmacie du Centre.',
-        time: 'Hier, 16:45',
-        dayGroup: 'Hier',
-        category: _NotifCategory.orders,
-        icon: Icons.check_circle,
-        iconBackground: GabColors.softGreen,
-        iconColor: GabColors.secondary,
-        target: _NotifTarget.orderDelivered,
-      ),
-      _NotificationItem(
-        title: 'Promotion Flash !',
-        body: 'Profitez de -15% sur tous les produits de parapharmacie '
-            'ce weekend. Code : GABPHARMA15',
-        time: 'Hier',
-        dayGroup: 'Hier',
-        category: _NotifCategory.offers,
-        icon: Icons.local_offer,
-        iconBackground: Colors.white,
-        iconColor: GabColors.primary,
-        target: _NotifTarget.none,
-        promo: true,
-      ),
-      _NotificationItem(
-        title: 'Stock faible',
-        body: 'Attention, votre produit habituel "Paracétamol 500mg" '
-            'est bientôt en rupture de stock.',
-        time: 'Hier',
-        dayGroup: 'Hier',
-        category: _NotifCategory.orders,
-        icon: Icons.inventory_2_outlined,
-        iconBackground: const Color(0xFFFFDEA7),
-        iconColor: const Color(0xFF5E4200),
-        target: _NotifTarget.none,
-      ),
-    ];
+String _notifTimeLabel(DateTime timestamp) {
+  final local = timestamp.toLocal();
+  return '${local.hour.toString().padLeft(2, '0')}:'
+      '${local.minute.toString().padLeft(2, '0')}';
+}
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -5295,284 +5345,237 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  final _items = _buildDemoNotifications();
-  _NotifCategory? _filter;
+  bool _loading = true;
+  String? _error;
+  List<PatientNotification> _items = [];
+  final Set<int> _readIndexes = {};
 
-  void _openNotification(_NotificationItem item) {
-    setState(() => item.unread = false);
-    switch (item.target) {
-      case _NotifTarget.orderDelivering:
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) =>
-                const DeliveryTrackingScreen(reference: 'GP-2607-4190'),
-          ),
-        );
-      case _NotifTarget.orderDelivered:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Notifications pas encore connectées à une vraie commande — '
-              'consultez "Mes commandes" pour le détail réel.',
-            ),
-          ),
-        );
-      case _NotifTarget.security:
-        Navigator.pushNamed(context, '/security');
-      case _NotifTarget.none:
-        break;
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final items = await fetchNotifications();
+      if (!mounted) return;
+      setState(() {
+        _items = items;
+        _loading = false;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = error.message;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = "Impossible de joindre l'API Gab'Pharma.";
+      });
+    }
+  }
+
+  void _openNotification(int index, PatientNotification item) {
+    setState(() => _readIndexes.add(index));
+    if (item.targetType == 'order' && item.targetId != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OrderDetailScreen(orderId: item.targetId!),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final visible = _filter == null
-        ? _items
-        : _items.where((n) => n.category == _filter).toList();
     final groups = <String>[];
-    for (final item in visible) {
-      if (!groups.contains(item.dayGroup)) groups.add(item.dayGroup);
+    for (final item in _items) {
+      final group = _notifDayGroup(item.timestamp);
+      if (!groups.contains(group)) groups.add(group);
     }
     return Scaffold(
       backgroundColor: GabColors.background,
       appBar: AppBar(
         title: const Text('Notifications'),
-        actions: [
-          IconButton(
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Options indisponibles en démonstration.'),
-              ),
-            ),
-            icon: const Icon(Icons.more_vert),
-          ),
-        ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          SizedBox(
-            height: 40,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                _NotifFilterChip(
-                  label: 'Tout',
-                  selected: _filter == null,
-                  onTap: () => setState(() => _filter = null),
-                ),
-                const SizedBox(width: 8),
-                _NotifFilterChip(
-                  label: 'Commandes',
-                  selected: _filter == _NotifCategory.orders,
-                  onTap: () => setState(() => _filter = _NotifCategory.orders),
-                ),
-                const SizedBox(width: 8),
-                _NotifFilterChip(
-                  label: 'Sécurité',
-                  selected: _filter == _NotifCategory.security,
-                  onTap: () =>
-                      setState(() => _filter = _NotifCategory.security),
-                ),
-                const SizedBox(width: 8),
-                _NotifFilterChip(
-                  label: 'Offres',
-                  selected: _filter == _NotifCategory.offers,
-                  onTap: () => setState(() => _filter = _NotifCategory.offers),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (visible.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(top: 40),
-              child: EmptyState(
-                icon: Icons.notifications_off_outlined,
-                title: 'Aucune notification',
-                message: 'Nous vous tiendrons informé des mises à jour '
-                    'importantes de vos commandes.',
-              ),
-            )
-          else
-            for (final group in groups) ...[
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8, top: 4),
-                child: Text(
-                  group,
-                  style: const TextStyle(
-                      color: GabColors.muted, fontWeight: FontWeight.w700),
-                ),
-              ),
-              for (final item in visible.where((n) => n.dayGroup == group))
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _NotificationCard(
-                    item: item,
-                    onTap: () => _openNotification(item),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.cloud_off,
+                            size: 52, color: GabColors.secondary),
+                        const SizedBox(height: 16),
+                        Text(_error!, textAlign: TextAlign.center),
+                        const SizedBox(height: 16),
+                        FilledButton(
+                            onPressed: _load, child: const Text('Réessayer')),
+                      ],
+                    ),
                   ),
-                ),
-            ],
-        ],
-      ),
+                )
+              : _items.isEmpty
+                  ? const Padding(
+                      padding: EdgeInsets.only(top: 40),
+                      child: EmptyState(
+                        icon: Icons.notifications_off_outlined,
+                        title: 'Aucune notification',
+                        message: 'Nous vous tiendrons informé des mises à '
+                            'jour importantes de vos commandes.',
+                      ),
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.all(20),
+                      children: [
+                        for (final group in groups) ...[
+                          Padding(
+                            padding:
+                                const EdgeInsets.only(bottom: 8, top: 4),
+                            child: Text(
+                              group,
+                              style: const TextStyle(
+                                  color: GabColors.muted,
+                                  fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          for (final entry in _items.asMap().entries)
+                            if (_notifDayGroup(entry.value.timestamp) ==
+                                group)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: _NotificationCard(
+                                  item: entry.value,
+                                  unread: !_readIndexes.contains(entry.key),
+                                  timeLabel:
+                                      _notifTimeLabel(entry.value.timestamp),
+                                  onTap: () =>
+                                      _openNotification(entry.key, entry.value),
+                                ),
+                              ),
+                        ],
+                      ],
+                    ),
     );
   }
 }
 
-class _NotifFilterChip extends StatelessWidget {
-  const _NotifFilterChip({
-    required this.label,
-    required this.selected,
+class _NotificationCard extends StatelessWidget {
+  const _NotificationCard({
+    required this.item,
+    required this.unread,
+    required this.timeLabel,
     required this.onTap,
   });
 
-  final String label;
-  final bool selected;
+  final PatientNotification item;
+  final bool unread;
+  final String timeLabel;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Material(
-        color: selected ? GabColors.primary : GabColors.softGreen,
-        borderRadius: BorderRadius.circular(999),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(999),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Text(
-              label,
-              style: TextStyle(
-                color: selected ? Colors.white : GabColors.muted,
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ),
-      );
-}
-
-class _NotificationCard extends StatelessWidget {
-  const _NotificationCard({required this.item, required this.onTap});
-
-  final _NotificationItem item;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-        color: item.promo ? GabColors.primary : Colors.white,
+  Widget build(BuildContext context) {
+    final (background, foreground) = _notificationToneColors(item.tone);
+    final icon = _notificationIcons[item.icon] ?? Icons.notifications;
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: item.promo
-                  ? null
-                  : Border.all(color: GabColors.outlineVariant),
-            ),
-            child: Stack(
-              children: [
-                Row(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: GabColors.outlineVariant),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: background,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: foreground, size: 20),
+                  ),
+                  if (unread)
+                    Positioned(
+                      top: -2,
+                      right: -2,
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: GabColors.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1.5),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: item.iconBackground,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(item.icon, color: item.iconColor, size: 20),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.title,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                              color: GabColors.ink,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          timeLabel,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: GabColors.muted,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  item.title,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 15,
-                                    color: item.promo
-                                        ? Colors.white
-                                        : GabColors.ink,
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                item.time.contains(',')
-                                    ? item.time.split(', ').last
-                                    : item.time,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: item.promo
-                                      ? Colors.white70
-                                      : GabColors.muted,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            item.body,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: item.promo
-                                  ? Colors.white.withValues(alpha: 0.9)
-                                  : GabColors.muted,
-                            ),
-                          ),
-                          if (item.actionLabel != null) ...[
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  item.actionLabel!,
-                                  style: const TextStyle(
-                                    color: GabColors.primary,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                const Icon(Icons.arrow_forward,
-                                    size: 14, color: GabColors.primary),
-                              ],
-                            ),
-                          ],
-                        ],
+                    const SizedBox(height: 4),
+                    Text(
+                      item.description,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: GabColors.muted,
                       ),
                     ),
                   ],
                 ),
-                if (item.unread)
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: GabColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 enum _HelpCategory { medications, delivery, payments, account }
@@ -5663,69 +5666,33 @@ const _faqEntries = <_FaqEntry>[
   ),
 ];
 
-/// Références de commandes proposées dans le formulaire de création de
-/// ticket (module Support, encore en démonstration — pas encore branché à
-/// `GET /mobile/patient/orders/`).
-const _demoTicketOrderRefs = [
-  'CMD-00001',
-  'CMD-00002',
-  'CMD-00003',
-];
+Color _ticketStatusForeground(String status) => switch (status) {
+      'open' => const Color(0xFF00210D),
+      'in_progress' => const Color(0xFF00468A),
+      'waiting_customer' => const Color(0xFF5E4200),
+      _ => GabColors.muted,
+    };
 
-enum _TicketStatus { open, resolved }
+Color _ticketStatusBackground(String status) => switch (status) {
+      'open' => const Color(0xFF9DF6B2),
+      'in_progress' => const Color(0xFFD3E4FF),
+      'waiting_customer' => const Color(0xFFFFDEA7),
+      _ => GabColors.outlineVariant.withValues(alpha: 0.4),
+    };
 
-enum _TicketPriority { low, normal, high }
+Color _ticketPriorityColor(String priority) => switch (priority) {
+      'low' => GabColors.muted,
+      'normal' => GabColors.secondary,
+      'high' => const Color(0xFFB25E00),
+      'urgent' => GabColors.danger,
+      _ => GabColors.muted,
+    };
 
-extension on _TicketPriority {
-  String get label => switch (this) {
-        _TicketPriority.low => 'Basse',
-        _TicketPriority.normal => 'Normale',
-        _TicketPriority.high => 'Haute',
-      };
+bool _ticketIsClosed(String status) =>
+    status == 'resolved' || status == 'closed';
 
-  Color get color => switch (this) {
-        _TicketPriority.low => GabColors.muted,
-        _TicketPriority.normal => GabColors.secondary,
-        _TicketPriority.high => GabColors.danger,
-      };
-}
-
-class _SupportTicket {
-  _SupportTicket({
-    required this.reference,
-    required this.subject,
-    required this.status,
-    required this.priority,
-    required this.lastActivity,
-    this.linkedOrder,
-  });
-
-  final String reference;
-  final String subject;
-  _TicketStatus status;
-  final _TicketPriority priority;
-  final String lastActivity;
-  final String? linkedOrder;
-}
-
-List<_SupportTicket> _buildDemoTickets() => [
-      _SupportTicket(
-        reference: 'TK-45920',
-        subject: 'Retard de livraison - Akanda',
-        status: _TicketStatus.open,
-        priority: _TicketPriority.high,
-        lastActivity: 'Mis à jour il y a 2h',
-        linkedOrder: 'GP-2607-4190',
-      ),
-      _SupportTicket(
-        reference: 'TK-45812',
-        subject: 'Erreur de dosage - Paracétamol',
-        status: _TicketStatus.resolved,
-        priority: _TicketPriority.normal,
-        lastActivity: 'Le 12 mai 2026',
-        linkedOrder: 'GP-2606-3980',
-      ),
-    ];
+String _ticketActivityLabel(DateTime dt) =>
+    '${_notifDayGroup(dt)}, ${_notifTimeLabel(dt)}';
 
 class HelpCenterScreen extends StatefulWidget {
   const HelpCenterScreen({super.key});
@@ -5737,12 +5704,74 @@ class HelpCenterScreen extends StatefulWidget {
 class _HelpCenterScreenState extends State<HelpCenterScreen> {
   final _searchController = TextEditingController();
   _HelpCategory? _category;
-  final _tickets = _buildDemoTickets();
+
+  bool _loadingTickets = true;
+  String? _ticketsError;
+  List<PatientSupportTicket> _tickets = [];
+  bool _hasMoreTickets = false;
+  int _ticketsPage = 1;
+  bool _loadingMoreTickets = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTickets();
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadTickets() async {
+    setState(() {
+      _loadingTickets = true;
+      _ticketsError = null;
+    });
+    try {
+      final page = await fetchSupportTickets();
+      if (!mounted) return;
+      setState(() {
+        _tickets = page.results;
+        _hasMoreTickets = page.hasMore;
+        _ticketsPage = 1;
+        _loadingTickets = false;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loadingTickets = false;
+        _ticketsError = error.message;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _loadingTickets = false;
+        _ticketsError = "Impossible de joindre l'API Gab'Pharma.";
+      });
+    }
+  }
+
+  Future<void> _loadMoreTickets() async {
+    if (_loadingMoreTickets || !_hasMoreTickets) return;
+    setState(() => _loadingMoreTickets = true);
+    try {
+      final page = await fetchSupportTickets(page: _ticketsPage + 1);
+      if (!mounted) return;
+      setState(() {
+        _tickets = [..._tickets, ...page.results];
+        _hasMoreTickets = page.hasMore;
+        _ticketsPage += 1;
+        _loadingMoreTickets = false;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() => _loadingMoreTickets = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Impossible de charger plus de tickets.'),
+      ));
+    }
   }
 
   List<_FaqEntry> get _visibleFaq {
@@ -5757,10 +5786,39 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
   }
 
   Future<void> _openTicketForm() async {
+    List<PatientSupportCategory> categories;
+    List<PatientOrder> orders;
+    try {
+      final results = await Future.wait([
+        fetchSupportCategories(),
+        fetchOrders(),
+      ]);
+      categories = results[0] as List<PatientSupportCategory>;
+      orders = (results[1] as PatientOrderPage).results;
+    } on Object {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Impossible de charger le formulaire de contact.'),
+      ));
+      return;
+    }
+    if (!mounted || categories.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content:
+              Text('Aucune catégorie de support disponible pour le moment.'),
+        ));
+      }
+      return;
+    }
+
     final subjectController = TextEditingController();
     final messageController = TextEditingController();
-    String? linkedOrder;
-    final created = await showModalBottomSheet<bool>(
+    var selectedCategory = categories.first;
+    PatientOrder? linkedOrder;
+    var submitting = false;
+
+    final created = await showModalBottomSheet<PatientSupportTicket>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
@@ -5794,6 +5852,26 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                const Text('Catégorie',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<PatientSupportCategory>(
+                  initialValue: selectedCategory,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.category_outlined),
+                  ),
+                  items: [
+                    for (final category in categories)
+                      DropdownMenuItem(
+                          value: category, child: Text(category.label)),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setSheetState(() => selectedCategory = value);
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
                 const Text('Message',
                     style: TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
@@ -5808,7 +5886,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                 const Text('Commande liée (optionnel)',
                     style: TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
-                DropdownButtonFormField<String?>(
+                DropdownButtonFormField<PatientOrder?>(
                   initialValue: linkedOrder,
                   decoration: const InputDecoration(
                     prefixIcon: Icon(Icons.receipt_long_outlined),
@@ -5816,8 +5894,9 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                   items: [
                     const DropdownMenuItem(
                         value: null, child: Text('Aucune commande liée')),
-                    for (final ref in _demoTicketOrderRefs)
-                      DropdownMenuItem(value: ref, child: Text('#$ref')),
+                    for (final order in orders)
+                      DropdownMenuItem(
+                          value: order, child: Text('#${order.reference}')),
                   ],
                   onChanged: (value) =>
                       setSheetState(() => linkedOrder = value),
@@ -5827,7 +5906,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                   onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text(
-                        'Pièce jointe indisponible en démonstration.',
+                        'Pièce jointe indisponible pour le moment.',
                       ),
                     ),
                   ),
@@ -5838,21 +5917,57 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
-                    onPressed: () {
-                      if (subjectController.text.trim().isEmpty ||
-                          messageController.text.trim().isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Indiquez un sujet et un message.',
-                            ),
-                          ),
-                        );
-                        return;
-                      }
-                      Navigator.pop(context, true);
-                    },
-                    child: const Text('Envoyer'),
+                    onPressed: submitting
+                        ? null
+                        : () async {
+                            if (subjectController.text.trim().isEmpty ||
+                                messageController.text.trim().isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Indiquez un sujet et un message.',
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
+                            setSheetState(() => submitting = true);
+                            try {
+                              final ticket = await createSupportTicket(
+                                subject: subjectController.text.trim(),
+                                category: selectedCategory.code,
+                                message: messageController.text.trim(),
+                                orderId: linkedOrder?.id,
+                              );
+                              if (context.mounted) {
+                                Navigator.pop(context, ticket);
+                              }
+                            } on ApiException catch (error) {
+                              if (!context.mounted) return;
+                              setSheetState(() => submitting = false);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(error.message)));
+                            } on Object {
+                              if (!context.mounted) return;
+                              setSheetState(() => submitting = false);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    "Impossible de joindre l'API "
+                                    "Gab'Pharma.",
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                    child: submitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text('Envoyer'),
                   ),
                 ),
               ],
@@ -5861,29 +5976,15 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
         ),
       ),
     );
-    if (created ?? false) {
-      final subject = subjectController.text.trim();
-      final message = messageController.text.trim();
-      setState(() {
-        _tickets.insert(
-          0,
-          _SupportTicket(
-            reference: 'TK-${46000 + _tickets.length}',
-            subject: subject,
-            status: _TicketStatus.open,
-            priority: _TicketPriority.normal,
-            lastActivity: "À l'instant",
-            linkedOrder: linkedOrder,
-          ),
-        );
-      });
+    if (created != null) {
+      setState(() => _tickets.insert(0, created));
       if (!mounted) return;
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => ConversationScreen(
-            initialSubject: subject,
-            initialMessage: message,
+            ticketId: created.id,
+            initialTicket: created,
           ),
         ),
       );
@@ -5902,16 +6003,6 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
         ),
         appBar: AppBar(
           title: const Text("Centre d'aide"),
-          actions: [
-            IconButton(
-              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Options indisponibles en démonstration.'),
-                ),
-              ),
-              icon: const Icon(Icons.more_vert),
-            ),
-          ],
         ),
         body: ListView(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
@@ -5981,19 +6072,61 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             const Text('Mes tickets',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
-            for (final ticket in _tickets)
+            if (_loadingTickets)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            if (!_loadingTickets && _ticketsError != null)
               Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _TicketTile(
-                  ticket: ticket,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ConversationScreen(
-                        ticketReference: ticket.reference,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Column(
+                  children: [
+                    Text(_ticketsError!,
+                        style: const TextStyle(color: GabColors.muted),
+                        textAlign: TextAlign.center),
+                    const SizedBox(height: 8),
+                    OutlinedButton(
+                        onPressed: _loadTickets,
+                        child: const Text('Réessayer')),
+                  ],
+                ),
+              ),
+            if (!_loadingTickets && _ticketsError == null && _tickets.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Text(
+                  'Aucun ticket pour le moment.',
+                  style: TextStyle(color: GabColors.muted),
+                ),
+              ),
+            if (!_loadingTickets && _ticketsError == null)
+              for (final ticket in _tickets)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _TicketTile(
+                    ticket: ticket,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ConversationScreen(
+                          ticketId: ticket.id,
+                        ),
                       ),
                     ),
                   ),
+                ),
+            if (!_loadingTickets && _hasMoreTickets)
+              Center(
+                child: TextButton(
+                  onPressed: _loadingMoreTickets ? null : _loadMoreTickets,
+                  child: _loadingMoreTickets
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Charger plus'),
                 ),
               ),
           ],
@@ -6112,12 +6245,12 @@ class _FaqTileState extends State<_FaqTile> {
 class _TicketTile extends StatelessWidget {
   const _TicketTile({required this.ticket, required this.onTap});
 
-  final _SupportTicket ticket;
+  final PatientSupportTicket ticket;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final resolved = ticket.status == _TicketStatus.resolved;
+    final closed = _ticketIsClosed(ticket.status);
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(16),
@@ -6125,7 +6258,7 @@ class _TicketTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Opacity(
-          opacity: resolved ? 0.8 : 1,
+          opacity: closed ? 0.8 : 1,
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -6140,53 +6273,61 @@ class _TicketTile extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Text('#${ticket.reference}',
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w700)),
+                          Expanded(
+                            child: Text('#${ticket.reference}',
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w700)),
+                          ),
                           const SizedBox(width: 8),
                           DecoratedBox(
                             decoration: BoxDecoration(
-                              color: resolved
-                                  ? GabColors.outlineVariant
-                                      .withValues(alpha: 0.4)
-                                  : const Color(0xFF9DF6B2),
+                              color: _ticketStatusBackground(ticket.status),
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 3),
                               child: Text(
-                                resolved ? 'RÉSOLU' : 'OUVERT',
+                                ticket.statusLabel.toUpperCase(),
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,
-                                  color: resolved
-                                      ? GabColors.muted
-                                      : const Color(0xFF00210D),
+                                  color: _ticketStatusForeground(
+                                      ticket.status),
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 6),
-                          DecoratedBox(
-                            decoration: BoxDecoration(
-                              color:
-                                  ticket.priority.color.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
-                              child: Text(
-                                ticket.priority.label,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: ticket.priority.color,
+                          if (ticket.priority == 'high' ||
+                              ticket.priority == 'urgent') ...[
+                            const SizedBox(width: 6),
+                            DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: _ticketPriorityColor(ticket.priority)
+                                    .withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
+                                child: Text(
+                                  ticket.priorityLabel,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color:
+                                        _ticketPriorityColor(ticket.priority),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
+                          ],
+                          if (!closed && ticket.isSlaOverdue) ...[
+                            const SizedBox(width: 6),
+                            const Icon(Icons.warning_amber_rounded,
+                                size: 16, color: GabColors.danger),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -6194,9 +6335,23 @@ class _TicketTile extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(color: GabColors.muted)),
-                      Text(ticket.lastActivity,
-                          style: const TextStyle(
-                              color: GabColors.muted, fontSize: 11)),
+                      Row(
+                        children: [
+                          Text(
+                            ticket.categoryLabel,
+                            style: const TextStyle(
+                                color: GabColors.muted, fontSize: 11),
+                          ),
+                          const Text(' · ',
+                              style: TextStyle(
+                                  color: GabColors.muted, fontSize: 11)),
+                          Text(
+                            _ticketActivityLabel(ticket.lastActivityAt),
+                            style: const TextStyle(
+                                color: GabColors.muted, fontSize: 11),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -6210,200 +6365,38 @@ class _TicketTile extends StatelessWidget {
   }
 }
 
-enum _ChatKind { patientText, agentText, systemInfo, agentProduct }
-
-class _ChatMessage {
-  _ChatMessage.patient(this.text, this.time)
-      : kind = _ChatKind.patientText,
-        productName = null,
-        productPrice = null;
-
-  _ChatMessage.agent(this.text, this.time)
-      : kind = _ChatKind.agentText,
-        productName = null,
-        productPrice = null;
-
-  _ChatMessage.info(this.text)
-      : kind = _ChatKind.systemInfo,
-        time = '',
-        productName = null,
-        productPrice = null;
-
-  _ChatMessage.product(this.productName, this.productPrice, this.time)
-      : kind = _ChatKind.agentProduct,
-        text = '';
-
-  final _ChatKind kind;
-  final String text;
-  final String time;
-  final String? productName;
-  final int? productPrice;
-}
-
-class _SupportThread {
-  _SupportThread({
-    required this.agentName,
-    required this.agentSubtitle,
-    required this.status,
-    required this.messages,
-  });
-
-  final String agentName;
-  final String agentSubtitle;
-  _TicketStatus status;
-  final List<_ChatMessage> messages;
-}
-
-final Map<String, _SupportThread Function()> _supportThreadBuilders = {
-  'TK-45920': () => _SupportThread(
-        agentName: 'Support Livraison',
-        agentSubtitle: 'En ligne • Paul K.',
-        status: _TicketStatus.open,
-        messages: [
-          _ChatMessage.agent(
-            'Bonjour ! Je vois que votre commande #GP-2607-4190 est en '
-                'cours de livraison. Comment puis-je vous aider ?',
-            '15:52',
-          ),
-          _ChatMessage.patient(
-            'Bonjour, la livraison devait arriver à 15:50 mais je n\'ai '
-                'encore rien reçu.',
-            '15:58',
-          ),
-          _ChatMessage.agent(
-            'Je suis désolé pour ce retard. Je vérifie avec le livreur '
-                'Jean M. tout de suite.',
-            '16:00',
-          ),
-          _ChatMessage.agent(
-            'Le livreur signale un trafic dense sur la route d\'Akanda. '
-                'Nouvelle heure d\'arrivée estimée : 16:20.',
-            '16:02',
-          ),
-        ],
-      ),
-  'TK-45812': () => _SupportThread(
-        agentName: 'Support Pharmacie',
-        agentSubtitle: 'Dr. Mireille',
-        status: _TicketStatus.resolved,
-        messages: [
-          _ChatMessage.patient(
-            'Bonjour, je pense qu\'il y a une erreur sur la posologie '
-                'indiquée pour le Paracétamol 500mg de ma dernière commande.',
-            '09:15',
-          ),
-          _ChatMessage.agent(
-            'Bonjour ! Merci de votre signalement. Pouvez-vous me '
-                'préciser la posologie indiquée sur l\'étiquette ?',
-            '09:17',
-          ),
-          _ChatMessage.patient(
-            'Il est indiqué 3 comprimés toutes les 4 heures, ce qui me '
-                'semble élevé.',
-            '09:19',
-          ),
-          _ChatMessage.info(
-            'Cette conversation est sécurisée par Gab\'Pharma. Vos '
-            'données médicales restent confidentielles.',
-          ),
-          _ChatMessage.agent(
-            'Vous avez raison, c\'est une erreur d\'étiquetage. La '
-                'posologie correcte est 1 à 2 comprimés toutes les 6 heures, '
-                'sans dépasser 8 comprimés par jour. Nous corrigeons la '
-                'fiche produit.',
-            '09:24',
-          ),
-          _ChatMessage.agent(
-            'Ticket marqué comme résolu. N\'hésitez pas si vous avez '
-                "d'autres questions.",
-            '09:25',
-          ),
-        ],
-      ),
-};
-
-_SupportThread _defaultSupportThread() => _SupportThread(
-      agentName: 'Support Pharmacie',
-      agentSubtitle: 'En ligne • Dr. Mireille',
-      status: _TicketStatus.open,
-      messages: [
-        _ChatMessage.agent(
-          'Bonjour ! Comment puis-je vous aider avec votre ordonnance '
-              "aujourd'hui ?",
-          '09:15',
-        ),
-        _ChatMessage.patient(
-          'Bonjour. Je voulais savoir si le médicament "Dolirhume" est '
-              'disponible à la pharmacie du centre-ville ?',
-          '09:17',
-        ),
-        _ChatMessage.info(
-          'Cette conversation est sécurisée par Gab\'Pharma. Vos '
-          'données médicales restent confidentielles.',
-        ),
-        _ChatMessage.agent(
-          'Oui, nous en avons encore en stock. Souhaitez-vous que je '
-              'vous mette une boîte de côté pour votre passage ?',
-          '09:20',
-        ),
-        _ChatMessage.product('Dolirhume Paracétamol', 2500, '09:21'),
-        _ChatMessage.agent(
-          'Ticket créé et transmis à notre équipe. Nous vous répondrons '
-              'sous peu.',
-          '09:23',
-        ),
-      ],
-    );
-
 class ConversationScreen extends StatefulWidget {
   const ConversationScreen({
-    this.ticketReference,
-    this.initialSubject,
-    this.initialMessage,
+    required this.ticketId,
+    this.initialTicket,
     super.key,
   });
 
-  final String? ticketReference;
-  final String? initialSubject;
-  final String? initialMessage;
+  final int ticketId;
+  final PatientSupportTicket? initialTicket;
 
   @override
   State<ConversationScreen> createState() => _ConversationScreenState();
 }
 
 class _ConversationScreenState extends State<ConversationScreen> {
-  late final _SupportThread _thread;
   final _inputController = TextEditingController();
   final _scrollController = ScrollController();
+
+  bool _loading = true;
+  String? _error;
+  PatientSupportTicket? _ticket;
+  bool _sending = false;
 
   @override
   void initState() {
     super.initState();
-    final builder = widget.ticketReference == null
-        ? null
-        : _supportThreadBuilders[widget.ticketReference];
-    if (builder != null) {
-      _thread = builder();
-    } else if (widget.initialMessage != null) {
-      _thread = _SupportThread(
-        agentName: "Support Gab'Pharma",
-        agentSubtitle: 'Équipe support',
-        status: _TicketStatus.open,
-        messages: [
-          _ChatMessage.patient(widget.initialMessage!, _now()),
-          _ChatMessage.info(
-            'Cette conversation est sécurisée par Gab\'Pharma. Vos '
-            'données médicales restent confidentielles.',
-          ),
-          _ChatMessage.agent(
-            'Merci, votre demande a bien été transmise à notre équipe '
-            'support. Nous vous répondrons sous peu.',
-            _now(),
-          ),
-        ],
-      );
+    if (widget.initialTicket != null) {
+      _ticket = widget.initialTicket;
+      _loading = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
     } else {
-      _thread = _defaultSupportThread();
+      _load();
     }
   }
 
@@ -6414,330 +6407,286 @@ class _ConversationScreenState extends State<ConversationScreen> {
     super.dispose();
   }
 
-  String _now() {
-    final now = DateTime.now();
-    return '${now.hour.toString().padLeft(2, '0')}:'
-        '${now.minute.toString().padLeft(2, '0')}';
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final ticket = await fetchSupportTicketDetail(widget.ticketId);
+      if (!mounted) return;
+      setState(() {
+        _ticket = ticket;
+        _loading = false;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = error.message;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = "Impossible de joindre l'API Gab'Pharma.";
+      });
+    }
   }
 
-  void _send() {
+  void _scrollToBottom() {
+    if (!_scrollController.hasClients) return;
+    _scrollController.animateTo(
+      _scrollController.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
+  }
+
+  Future<void> _send() async {
     final text = _inputController.text.trim();
-    if (text.isEmpty) return;
-    final reopened = _thread.status == _TicketStatus.resolved;
-    setState(() {
-      _thread.messages.add(_ChatMessage.patient(text, _now()));
-      if (reopened) _thread.status = _TicketStatus.open;
-    });
-    _inputController.clear();
-    if (reopened) {
+    if (text.isEmpty || _sending) return;
+    setState(() => _sending = true);
+    try {
+      final updated = await replySupportTicket(widget.ticketId, text);
+      if (!mounted) return;
+      setState(() {
+        _ticket = updated;
+        _sending = false;
+      });
+      _inputController.clear();
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _sending = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.message)));
+    } on Object {
+      if (!mounted) return;
+      setState(() => _sending = false);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Ticket rouvert — votre message a été envoyé.'),
+        content: Text("Impossible de joindre l'API Gab'Pharma."),
       ));
     }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) return;
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
-    });
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        backgroundColor: GabColors.background,
-        appBar: AppBar(
-          titleSpacing: 0,
-          title: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: GabColors.softGreen,
-                  shape: BoxShape.circle,
-                ),
-                child:
-                    const Icon(Icons.support_agent, color: GabColors.primary),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _thread.agentName,
-                      style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w700),
-                    ),
-                    Text(
-                      _thread.agentSubtitle,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: GabColors.secondary,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            IconButton(
-              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                      'Appel avec le support indisponible en démonstration.'),
-                ),
-              ),
-              icon: const Icon(Icons.call),
-            ),
-            IconButton(
-              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Options indisponibles en démonstration.'),
-                ),
-              ),
-              icon: const Icon(Icons.more_vert),
-            ),
-          ],
-        ),
-        body: Column(
+  Widget build(BuildContext context) {
+    final ticket = _ticket;
+    return Scaffold(
+      backgroundColor: GabColors.background,
+      appBar: AppBar(
+        titleSpacing: 0,
+        title: Row(
           children: [
-            if (_thread.status == _TicketStatus.resolved)
-              Container(
-                width: double.infinity,
+            Container(
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(
                 color: GabColors.softGreen,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                child: const Text(
-                  'Ticket résolu — envoyez un message pour le rouvrir.',
-                  style: TextStyle(
-                      color: GabColors.secondary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12),
-                ),
+                shape: BoxShape.circle,
               ),
+              child:
+                  const Icon(Icons.support_agent, color: GabColors.primary),
+            ),
+            const SizedBox(width: 10),
             Expanded(
-              child: ListView(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Center(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: GabColors.softGreen,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: const Padding(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        child: Text(
-                          "Aujourd'hui",
-                          style:
-                              TextStyle(fontSize: 11, color: GabColors.muted),
-                        ),
-                      ),
+                  Text(
+                    ticket?.subject ?? 'Conversation',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                  Text(
+                    ticket == null
+                        ? ''
+                        : '#${ticket.reference} · ${ticket.categoryLabel}',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: GabColors.secondary,
+                      letterSpacing: 0.5,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  for (final message in _thread.messages)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _ChatBubble(message: message),
-                    ),
                 ],
               ),
             ),
-            SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+          ],
+        ),
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null || ticket == null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.cloud_off,
+                            size: 52, color: GabColors.secondary),
+                        const SizedBox(height: 16),
+                        Text(_error ?? 'Ticket introuvable.',
+                            textAlign: TextAlign.center),
+                        const SizedBox(height: 16),
+                        FilledButton(
+                            onPressed: _load, child: const Text('Réessayer')),
+                      ],
+                    ),
+                  ),
+                )
+              : Column(
                   children: [
-                    IconButton(
-                      onPressed: () =>
-                          ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Pièces jointes indisponibles en démonstration.',
-                          ),
+                    if (_ticketIsClosed(ticket.status))
+                      Container(
+                        width: double.infinity,
+                        color: GabColors.softGreen,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 8),
+                        child: Text(
+                          'Ticket ${ticket.statusLabel.toLowerCase()} — '
+                          'vous pouvez encore écrire, mais il ne se rouvre '
+                          'pas automatiquement.',
+                          style: const TextStyle(
+                              color: GabColors.secondary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12),
                         ),
                       ),
-                      icon: const Icon(Icons.add_circle_outline,
-                          color: GabColors.primary),
-                    ),
                     Expanded(
-                      child: Container(
-                        constraints: const BoxConstraints(minHeight: 44),
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: GabColors.outlineVariant),
-                        ),
-                        child: TextField(
-                          controller: _inputController,
-                          minLines: 1,
-                          maxLines: 4,
-                          textCapitalization: TextCapitalization.sentences,
-                          decoration: const InputDecoration(
-                            hintText: 'Votre message...',
-                            filled: false,
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            errorBorder: InputBorder.none,
-                            disabledBorder: InputBorder.none,
-                            isCollapsed: true,
-                            contentPadding: EdgeInsets.symmetric(vertical: 10),
-                          ),
-                          onSubmitted: (_) => _send(),
-                        ),
-                      ),
+                      child: (ticket.messages?.isEmpty ?? true)
+                          ? const Center(
+                              child: Text(
+                                'Aucun message pour le moment.',
+                                style: TextStyle(color: GabColors.muted),
+                              ),
+                            )
+                          : ListView(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.all(20),
+                              children: [
+                                for (final message in ticket.messages!)
+                                  Padding(
+                                    padding:
+                                        const EdgeInsets.only(bottom: 16),
+                                    child: _ChatBubble(message: message),
+                                  ),
+                              ],
+                            ),
                     ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      onPressed: _send,
-                      icon: const Icon(Icons.send),
-                      style: IconButton.styleFrom(
-                        backgroundColor: GabColors.primary,
-                        foregroundColor: Colors.white,
+                    SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            IconButton(
+                              onPressed: () =>
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Pièces jointes indisponibles pour le '
+                                    'moment.',
+                                  ),
+                                ),
+                              ),
+                              icon: const Icon(Icons.add_circle_outline,
+                                  color: GabColors.primary),
+                            ),
+                            Expanded(
+                              child: Container(
+                                constraints:
+                                    const BoxConstraints(minHeight: 44),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                      color: GabColors.outlineVariant),
+                                ),
+                                child: TextField(
+                                  controller: _inputController,
+                                  minLines: 1,
+                                  maxLines: 4,
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
+                                  decoration: const InputDecoration(
+                                    hintText: 'Votre message...',
+                                    filled: false,
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    errorBorder: InputBorder.none,
+                                    disabledBorder: InputBorder.none,
+                                    isCollapsed: true,
+                                    contentPadding:
+                                        EdgeInsets.symmetric(vertical: 10),
+                                  ),
+                                  onSubmitted: (_) => _send(),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              onPressed: _sending ? null : _send,
+                              icon: _sending
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white),
+                                    )
+                                  : const Icon(Icons.send),
+                              style: IconButton.styleFrom(
+                                backgroundColor: GabColors.primary,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
-            ),
-          ],
-        ),
-      );
+    );
+  }
 }
 
 class _ChatBubble extends StatelessWidget {
   const _ChatBubble({required this.message});
 
-  final _ChatMessage message;
+  final PatientTicketMessage message;
 
   @override
   Widget build(BuildContext context) {
-    if (message.kind == _ChatKind.systemInfo) {
-      return DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: GabColors.outlineVariant),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.info_outline,
-                  color: GabColors.secondary, size: 18),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  message.text,
-                  style: const TextStyle(color: GabColors.muted, fontSize: 13),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-    if (message.kind == _ChatKind.agentProduct) {
-      return Align(
-        alignment: Alignment.centerLeft,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 240),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18).copyWith(
-                    topLeft: const Radius.circular(4),
-                  ),
-                  border: Border.all(color: GabColors.outlineVariant),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      height: 90,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: GabColors.softGreen,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.medication,
-                          color: GabColors.primary, size: 32),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(4, 8, 4, 4),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(message.productName ?? '',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w700, fontSize: 13)),
-                          Text(
-                            '${message.productPrice} FCFA'.replaceAllMapped(
-                                RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-                                (m) => '${m[1]} '),
-                            style: const TextStyle(
-                                color: GabColors.primary,
-                                fontWeight: FontWeight.w700),
-                          ),
-                          const SizedBox(height: 6),
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton(
-                              onPressed: () =>
-                                  Navigator.pushNamed(context, '/medication'),
-                              style: OutlinedButton.styleFrom(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 8),
-                                minimumSize: Size.zero,
-                              ),
-                              child: const Text('Voir le produit',
-                                  style: TextStyle(fontSize: 12)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 4),
-              Padding(
-                padding: const EdgeInsets.only(left: 4),
-                child: Text(message.time,
-                    style:
-                        const TextStyle(color: GabColors.muted, fontSize: 11)),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-    final isPatient = message.kind == _ChatKind.patientText;
+    final isPatient = message.authorId != null &&
+        message.authorId == AuthSession.instance.currentUser?.id;
     return Align(
       alignment: isPatient ? Alignment.centerRight : Alignment.centerLeft,
       child: Column(
         crossAxisAlignment:
             isPatient ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
+          if (!isPatient)
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 2),
+              child: Text(
+                message.authorName.isEmpty ? 'Support' : message.authorName,
+                style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: GabColors.secondary),
+              ),
+            ),
           ConstrainedBox(
             constraints: BoxConstraints(
               maxWidth: MediaQuery.of(context).size.width * 0.75,
@@ -6756,29 +6705,52 @@ class _ChatBubble extends StatelessWidget {
                     ? null
                     : Border.all(color: GabColors.outlineVariant),
               ),
-              child: Text(
-                message.text,
-                style: TextStyle(
-                  color: isPatient ? Colors.white : GabColors.ink,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    message.body,
+                    style: TextStyle(
+                      color: isPatient ? Colors.white : GabColors.ink,
+                    ),
+                  ),
+                  for (final attachment in message.attachments)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.attach_file,
+                              size: 14,
+                              color: isPatient
+                                  ? Colors.white70
+                                  : GabColors.muted),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              attachment.originalName,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isPatient
+                                    ? Colors.white70
+                                    : GabColors.muted,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
           const SizedBox(height: 4),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(message.time,
-                    style:
-                        const TextStyle(color: GabColors.muted, fontSize: 11)),
-                if (isPatient) ...[
-                  const SizedBox(width: 4),
-                  const Icon(Icons.done_all,
-                      size: 13, color: GabColors.primary),
-                ],
-              ],
+            child: Text(
+              _notifTimeLabel(message.createdAt),
+              style: const TextStyle(color: GabColors.muted, fontSize: 11),
             ),
           ),
         ],
@@ -6805,6 +6777,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
     final newController = TextEditingController();
     final confirmController = TextEditingController();
     var obscure = true;
+    var submitting = false;
 
     bool hasMinLength(String v) => v.length >= 8;
     bool hasUpperAndDigit(String v) =>
@@ -6886,44 +6859,79 @@ class _SecurityScreenState extends State<SecurityScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
-                    onPressed: () {
-                      final newPwd = newController.text;
-                      if (currentController.text.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content:
-                                Text('Indiquez votre mot de passe actuel.'),
-                          ),
-                        );
-                        return;
-                      }
-                      if (!hasMinLength(newPwd) ||
-                          !hasUpperAndDigit(newPwd) ||
-                          !hasSpecialChar(newPwd)) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Le nouveau mot de passe ne respecte pas '
-                              'les règles ci-dessus.',
-                            ),
-                          ),
-                        );
-                        return;
-                      }
-                      if (newPwd != confirmController.text) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'La confirmation ne correspond pas au '
-                              'nouveau mot de passe.',
-                            ),
-                          ),
-                        );
-                        return;
-                      }
-                      Navigator.pop(context, true);
-                    },
-                    child: const Text('Enregistrer'),
+                    onPressed: submitting
+                        ? null
+                        : () async {
+                            final newPwd = newController.text;
+                            if (currentController.text.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                      'Indiquez votre mot de passe actuel.'),
+                                ),
+                              );
+                              return;
+                            }
+                            if (!hasMinLength(newPwd) ||
+                                !hasUpperAndDigit(newPwd) ||
+                                !hasSpecialChar(newPwd)) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Le nouveau mot de passe ne respecte pas '
+                                    'les règles ci-dessus.',
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
+                            if (newPwd != confirmController.text) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'La confirmation ne correspond pas au '
+                                    'nouveau mot de passe.',
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
+                            setSheetState(() => submitting = true);
+                            try {
+                              await changePassword(
+                                currentPassword: currentController.text,
+                                newPassword1: newPwd,
+                                newPassword2: confirmController.text,
+                              );
+                              if (context.mounted) {
+                                Navigator.pop(context, true);
+                              }
+                            } on ApiException catch (error) {
+                              if (!context.mounted) return;
+                              setSheetState(() => submitting = false);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(error.message)));
+                            } on Object {
+                              if (!context.mounted) return;
+                              setSheetState(() => submitting = false);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    "Impossible de joindre l'API "
+                                    "Gab'Pharma.",
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                    child: submitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text('Enregistrer'),
                   ),
                 ),
               ],
@@ -6979,35 +6987,50 @@ class _SecurityScreenState extends State<SecurityScreen> {
         body: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: GabColors.softGreen,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  const CircleAvatar(
-                    radius: 26,
-                    backgroundColor: GabColors.primary,
-                    child: Text('GN',
-                        style: TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.w700)),
-                  ),
-                  const SizedBox(width: 14),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Grâce Nziengui',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w700, fontSize: 16)),
-                      Text('Libreville, Gabon',
-                          style: TextStyle(color: GabColors.muted)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            Builder(builder: (context) {
+              final user = AuthSession.instance.currentUser;
+              final name = user?.displayName ?? 'Compte Gab\'Pharma';
+              final initials = () {
+                final f = user?.firstName.trim() ?? '';
+                final l = user?.lastName.trim() ?? '';
+                final combined =
+                    '${f.isNotEmpty ? f[0] : ''}${l.isNotEmpty ? l[0] : ''}'
+                        .toUpperCase();
+                if (combined.isNotEmpty) return combined;
+                final email = user?.email ?? '';
+                return email.isNotEmpty ? email[0].toUpperCase() : '?';
+              }();
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: GabColors.softGreen,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 26,
+                      backgroundColor: GabColors.primary,
+                      child: Text(initials,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700)),
+                    ),
+                    const SizedBox(width: 14),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(name,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w700, fontSize: 16)),
+                        Text(user?.email ?? '',
+                            style: const TextStyle(color: GabColors.muted)),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
             const SizedBox(height: 20),
             _SettingsGroup(
               title: 'Sécurité du compte',
