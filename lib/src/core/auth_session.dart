@@ -27,6 +27,16 @@ class AuthUser {
     return fullName.isEmpty ? email : fullName;
   }
 
+  String get initials {
+    final first = firstName.trim();
+    final last = lastName.trim();
+    final combined =
+        '${first.isNotEmpty ? first[0] : ''}${last.isNotEmpty ? last[0] : ''}'
+            .toUpperCase();
+    if (combined.isNotEmpty) return combined;
+    return email.isNotEmpty ? email[0].toUpperCase() : '?';
+  }
+
   factory AuthUser.fromJson(Map<String, dynamic> json) => AuthUser(
         id: (json['id'] as num).toInt(),
         email: json['email']?.toString() ?? '',
@@ -171,6 +181,82 @@ class AuthSession {
       Map<String, dynamic>.from(response['challenge'] as Map),
       user: challenge.user,
     );
+  }
+
+  Future<AuthChallenge> register({
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String phone,
+    required String password,
+    required bool termsAccepted,
+  }) async {
+    final response = await api.postJson('mobile/auth/register/', {
+      'first_name': firstName,
+      'last_name': lastName,
+      'email': email,
+      'phone': phone,
+      'password': password,
+      'terms_accepted': termsAccepted,
+    });
+    final user = AuthUser.fromJson(
+      Map<String, dynamic>.from(response['user'] as Map),
+    );
+    return AuthChallenge.fromJson(
+      Map<String, dynamic>.from(response['challenge'] as Map),
+      user: user,
+    );
+  }
+
+  Future<AuthUser> verifyRegistration({
+    required String challengeId,
+    required String code,
+  }) async {
+    final response = await api.postJson('mobile/auth/register/verify/', {
+      'challenge_id': challengeId,
+      'code': code,
+    });
+    await _storeTokens(response);
+    currentUser = AuthUser.fromJson(
+      Map<String, dynamic>.from(response['user'] as Map),
+    );
+    return currentUser!;
+  }
+
+  Future<AuthChallenge> requestPasswordReset(String identifier) async {
+    final response = await api.postJson('mobile/auth/password-reset/', {
+      'identifier': identifier,
+    });
+    return AuthChallenge.fromJson(
+      Map<String, dynamic>.from(response['challenge'] as Map),
+    );
+  }
+
+  Future<String> verifyPasswordReset({
+    required String challengeId,
+    required String code,
+  }) async {
+    final response = await api.postJson('mobile/auth/password-reset/verify/', {
+      'challenge_id': challengeId,
+      'code': code,
+    });
+    final resetToken = response['reset_token']?.toString();
+    if (resetToken == null || resetToken.isEmpty) {
+      throw const ApiException('La réponse de vérification est incomplète.');
+    }
+    return resetToken;
+  }
+
+  Future<void> confirmPasswordReset({
+    required String resetToken,
+    required String newPassword1,
+    required String newPassword2,
+  }) async {
+    await api.postJson('mobile/auth/password-reset/confirm/', {
+      'reset_token': resetToken,
+      'new_password1': newPassword1,
+      'new_password2': newPassword2,
+    });
   }
 
   Future<AuthUser> me() async {

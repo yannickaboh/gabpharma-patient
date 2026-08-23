@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'core/api_client.dart' show ApiException;
 import 'core/app_config.dart';
+import 'core/auth_session.dart';
 import 'core/patient_catalog.dart' show addCartItem;
 import 'core/theme.dart';
 
@@ -85,12 +86,12 @@ class PatientTopBar extends StatelessWidget {
                 InkWell(
                   borderRadius: BorderRadius.circular(20),
                   onTap: () => onSwitchTab(4),
-                  child: const CircleAvatar(
+                  child: CircleAvatar(
                     radius: 18,
                     backgroundColor: GabColors.primary,
                     child: Text(
-                      'GN',
-                      style: TextStyle(
+                      AuthSession.instance.currentUser?.initials ?? '?',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
                         fontSize: 13,

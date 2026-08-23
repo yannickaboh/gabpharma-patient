@@ -226,7 +226,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _identifier = TextEditingController(text: 'patient.demo@gabpharma.ga');
-  final _password = TextEditingController(text: 'demonstration');
+  final _password = TextEditingController(text: 'Demo1987.');
   bool _obscure = true;
   bool _rememberMe = false;
   bool _submitting = false;
@@ -856,7 +856,11 @@ class PasswordResetScreen extends StatefulWidget {
 
 class _PasswordResetScreenState extends State<PasswordResetScreen> {
   static const _otpLength = 6;
-  static const _demoOtp = '123456';
+  // Doit correspondre à AUTH_CODE_RESEND_COOLDOWN_SECONDS côté Django : en
+  // dessous de ce délai, /mobile/auth/password-reset/ renvoie quand même un
+  // 200 mais avec un challenge_id factice (anti-énumération), ce qui casserait
+  // silencieusement le code déjà reçu si on l'affichait comme un vrai renvoi.
+  static const _resendCooldownSeconds = 60;
 
   int _step = 0; // 0: identification, 1: code, 2: nouveau mdp, 3: succès
   final _identifier = TextEditingController();
@@ -871,6 +875,14 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
   String? _otpError;
   String? _confirmError;
   bool _submitting = false;
+  bool _resending = false;
+  AuthChallenge? _challenge;
+  String? _resetToken;
+  int _otpAttempts = 0;
+  static const _maxOtpAttempts = 3;
+  Timer? _resendTimer;
+  int _resendSecondsLeft = _resendCooldownSeconds;
+  bool _canResendNow = false;
 
   @override
   void initState() {
@@ -880,6 +892,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
 
   @override
   void dispose() {
+    _resendTimer?.cancel();
     _identifier.dispose();
     for (final c in _otpControllers) {
       c.dispose();
@@ -898,54 +911,150 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
       RegExp(r'[0-9]').hasMatch(_newPassword.text);
   bool get _hasSpecialChar =>
       RegExp(r'''[!@#$%^&*(),.?":{}|<>_\-]''').hasMatch(_newPassword.text);
-  bool get _passwordValid =>
-      _hasMinLength && _hasUpperAndDigit && _hasSpecialChar;
 
-  void _submitIdentifier() {
+  void _clearOtp() {
+    for (final c in _otpControllers) {
+      c.clear();
+    }
+    _otpFocusNodes.first.requestFocus();
+  }
+
+  void _startResendCountdown() {
+    _resendTimer?.cancel();
+    setState(() {
+      _resendSecondsLeft = _resendCooldownSeconds;
+      _canResendNow = false;
+    });
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_resendSecondsLeft <= 1) {
+        timer.cancel();
+        setState(() => _canResendNow = true);
+        return;
+      }
+      setState(() => _resendSecondsLeft--);
+    });
+  }
+
+  Future<void> _submitIdentifier() async {
+    if (_submitting) return;
     if (_identifier.text.trim().isEmpty) {
       setState(() => _identifierError = 'Identifiant requis.');
       return;
     }
     setState(() {
+      _submitting = true;
       _identifierError = null;
-      _step = 1;
     });
+    try {
+      final challenge = await AuthSession.instance
+          .requestPasswordReset(_identifier.text.trim());
+      if (!mounted) return;
+      setState(() {
+        _challenge = challenge;
+        _otpAttempts = 0;
+        _step = 1;
+      });
+      _startResendCountdown();
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _identifierError = error.message);
+    } on Object {
+      if (!mounted) return;
+      setState(() => _identifierError =
+          "Impossible de joindre l'API Gab'Pharma. Vérifiez le serveur.");
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Future<void> _resendCode() async {
+    if (_resending || !_canResendNow) return;
+    setState(() {
+      _resending = true;
+      _otpError = null;
+    });
+    try {
+      final challenge = await AuthSession.instance
+          .requestPasswordReset(_identifier.text.trim());
+      if (!mounted) return;
+      setState(() {
+        _challenge = challenge;
+        _otpAttempts = 0;
+      });
+      _clearOtp();
+      _startResendCountdown();
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _otpError = error.message);
+    } on Object {
+      if (!mounted) return;
+      setState(() => _otpError =
+          "Impossible de joindre l'API Gab'Pharma. Vérifiez le serveur.");
+    } finally {
+      if (mounted) setState(() => _resending = false);
+    }
   }
 
   Future<void> _verifyOtp() async {
     if (_submitting) return;
+    final challenge = _challenge;
+    if (challenge == null) {
+      setState(() => _otpError = 'Session introuvable. Recommencez.');
+      return;
+    }
     final code = _otpControllers.map((c) => c.text).join();
     if (code.length < _otpLength) {
       setState(() => _otpError = 'Saisissez les $_otpLength chiffres du code.');
+      return;
+    }
+    if (_otpAttempts >= _maxOtpAttempts) {
+      setState(() => _otpError =
+          'Trop de tentatives. Demandez un nouveau code.');
       return;
     }
     setState(() {
       _submitting = true;
       _otpError = null;
     });
-    await Future<void>.delayed(const Duration(milliseconds: 600));
-    if (!mounted) return;
-    if (code != _demoOtp) {
+    try {
+      final resetToken = await AuthSession.instance.verifyPasswordReset(
+        challengeId: challenge.id,
+        code: code,
+      );
+      if (!mounted) return;
       setState(() {
-        _submitting = false;
-        _otpError = 'Code invalide. Réessayez.';
+        _resetToken = resetToken;
+        _step = 2;
       });
-      for (final c in _otpControllers) {
-        c.clear();
-      }
-      _otpFocusNodes.first.requestFocus();
-      return;
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _otpAttempts++;
+        _otpError = _otpAttempts >= _maxOtpAttempts
+            ? 'Trop de tentatives. Demandez un nouveau code.'
+            : error.message;
+      });
+      _clearOtp();
+    } on Object {
+      if (!mounted) return;
+      setState(() => _otpError =
+          "Impossible de joindre l'API Gab'Pharma. Vérifiez le serveur.");
+    } finally {
+      if (mounted) setState(() => _submitting = false);
     }
-    setState(() {
-      _submitting = false;
-      _step = 2;
-    });
   }
 
-  void _resetPassword() {
-    if (!_passwordValid) {
+  Future<void> _resetPassword() async {
+    if (_submitting) return;
+    final resetToken = _resetToken;
+    if (resetToken == null) {
+      setState(
+          () => _confirmError = 'Session expirée. Recommencez la procédure.');
+      return;
+    }
+    if (!_hasMinLength) {
       setState(() => _confirmError =
-          'Le mot de passe ne respecte pas encore les règles de sécurité.');
+          'Le mot de passe doit contenir au moins 8 caractères.');
       return;
     }
     if (_newPassword.text != _confirmPassword.text) {
@@ -953,15 +1062,34 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
       return;
     }
     setState(() {
+      _submitting = true;
       _confirmError = null;
-      _step = 3;
     });
+    try {
+      await AuthSession.instance.confirmPasswordReset(
+        resetToken: resetToken,
+        newPassword1: _newPassword.text,
+        newPassword2: _confirmPassword.text,
+      );
+      if (!mounted) return;
+      setState(() => _step = 3);
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _confirmError = error.message);
+    } on Object {
+      if (!mounted) return;
+      setState(() => _confirmError =
+          "Impossible de joindre l'API Gab'Pharma. Vérifiez le serveur.");
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   void _goBack() {
     if (_step == 0 || _step == 3) {
       Navigator.pop(context);
     } else {
+      if (_step == 1) _resendTimer?.cancel();
       setState(() => _step--);
     }
   }
@@ -1050,15 +1178,22 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
           ),
           const SizedBox(height: 24),
           FilledButton(
-            onPressed: _submitIdentifier,
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('Continuer'),
-                SizedBox(width: 8),
-                Icon(Icons.arrow_forward, size: 20),
-              ],
-            ),
+            onPressed: _submitting ? null : _submitIdentifier,
+            child: _submitting
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.4, color: Colors.white),
+                  )
+                : const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('Continuer'),
+                      SizedBox(width: 8),
+                      Icon(Icons.arrow_forward, size: 20),
+                    ],
+                  ),
           ),
         ],
       );
@@ -1073,17 +1208,9 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Nous avons envoyé un code à $_otpLength chiffres à votre identifiant. Veuillez le saisir ci-dessous.',
+            'Si un compte correspond à "${_identifier.text.trim()}", un code à '
+            '$_otpLength chiffres a été envoyé par e-mail (valable 5 minutes).',
             style: const TextStyle(color: GabColors.muted),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Démonstration : utilisez le code $_demoOtp.',
-            style: const TextStyle(
-              color: GabColors.secondary,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
           ),
           const SizedBox(height: 24),
           Row(
@@ -1144,21 +1271,35 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
             children: [
               const Text("Vous n'avez pas reçu de code ?",
                   style: TextStyle(color: GabColors.muted)),
-              TextButton(
-                onPressed: () {
-                  for (final c in _otpControllers) {
-                    c.clear();
-                  }
-                  setState(() => _otpError = null);
-                  _otpFocusNodes.first.requestFocus();
-                },
-                child: const Text('Renvoyer le code'),
-              ),
+              if (_canResendNow)
+                TextButton(
+                  onPressed: _resending ? null : _resendCode,
+                  child: Text(
+                      _resending ? 'Envoi en cours...' : 'Renvoyer le code'),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text.rich(
+                    TextSpan(
+                      style: const TextStyle(color: GabColors.muted),
+                      children: [
+                        const TextSpan(text: 'Renvoi possible dans '),
+                        TextSpan(
+                          text: '0:${_resendSecondsLeft.toString().padLeft(2, '0')}',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: GabColors.primary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 12),
           FilledButton(
-            onPressed: _submitting ? null : _verifyOtp,
+            onPressed: (_submitting || _resending) ? null : _verifyOtp,
             child: _submitting
                 ? const SizedBox(
                     height: 20,
@@ -1219,7 +1360,6 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
                     ? Icons.visibility_outlined
                     : Icons.visibility_off_outlined),
               ),
-              errorText: _confirmError,
             ),
           ),
           const SizedBox(height: 16),
@@ -1234,10 +1374,12 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Règles de sécurité :',
+                const Text('Recommandations de sécurité :',
                     style: TextStyle(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 8),
-                _RuleRow(label: 'Au moins 8 caractères', ok: _hasMinLength),
+                _RuleRow(
+                    label: 'Au moins 8 caractères (obligatoire)',
+                    ok: _hasMinLength),
                 _RuleRow(
                     label: 'Une majuscule et un chiffre',
                     ok: _hasUpperAndDigit),
@@ -1247,10 +1389,26 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
               ],
             ),
           ),
+          if (_confirmError != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              _confirmError!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  color: GabColors.danger, fontWeight: FontWeight.w600),
+            ),
+          ],
           const SizedBox(height: 24),
           FilledButton(
-            onPressed: _resetPassword,
-            child: const Text('Réinitialiser le mot de passe'),
+            onPressed: _submitting ? null : _resetPassword,
+            child: _submitting
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.4, color: Colors.white),
+                  )
+                : const Text('Réinitialiser le mot de passe'),
           ),
         ],
       );
@@ -1396,6 +1554,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _passwordError;
   String? _confirmPasswordError;
   String? _termsError;
+  String? _serverError;
 
   @override
   void initState() {
@@ -1468,9 +1627,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               : 'E-mail invalide';
       _phoneError =
           _phone.text.trim().length < 7 ? 'Numéro de téléphone invalide' : null;
-      _passwordError = _passwordStrength >= 2
+      _passwordError = _password.text.length >= 8
           ? null
-          : 'Mot de passe trop faible (minimum : moyen)';
+          : 'Le mot de passe doit contenir au moins 8 caractères.';
       _confirmPasswordError = _confirmPassword.text != _password.text
           ? 'Les mots de passe ne correspondent pas.'
           : null;
@@ -1523,11 +1682,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    setState(() => _submitting = true);
-    await Future<void>.delayed(const Duration(milliseconds: 900));
-    if (!mounted) return;
-    setState(() => _submitting = false);
-    Navigator.pushNamed(context, '/verify');
+    setState(() {
+      _submitting = true;
+      _serverError = null;
+    });
+    try {
+      final challenge = await AuthSession.instance.register(
+        firstName: _firstName.text.trim(),
+        lastName: _lastName.text.trim(),
+        email: _email.text.trim(),
+        phone: '+241${_phone.text.trim()}',
+        password: _password.text,
+        termsAccepted: _acceptTerms,
+      );
+      if (!mounted) return;
+      Navigator.pushNamed(context, '/register-verify', arguments: challenge);
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _serverError = error.message);
+    } on Object {
+      if (!mounted) return;
+      setState(() => _serverError =
+          "Impossible de joindre l'API Gab'Pharma. Vérifiez le serveur.");
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
@@ -1877,6 +2056,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       color: GabColors.danger, fontSize: 12),
                                 ),
                               ),
+                            if (_serverError != null) ...[
+                              const SizedBox(height: 16),
+                              Text(
+                                _serverError!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: GabColors.danger,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                             const SizedBox(height: 20),
                             SizedBox(
                               width: double.infinity,
@@ -1952,6 +2142,284 @@ class _TrustBadge extends StatelessWidget {
             const SizedBox(height: 4),
             Text(label, style: const TextStyle(fontSize: 11)),
           ],
+        ),
+      );
+}
+
+class RegisterVerifyScreen extends StatefulWidget {
+  const RegisterVerifyScreen({super.key});
+
+  @override
+  State<RegisterVerifyScreen> createState() => _RegisterVerifyScreenState();
+}
+
+class _RegisterVerifyScreenState extends State<RegisterVerifyScreen> {
+  static const _codeLength = 6;
+  static const _maxAttempts = 3;
+
+  final _controllers =
+      List.generate(_codeLength, (_) => TextEditingController());
+  final _focusNodes = List.generate(_codeLength, (_) => FocusNode());
+  AuthChallenge? _challenge;
+  int _attempts = 0;
+  bool _submitting = false;
+  String? _errorMessage;
+  bool _didLoadArguments = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didLoadArguments) return;
+    _didLoadArguments = true;
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    if (arguments is AuthChallenge) {
+      _challenge = arguments;
+    } else {
+      _errorMessage = "Session d'inscription introuvable. Recommencez.";
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final c in _controllers) {
+      c.dispose();
+    }
+    for (final f in _focusNodes) {
+      f.dispose();
+    }
+    super.dispose();
+  }
+
+  String get _enteredCode => _controllers.map((c) => c.text).join();
+
+  void _clearCode() {
+    for (final c in _controllers) {
+      c.clear();
+    }
+    _focusNodes.first.requestFocus();
+  }
+
+  Future<void> _submit() async {
+    if (_submitting) return;
+    final challenge = _challenge;
+    if (challenge == null) {
+      setState(() =>
+          _errorMessage = "Session d'inscription introuvable. Recommencez.");
+      return;
+    }
+    final code = _enteredCode;
+    if (code.length < _codeLength) {
+      setState(() => _errorMessage = 'Saisissez les 6 chiffres du code.');
+      return;
+    }
+    if (_attempts >= _maxAttempts) {
+      setState(() => _errorMessage =
+          'Trop de tentatives. Le code a été invalidé par sécurité.');
+      return;
+    }
+    setState(() {
+      _submitting = true;
+      _errorMessage = null;
+    });
+    try {
+      await AuthSession.instance.verifyRegistration(
+        challengeId: challenge.id,
+        code: code,
+      );
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _attempts++;
+        _errorMessage = _attempts >= _maxAttempts
+            ? 'Trop de tentatives. Le code a été invalidé par sécurité.'
+            : error.message;
+      });
+      _clearCode();
+    } on Object {
+      if (!mounted) return;
+      setState(() => _errorMessage =
+          "Impossible de joindre l'API Gab'Pharma. Vérifiez le serveur.");
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: GabColors.background,
+        body: SafeArea(
+          child: Column(
+            children: [
+              SizedBox(
+                height: 56,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back,
+                            color: GabColors.primary),
+                      ),
+                    ),
+                    Text(
+                      "Gab'Pharma",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: GabColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1, color: GabColors.outlineVariant),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: GabColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: const Icon(Icons.mark_email_read_outlined,
+                            color: GabColors.primary, size: 34),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Confirmez votre compte',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          color: GabColors.ink,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      RichText(
+                        textAlign: TextAlign.center,
+                        text: TextSpan(
+                          style: const TextStyle(
+                              color: GabColors.muted, fontSize: 16),
+                          children: [
+                            const TextSpan(
+                                text:
+                                    'Entrez le code à 6 chiffres envoyé à '),
+                            TextSpan(
+                              text: _challenge?.user?.email ?? 'votre email',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: GabColors.ink,
+                              ),
+                            ),
+                            const TextSpan(
+                                text: ' pour activer votre compte.'),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: List.generate(_codeLength, (i) {
+                          final hasError = _errorMessage != null;
+                          return SizedBox(
+                            width: 44,
+                            height: 56,
+                            child: TextField(
+                              controller: _controllers[i],
+                              focusNode: _focusNodes[i],
+                              textAlign: TextAlign.center,
+                              keyboardType: TextInputType.number,
+                              maxLength: 1,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              decoration: InputDecoration(
+                                counterText: '',
+                                contentPadding: EdgeInsets.zero,
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: hasError
+                                        ? GabColors.danger
+                                        : GabColors.outlineVariant,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                      color: GabColors.primary, width: 1.6),
+                                ),
+                              ),
+                              onChanged: (value) {
+                                setState(() => _errorMessage = null);
+                                if (value.isNotEmpty && i < _codeLength - 1) {
+                                  _focusNodes[i + 1].requestFocus();
+                                } else if (value.isEmpty && i > 0) {
+                                  _focusNodes[i - 1].requestFocus();
+                                }
+                              },
+                            ),
+                          );
+                        }),
+                      ),
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          _errorMessage!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: GabColors.danger,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Code valable 5 minutes. Le renvoi automatique du '
+                        "code n'est pas encore disponible pour l'inscription : "
+                        'si le code a expiré, contactez le support Gab\'Pharma.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: GabColors.muted, fontSize: 12),
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: _submitting ? null : _submit,
+                          child: _submitting
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.4,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text('Vérifier et activer'),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      TextButton(
+                        onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                            context, '/login', (route) => false),
+                        child: const Text('Retour à la connexion'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       );
 }

@@ -22,6 +22,7 @@ class GabPharmaPatientApp extends StatelessWidget {
           '/verify': (_) => const VerifyScreen(),
           '/home': (_) => const PatientShell(),
           '/register': (_) => const RegisterScreen(),
+          '/register-verify': (_) => const RegisterVerifyScreen(),
           '/password-reset': (_) => const PasswordResetScreen(),
           '/medication': (_) => const MedicationDetailScreen(),
           '/pharmacy': (_) => const PharmacyDetailScreen(),
@@ -39,7 +40,6 @@ class GabPharmaPatientApp extends StatelessWidget {
           '/insurance': (_) => const InsuranceScreen(),
           '/notifications': (_) => const NotificationsScreen(),
           '/support': (_) => const HelpCenterScreen(),
-          '/support-thread': (_) => const ConversationScreen(),
           '/security': (_) => const SecurityScreen(),
         },
       );
