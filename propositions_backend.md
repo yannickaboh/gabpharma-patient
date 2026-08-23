@@ -41,7 +41,18 @@ path("mobile/auth/refresh/", TokenRefreshView.as_view(), name="mobile_auth_refre
 **Proposition :** ajouter `"phone": pharmacy.phone` à `_pharmacy_payload`. Aucune migration nécessaire, c'est un champ déjà en base (`apps/pharmacies/models.py:32`).
 **Effort estimé :** une ligne.
 
-### 1.4 🟢 Filtre "Forme" absent de la recherche alors que la donnée existe
+### 1.4 🟢 Modification de l'e-mail interdite à tous les rôles sauf le Super Administrateur
+
+**État actuel :** `profile_email_change_request` et `profile_email_change_confirm` (`apps/dashboards/views.py:2130` et `:2158`) implémentent déjà un flux de changement d'e-mail complet et bien conçu : `EmailChangeRequestForm` (`apps/accounts/forms.py:444`) exige le **mot de passe actuel**, vérifie l'unicité du nouvel e-mail, envoie un code de vérification à la **nouvelle** adresse (`OneTimeCode.Purpose.EMAIL_CHANGE`) ; la confirmation applique le changement sous verrou (`select_for_update`), invalide les autres sessions actives, notifie **les deux adresses** (ancienne et nouvelle, `send_email_changed`) et journalise l'action (`AuditLog`). Mais les deux vues sont protégées par `_is_super_admin(request.user)` — alors que le reste du profil (prénom, nom, téléphone, username, mot de passe) utilise `_can_edit_own_profile` (ligne 390), qui autorise déjà tous les rôles actifs (patient, pharmacie, livreur, assurance, staff).
+**Manque :** aucun chemin de changement d'e-mail pour un patient, ni côté web ni côté mobile (confirmé lors du branchement du module Profil, `branchement_patient.md` point 12) — le champ est affiché en lecture seule dans `ProfileEditScreen`.
+**Analyse :** rien dans le code n'indique une décision de sécurité délibérée d'interdire ce changement aux patients — le flux est au contraire construit avec plus de rigueur que nécessaire pour une simple restriction (mot de passe + OTP + double notification + audit), ce qui suggère plutôt un flux resté attaché à l'écran de paramètres du Super Admin et jamais généralisé aux autres rôles, plutôt qu'un choix produit assumé.
+**Proposition :**
+- Remplacer `_is_super_admin` par `_can_edit_own_profile` sur les deux vues web (aucune autre modification nécessaire, le formulaire et la logique sont déjà génériques — `EmailChangeRequestForm` prend déjà n'importe quel `user` en paramètre).
+- Exposer l'équivalent côté mobile : `POST /mobile/profile/email-change/` (mot de passe + nouvel e-mail → envoie le code) et `POST /mobile/profile/email-change/verify/` (code → applique), sur le modèle exact de `/mobile/profile/password/` déjà existant.
+- Côté app : remplacer le champ e-mail "Lecture seule" de `ProfileEditScreen` par un sous-écran dédié (mot de passe actuel + nouvel e-mail, puis code à 6 chiffres) — même schéma d'écran que la vérification d'inscription/mot de passe oublié déjà construits.
+**Effort estimé :** 🟢 côté logique métier (elle existe déjà en totalité) ; le seul travail réel est l'exposition mobile et l'écran app.
+
+### 1.5 🟢 Filtre "Forme" absent de la recherche alors que la donnée existe
 
 **État actuel :** `Medication.form` (`apps/catalog/models.py:38`) avec un `Form.choices` complet existe déjà en base (comprimé, sirop, injectable, etc.). `MobilePatientCatalogView` (`apps/api/mobile_patient.py:536`) ne filtre que sur `q`, `category` et `zone`.
 **Manque :** pas de paramètre `form` sur `GET /mobile/patient/catalog/`, ni d'endpoint pour lister les formes disponibles (sur le modèle de `GET /mobile/patient/catalog/categories/`).
@@ -159,7 +170,8 @@ Renvoie une liste paginée de `_pharmacy_detail_payload` (ou une version allég�
 | 1.1 | Refresh token JWT | 🟢 | Confort de session (déconnexions toutes les 20 min en test) |
 | 1.2 | Renvoi de code (inscription/reset) | 🟢 | Comptes bloqués si code perdu/expiré |
 | 1.3 | Téléphone pharmacie sur commande | 🟢 | Bouton "Appeler" du détail commande |
-| 1.4 | Filtre "Forme" | 🟢 | Fidélité au mockup Recherche |
+| 1.4 | Modification de l'e-mail (patient) | 🟢 | Fonctionnalité de profil de base, logique déjà écrite |
+| 1.5 | Filtre "Forme" | 🟢 | Fidélité au mockup Recherche |
 | 2 | Historique paiements/remboursements | 🟡/🔴 | Écran déjà construit, toujours en démo |
 | 3 | Catalogue des pharmacies | 🟡 | Fonctionnalité absente de la spec initiale mais demandée |
 | 4 | Géolocalisation | 🟢→🔴 par étapes | Tri par proximité, distance réelle, suivi livreur temps réel |
