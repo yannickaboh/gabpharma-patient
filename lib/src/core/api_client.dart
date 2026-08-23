@@ -20,17 +20,24 @@ class ApiClient {
   final HttpClient _httpClient;
   String? accessToken;
 
-  /// Appelé quand une requête authentifiée reçoit un 401 (token expiré,
-  /// pas de rafraîchissement automatique côté API pour l'instant).
+  /// Appelé quand une requête authentifiée reçoit un 401 et qu'un
+  /// rafraîchissement (via [onRefreshToken]) n'a pas résolu le problème —
+  /// c'est le vrai abandon (déconnexion).
   void Function()? onUnauthorized;
+
+  /// Tente un rafraîchissement du token d'accès (POST /mobile/auth/refresh/
+  /// côté AuthSession) ; renvoie true si un nouveau `accessToken` a été posé
+  /// sur ce client, auquel cas la requête d'origine est rejouée une fois.
+  Future<bool> Function()? onRefreshToken;
 
   Future<Map<String, dynamic>> getJson(String path) => _send('GET', path);
 
   Future<Map<String, dynamic>> postJson(
     String path,
-    Map<String, dynamic> body,
-  ) =>
-      _send('POST', path, body: body);
+    Map<String, dynamic> body, {
+    bool allowTokenRefresh = true,
+  }) =>
+      _send('POST', path, body: body, allowTokenRefresh: allowTokenRefresh);
 
   Future<Map<String, dynamic>> deleteJson(String path) =>
       _send('DELETE', path);
@@ -45,6 +52,7 @@ class ApiClient {
     String method,
     String path, {
     Map<String, dynamic>? body,
+    bool allowTokenRefresh = true,
   }) async {
     final request = await _httpClient.openUrl(method, _uriFor(path));
     request.headers.contentType = ContentType.json;
@@ -64,6 +72,15 @@ class ApiClient {
     final raw = await utf8.decoder.bind(response).join();
     final decoded = raw.isEmpty ? <String, dynamic>{} : jsonDecode(raw);
     if (response.statusCode < 200 || response.statusCode >= 300) {
+      if (response.statusCode == 401 &&
+          accessToken != null &&
+          allowTokenRefresh &&
+          onRefreshToken != null) {
+        final refreshed = await onRefreshToken!.call();
+        if (refreshed) {
+          return _send(method, path, body: body, allowTokenRefresh: false);
+        }
+      }
       final message = decoded is Map<String, dynamic>
           ? decoded['detail']?.toString() ??
               decoded['message']?.toString() ??

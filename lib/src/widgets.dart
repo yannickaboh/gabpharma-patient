@@ -1,10 +1,71 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'core/api_client.dart' show ApiException;
 import 'core/app_config.dart';
 import 'core/auth_session.dart';
 import 'core/patient_catalog.dart' show addCartItem;
 import 'core/theme.dart';
+
+/// Ouvre le composeur téléphonique sur `phone`, ou affiche un message honnête
+/// si le numéro est vide ou si aucune application ne peut gérer l'appel
+/// (ex. émulateur sans téléphonie) plutôt que d'échouer silencieusement.
+Future<void> callPhoneNumber(BuildContext context, String phone) async {
+  final trimmed = phone.trim();
+  if (trimmed.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Numéro de téléphone non renseigné pour cette pharmacie.'),
+      ),
+    );
+    return;
+  }
+  var launched = false;
+  try {
+    launched = await launchUrl(Uri(scheme: 'tel', path: trimmed));
+  } on Object {
+    launched = false;
+  }
+  if (!launched && context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Impossible d'ouvrir le composeur pour $trimmed.")),
+    );
+  }
+}
+
+/// Ouvre l'app de navigation externe (Google Maps ou équivalent) avec un
+/// itinéraire vers `latitude`/`longitude` — pas de carte intégrée pour la
+/// navigation turn-by-turn, juste un lien standard `maps/dir`.
+Future<void> openMapsDirections(
+  BuildContext context,
+  double? latitude,
+  double? longitude,
+) async {
+  if (latitude == null || longitude == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Position non renseignée pour cette pharmacie.'),
+      ),
+    );
+    return;
+  }
+  final uri = Uri.parse(
+    'https://www.google.com/maps/dir/?api=1&destination=$latitude,$longitude',
+  );
+  var launched = false;
+  try {
+    launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+  } on Object {
+    launched = false;
+  }
+  if (!launched && context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Impossible d'ouvrir l'application de navigation."),
+      ),
+    );
+  }
+}
 
 /// Ajoute un article au panier réel et affiche un retour honnête (succès,
 /// conflit de pharmacie, quantité indisponible, etc.) — utilisé partout où

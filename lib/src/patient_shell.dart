@@ -784,9 +784,11 @@ class _SearchScreenState extends State<SearchScreen> {
 
   List<PatientCategory> _categories = [];
   List<PatientZone> _zones = [];
+  List<PatientForm> _forms = [];
 
   String? _selectedZoneCode;
   int? _selectedCategoryId;
+  String? _selectedFormCode;
   _SortMode _sort = _SortMode.price;
 
   List<CatalogStock> _results = [];
@@ -821,10 +823,12 @@ class _SearchScreenState extends State<SearchScreen> {
     try {
       final categories = await fetchPatientCategories();
       final zones = await fetchPatientZones();
+      final forms = await fetchPatientForms();
       if (!mounted) return;
       setState(() {
         _categories = categories;
         _zones = zones;
+        _forms = forms;
       });
     } on Object {
       // Filtres indisponibles : les chips resteront simplement vides.
@@ -842,6 +846,7 @@ class _SearchScreenState extends State<SearchScreen> {
         query: _queryController.text.trim(),
         categoryId: _selectedCategoryId,
         zoneCode: _selectedZoneCode,
+        formCode: _selectedFormCode,
       );
       if (!mounted) return;
       setState(() {
@@ -873,6 +878,7 @@ class _SearchScreenState extends State<SearchScreen> {
         query: _queryController.text.trim(),
         categoryId: _selectedCategoryId,
         zoneCode: _selectedZoneCode,
+        formCode: _selectedFormCode,
         page: _page + 1,
       );
       if (!mounted) return;
@@ -925,15 +931,6 @@ class _SearchScreenState extends State<SearchScreen> {
     return list;
   }
 
-  void _showUnavailableFilter(String label) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Filtre "$label" pas encore disponible côté API.'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
   Future<void> _pickCategory() async {
     if (_categories.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -947,25 +944,30 @@ class _SearchScreenState extends State<SearchScreen> {
     final selected = await showModalBottomSheet<int>(
       context: context,
       builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: const Text('Toutes les catégories'),
-              trailing: _selectedCategoryId == null
-                  ? const Icon(Icons.check, color: GabColors.primary)
-                  : null,
-              onTap: () => Navigator.pop(context, clearSentinel),
-            ),
-            for (final category in _categories)
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.6,
+          ),
+          child: ListView(
+            shrinkWrap: true,
+            children: [
               ListTile(
-                title: Text(category.name),
-                trailing: _selectedCategoryId == category.id
+                title: const Text('Toutes les catégories'),
+                trailing: _selectedCategoryId == null
                     ? const Icon(Icons.check, color: GabColors.primary)
                     : null,
-                onTap: () => Navigator.pop(context, category.id),
+                onTap: () => Navigator.pop(context, clearSentinel),
               ),
-          ],
+              for (final category in _categories)
+                ListTile(
+                  title: Text(category.name),
+                  trailing: _selectedCategoryId == category.id
+                      ? const Icon(Icons.check, color: GabColors.primary)
+                      : null,
+                  onTap: () => Navigator.pop(context, category.id),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -980,6 +982,61 @@ class _SearchScreenState extends State<SearchScreen> {
     if (_selectedCategoryId == null) return null;
     for (final category in _categories) {
       if (category.id == _selectedCategoryId) return category.name;
+    }
+    return null;
+  }
+
+  Future<void> _pickForm() async {
+    if (_forms.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Aucune forme disponible pour le moment.'),
+        ),
+      );
+      return;
+    }
+    const clearSentinel = '';
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.6,
+          ),
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              ListTile(
+                title: const Text('Toutes les formes'),
+                trailing: _selectedFormCode == null
+                    ? const Icon(Icons.check, color: GabColors.primary)
+                    : null,
+                onTap: () => Navigator.pop(context, clearSentinel),
+              ),
+              for (final form in _forms)
+                ListTile(
+                  title: Text(form.label),
+                  trailing: _selectedFormCode == form.code
+                      ? const Icon(Icons.check, color: GabColors.primary)
+                      : null,
+                  onTap: () => Navigator.pop(context, form.code),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (selected == null) return;
+    setState(
+      () => _selectedFormCode = selected == clearSentinel ? null : selected,
+    );
+    _loadResults();
+  }
+
+  String? get _selectedFormName {
+    if (_selectedFormCode == null) return null;
+    for (final form in _forms) {
+      if (form.code == _selectedFormCode) return form.label;
     }
     return null;
   }
@@ -1032,8 +1089,10 @@ class _SearchScreenState extends State<SearchScreen> {
                         ),
                         const SizedBox(width: 8),
                         _FilterChipPill(
-                          label: 'Forme',
-                          onTap: () => _showUnavailableFilter('Forme'),
+                          label: _selectedFormName ?? 'Forme',
+                          selected: _selectedFormCode != null,
+                          trailingIcon: Icons.filter_list,
+                          onTap: _pickForm,
                         ),
                       ],
                     ),

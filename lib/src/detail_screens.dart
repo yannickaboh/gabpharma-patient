@@ -2,13 +2,15 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'auth_screens.dart' show TermsScreen, PrivacyPolicyScreen;
 import 'core/api_client.dart' show ApiException;
 import 'core/auth_session.dart';
 import 'core/patient_catalog.dart';
 import 'core/theme.dart';
-import 'widgets.dart' show EmptyState, addToCartWithFeedback;
+import 'widgets.dart'
+    show EmptyState, addToCartWithFeedback, callPhoneNumber, openMapsDirections;
 
 class _MedicationPharmacy {
   const _MedicationPharmacy({
@@ -3280,6 +3282,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     ],
                   ],
                 ),
+              ),
+              IconButton(
+                onPressed: () => callPhoneNumber(context, order.pharmacyPhone),
+                icon: const Icon(Icons.call_outlined, color: GabColors.primary),
+                tooltip: 'Appeler la pharmacie',
               ),
             ],
           ),
@@ -7634,14 +7641,37 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
                 borderRadius: BorderRadius.circular(16),
                 child: Stack(
                   children: [
-                    Container(
+                    SizedBox(
                       height: 140,
                       width: double.infinity,
-                      color: const Color(0xFFDCECE3),
-                      child: const Center(
-                        child: Icon(Icons.map_outlined,
-                            size: 40, color: GabColors.muted),
-                      ),
+                      child: (pharmacy.latitude != null &&
+                              pharmacy.longitude != null)
+                          ? GoogleMap(
+                              initialCameraPosition: CameraPosition(
+                                target: LatLng(
+                                    pharmacy.latitude!, pharmacy.longitude!),
+                                zoom: 15,
+                              ),
+                              markers: {
+                                Marker(
+                                  markerId: MarkerId('pharmacy-${pharmacy.id}'),
+                                  position: LatLng(
+                                      pharmacy.latitude!, pharmacy.longitude!),
+                                ),
+                              },
+                              // Aperçu statique, non interactif : évite les
+                              // conflits de gestes avec le scroll de l'écran.
+                              liteModeEnabled: true,
+                              zoomControlsEnabled: false,
+                              myLocationButtonEnabled: false,
+                            )
+                          : Container(
+                              color: const Color(0xFFDCECE3),
+                              child: const Center(
+                                child: Icon(Icons.map_outlined,
+                                    size: 40, color: GabColors.muted),
+                              ),
+                            ),
                     ),
                     Positioned(
                       top: 8,
@@ -7650,8 +7680,8 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
                         color: Colors.white,
                         shape: const CircleBorder(),
                         child: IconButton(
-                          onPressed: () => _showNotConnected(
-                              'Navigation indisponible en démonstration.'),
+                          onPressed: () => openMapsDirections(
+                              context, pharmacy.latitude, pharmacy.longitude),
                           icon: const Icon(Icons.directions,
                               color: GabColors.primary),
                         ),
@@ -7750,10 +7780,7 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.tonal(
-                  onPressed: () => _showNotConnected(
-                      pharmacy.phone.isNotEmpty
-                          ? 'Appel vers ${pharmacy.phone} — composition indisponible en démonstration.'
-                          : 'Numéro de téléphone non renseigné pour cette pharmacie.'),
+                  onPressed: () => callPhoneNumber(context, pharmacy.phone),
                   style: FilledButton.styleFrom(
                     backgroundColor: GabColors.softGreen,
                     foregroundColor: GabColors.primary,

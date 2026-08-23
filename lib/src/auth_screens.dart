@@ -2156,6 +2156,10 @@ class RegisterVerifyScreen extends StatefulWidget {
 class _RegisterVerifyScreenState extends State<RegisterVerifyScreen> {
   static const _codeLength = 6;
   static const _maxAttempts = 3;
+  // Doit correspondre à AUTH_CODE_RESEND_COOLDOWN_SECONDS côté Django, comme
+  // sur PasswordResetScreen — évite de renvoyer trop tôt (le renvoi est
+  // désormais générique à tous les `purpose`, y compris l'inscription).
+  static const _resendCooldownSeconds = 60;
 
   final _controllers =
       List.generate(_codeLength, (_) => TextEditingController());
@@ -2163,8 +2167,12 @@ class _RegisterVerifyScreenState extends State<RegisterVerifyScreen> {
   AuthChallenge? _challenge;
   int _attempts = 0;
   bool _submitting = false;
+  bool _resending = false;
   String? _errorMessage;
   bool _didLoadArguments = false;
+  Timer? _resendTimer;
+  int _resendSecondsLeft = _resendCooldownSeconds;
+  bool _canResendNow = false;
 
   @override
   void didChangeDependencies() {
@@ -2174,6 +2182,7 @@ class _RegisterVerifyScreenState extends State<RegisterVerifyScreen> {
     final arguments = ModalRoute.of(context)?.settings.arguments;
     if (arguments is AuthChallenge) {
       _challenge = arguments;
+      _startResendCountdown();
     } else {
       _errorMessage = "Session d'inscription introuvable. Recommencez.";
     }
@@ -2181,6 +2190,7 @@ class _RegisterVerifyScreenState extends State<RegisterVerifyScreen> {
 
   @override
   void dispose() {
+    _resendTimer?.cancel();
     for (final c in _controllers) {
       c.dispose();
     }
@@ -2188,6 +2198,50 @@ class _RegisterVerifyScreenState extends State<RegisterVerifyScreen> {
       f.dispose();
     }
     super.dispose();
+  }
+
+  void _startResendCountdown() {
+    _resendTimer?.cancel();
+    setState(() {
+      _resendSecondsLeft = _resendCooldownSeconds;
+      _canResendNow = false;
+    });
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_resendSecondsLeft <= 1) {
+        timer.cancel();
+        setState(() => _canResendNow = true);
+        return;
+      }
+      setState(() => _resendSecondsLeft--);
+    });
+  }
+
+  Future<void> _resendCode() async {
+    final challenge = _challenge;
+    if (challenge == null || _resending || !_canResendNow) return;
+    setState(() {
+      _resending = true;
+      _errorMessage = null;
+    });
+    try {
+      final nextChallenge = await AuthSession.instance.resendTwoFactor(challenge);
+      if (!mounted) return;
+      setState(() {
+        _challenge = nextChallenge;
+        _attempts = 0;
+      });
+      _clearCode();
+      _startResendCountdown();
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _errorMessage = error.message);
+    } on Object {
+      if (!mounted) return;
+      setState(() => _errorMessage =
+          "Impossible de joindre l'API Gab'Pharma. Vérifiez le serveur.");
+    } finally {
+      if (mounted) setState(() => _resending = false);
+    }
   }
 
   String get _enteredCode => _controllers.map((c) => c.text).join();
@@ -2321,7 +2375,8 @@ class _RegisterVerifyScreenState extends State<RegisterVerifyScreen> {
                               ),
                             ),
                             const TextSpan(
-                                text: ' pour activer votre compte.'),
+                                text:
+                                    ' pour activer votre compte (valable 5 minutes).'),
                           ],
                         ),
                       ),
@@ -2384,18 +2439,44 @@ class _RegisterVerifyScreenState extends State<RegisterVerifyScreen> {
                         ),
                       ],
                       const SizedBox(height: 24),
-                      const Text(
-                        'Code valable 5 minutes. Le renvoi automatique du '
-                        "code n'est pas encore disponible pour l'inscription : "
-                        'si le code a expiré, contactez le support Gab\'Pharma.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: GabColors.muted, fontSize: 12),
+                      Column(
+                        children: [
+                          const Text("Vous n'avez pas reçu de code ?",
+                              style: TextStyle(color: GabColors.muted)),
+                          if (_canResendNow)
+                            TextButton(
+                              onPressed: _resending ? null : _resendCode,
+                              child: Text(_resending
+                                  ? 'Envoi en cours...'
+                                  : 'Renvoyer le code'),
+                            )
+                          else
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text.rich(
+                                TextSpan(
+                                  style:
+                                      const TextStyle(color: GabColors.muted),
+                                  children: [
+                                    const TextSpan(text: 'Renvoi possible dans '),
+                                    TextSpan(
+                                      text:
+                                          '0:${_resendSecondsLeft.toString().padLeft(2, '0')}',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          color: GabColors.primary),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton(
-                          onPressed: _submitting ? null : _submit,
+                          onPressed: (_submitting || _resending) ? null : _submit,
                           child: _submitting
                               ? const SizedBox(
                                   height: 20,

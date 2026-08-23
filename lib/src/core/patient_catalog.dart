@@ -33,6 +33,18 @@ class PatientZone {
       );
 }
 
+class PatientForm {
+  const PatientForm({required this.code, required this.label});
+
+  final String code;
+  final String label;
+
+  factory PatientForm.fromJson(Map<String, dynamic> json) => PatientForm(
+        code: json['code']?.toString() ?? '',
+        label: json['label']?.toString() ?? '',
+      );
+}
+
 class CatalogMedication {
   const CatalogMedication({
     required this.medicationId,
@@ -141,6 +153,8 @@ class PharmacyDetail {
     required this.zoneLabel,
     required this.address,
     required this.phone,
+    required this.latitude,
+    required this.longitude,
     required this.isOnDuty,
     required this.is24h,
     required this.isOpenNow,
@@ -154,6 +168,8 @@ class PharmacyDetail {
   final String zoneLabel;
   final String address;
   final String phone;
+  final double? latitude;
+  final double? longitude;
   final bool isOnDuty;
   final bool is24h;
   final bool isOpenNow;
@@ -168,6 +184,8 @@ class PharmacyDetail {
         zoneLabel: json['zone_label']?.toString() ?? '',
         address: json['address']?.toString() ?? '',
         phone: json['phone']?.toString() ?? '',
+        latitude: double.tryParse(json['latitude']?.toString() ?? ''),
+        longitude: double.tryParse(json['longitude']?.toString() ?? ''),
         isOnDuty: json['is_on_duty'] == true,
         is24h: json['is_24_7'] == true,
         isOpenNow: json['is_open_now'] == true,
@@ -208,16 +226,26 @@ Future<List<PatientZone>> fetchPatientZones() async {
       .toList();
 }
 
+Future<List<PatientForm>> fetchPatientForms() async {
+  final json =
+      await AuthSession.instance.api.getJson('mobile/patient/catalog/forms/');
+  return ((json['forms'] as List?) ?? [])
+      .map((e) => PatientForm.fromJson(Map<String, dynamic>.from(e as Map)))
+      .toList();
+}
+
 Future<CatalogPage> fetchCatalog({
   String query = '',
   int? categoryId,
   String? zoneCode,
+  String? formCode,
   int page = 1,
 }) async {
   final params = <String, String>{'page': '$page'};
   if (query.isNotEmpty) params['q'] = query;
   if (categoryId != null) params['category'] = '$categoryId';
   if (zoneCode != null && zoneCode.isNotEmpty) params['zone'] = zoneCode;
+  if (formCode != null && formCode.isNotEmpty) params['form'] = formCode;
   final qs = params.entries
       .map((e) => '${e.key}=${Uri.encodeQueryComponent(e.value)}')
       .join('&');
@@ -669,6 +697,7 @@ class PatientOrder {
     required this.reference,
     required this.pharmacyName,
     required this.pharmacyAddress,
+    required this.pharmacyPhone,
     required this.pharmacyIsOnDuty,
     required this.pharmacyIs247,
     required this.status,
@@ -689,6 +718,7 @@ class PatientOrder {
   final String reference;
   final String pharmacyName;
   final String pharmacyAddress;
+  final String pharmacyPhone;
   final bool pharmacyIsOnDuty;
   final bool pharmacyIs247;
   final String status;
@@ -711,6 +741,7 @@ class PatientOrder {
       reference: json['reference']?.toString() ?? '',
       pharmacyName: pharmacy['name']?.toString() ?? '',
       pharmacyAddress: pharmacy['address']?.toString() ?? '',
+      pharmacyPhone: pharmacy['phone']?.toString() ?? '',
       pharmacyIsOnDuty: pharmacy['is_on_duty'] == true,
       pharmacyIs247: pharmacy['is_24_7'] == true,
       status: json['status']?.toString() ?? '',

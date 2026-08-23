@@ -89,6 +89,7 @@ class AuthChallenge {
 class AuthSession {
   AuthSession._() {
     api.onUnauthorized = _handleUnauthorized;
+    api.onRefreshToken = _refreshAccessToken;
   }
 
   static final AuthSession instance = AuthSession._();
@@ -101,11 +102,12 @@ class AuthSession {
 
   AuthUser? currentUser;
 
-  // Le token d'accès n'a pas de rafraîchissement automatique côté API pour
-  // l'instant (pas d'endpoint /mobile/auth/refresh/) : il expire au bout de
-  // 20 min et toute requête échoue alors en 401. On détecte ça ici pour
-  // renvoyer proprement au login plutôt que de laisser chaque écran afficher
-  // une erreur générique qui ne se résoudra jamais toute seule.
+  // Le token d'accès expire au bout de 20 min. Depuis le 23 août 2026,
+  // POST /mobile/auth/refresh/ permet de le rafraîchir silencieusement avec
+  // le refresh token (14 jours) déjà stocké — voir _refreshAccessToken et le
+  // hook ApiClient.onRefreshToken. On ne déconnecte que si ce rafraîchissement
+  // échoue aussi (refresh token lui-même expiré/révoqué, ou compte devenu
+  // inactif entre-temps), plutôt que sur le premier 401 rencontré.
   bool _handlingUnauthorized = false;
   // Pendant restoreSession(), un 401 sur /me/ est un cas normal (token
   // périmé depuis la dernière ouverture) déjà géré par son propre
@@ -283,5 +285,44 @@ class AuthSession {
     _handlingUnauthorized = false;
     await _storage.write(key: _accessTokenKey, value: accessToken);
     await _storage.write(key: _refreshTokenKey, value: refreshToken);
+  }
+
+  // Plusieurs requêtes peuvent expirer en même temps (plusieurs écrans qui
+  // chargent en parallèle) : un seul rafraîchissement en vol, les autres
+  // 401 concurrents attendent son résultat plutôt que d'en déclencher un
+  // chacun.
+  Future<bool>? _refreshInFlight;
+
+  Future<bool> _refreshAccessToken() {
+    return _refreshInFlight ??=
+        _performRefresh().whenComplete(() => _refreshInFlight = null);
+  }
+
+  Future<bool> _performRefresh() async {
+    final refreshToken = await _storage.read(key: _refreshTokenKey);
+    if (refreshToken == null || refreshToken.isEmpty) return false;
+    try {
+      final response = await api.postJson(
+        'mobile/auth/refresh/',
+        {'refresh': refreshToken},
+        allowTokenRefresh: false,
+      );
+      final newAccessToken = response['access']?.toString();
+      if (newAccessToken == null || newAccessToken.isEmpty) return false;
+      api.accessToken = newAccessToken;
+      _handlingUnauthorized = false;
+      await _storage.write(key: _accessTokenKey, value: newAccessToken);
+      // ROTATE_REFRESH_TOKENS=True côté Django : un nouveau refresh token
+      // est renvoyé à chaque appel, à stocker pour le prochain rafraîchissement.
+      final newRefreshToken = response['refresh']?.toString();
+      if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
+        await _storage.write(key: _refreshTokenKey, value: newRefreshToken);
+      }
+      return true;
+    } on ApiException {
+      return false;
+    } on Object {
+      return false;
+    }
   }
 }
