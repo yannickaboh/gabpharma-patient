@@ -1,4 +1,5 @@
 # Gab'Pharma Patient — propositions d'évolutions backend (Django)
+# Chemin vers le projet en cas de besoin de consultation : C:\Users\24174\StudioProjects\gabpharma_patient>
 
 **Créé le :** 23 août 2026
 **But :** lister, endpoint par endpoint, ce qu'il manque côté API Django (`C:\Users\24174\Documents\projets\django projects\gabpharma`) pour que l'app mobile Patient soit complète, stable et pleinement fonctionnelle — au-delà du simple branchement des 24 écrans déjà réalisé (voir `branchement_patient.md`). Chaque point a été vérifié en lisant le code backend réel (modèles, vues, `urls.py`), pas deviné depuis l'app : quand un champ ou une donnée existe déjà en base mais n'est simplement pas exposée à l'API mobile, c'est précisé, car le coût de correction est très différent d'une fonctionnalité à construire de zéro.
