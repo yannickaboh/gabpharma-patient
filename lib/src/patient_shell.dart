@@ -8,6 +8,7 @@ import 'core/api_client.dart' show ApiException;
 import 'core/auth_session.dart';
 import 'core/patient_catalog.dart';
 import 'core/patient_summary.dart';
+import 'core/push_notification_service.dart';
 import 'core/theme.dart';
 import 'detail_screens.dart' show OrderDetailScreen;
 import 'widgets.dart';
@@ -2655,6 +2656,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             const SizedBox(height: 8),
                             OutlinedButton.icon(
                               onPressed: () async {
+                                await PushNotificationService
+                                    .unregisterCurrentDevice();
                                 await AuthSession.instance.clear();
                                 if (!context.mounted) return;
                                 Navigator.pushNamedAndRemoveUntil(
@@ -2689,6 +2692,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   late final _lastName = TextEditingController(text: widget.profile.lastName);
   late final _username = TextEditingController(text: widget.profile.username);
   late final _phone = TextEditingController(text: widget.profile.phone);
+  late String _email = widget.profile.email;
   bool _saving = false;
   String? _firstNameError;
   String? _lastNameError;
@@ -2821,13 +2825,45 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       const Text('E-mail',
                           style: TextStyle(fontWeight: FontWeight.w600)),
                       const SizedBox(height: 8),
-                      TextField(
-                        enabled: false,
-                        controller:
-                            TextEditingController(text: widget.profile.email),
-                        decoration: const InputDecoration(
-                          prefixIcon: Icon(Icons.mail_outline),
-                          helperText: 'Lecture seule',
+                      // Pas un TextField(enabled: false) : Flutter enveloppe
+                      // un champ désactivé dans un IgnorePointer qui couvre
+                      // aussi son suffixIcon, rendant "Modifier" inerte.
+                      Container(
+                        padding: const EdgeInsets.only(left: 16, right: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border:
+                              Border.all(color: GabColors.outlineVariant),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.mail_outline,
+                                color: GabColors.muted),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _email,
+                                style: const TextStyle(fontSize: 16),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                final newEmail = await Navigator.push<String>(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => EmailChangeScreen(
+                                        currentEmail: _email),
+                                  ),
+                                );
+                                if (newEmail != null && mounted) {
+                                  setState(() => _email = newEmail);
+                                }
+                              },
+                              child: const Text('Modifier'),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -2853,6 +2889,457 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               ),
             ],
           ),
+        ),
+      );
+}
+
+/// Sous-écran à deux étapes (mot de passe + nouvel e-mail, puis code à 6
+/// chiffres) sur le modèle de `RegisterVerifyScreen` (auth_screens.dart).
+/// Contrairement à celui-ci, pas de challenge transmis via
+/// `Navigator.arguments` : l'étape 1 obtient elle-même son challenge en
+/// appelant `POST /mobile/profile/email-change/`.
+class EmailChangeScreen extends StatefulWidget {
+  const EmailChangeScreen({required this.currentEmail, super.key});
+
+  final String currentEmail;
+
+  @override
+  State<EmailChangeScreen> createState() => _EmailChangeScreenState();
+}
+
+class _EmailChangeScreenState extends State<EmailChangeScreen> {
+  static const _codeLength = 6;
+  static const _maxAttempts = 3;
+  // Doit correspondre à AUTH_CODE_RESEND_COOLDOWN_SECONDS côté Django (même
+  // valeur que PasswordResetScreen/RegisterVerifyScreen) : pas de challenge
+  // factice ici (l'utilisateur est déjà authentifié), mais un renvoi trop
+  // rapide échoue avec un 429 explicite — on l'évite côté client.
+  static const _resendCooldownSeconds = 60;
+
+  final _passwordController = TextEditingController();
+  final _newEmailController = TextEditingController();
+  final _controllers =
+      List.generate(_codeLength, (_) => TextEditingController());
+  final _focusNodes = List.generate(_codeLength, (_) => FocusNode());
+
+  int _step = 0;
+  bool _obscurePassword = true;
+  bool _requesting = false;
+  String? _requestError;
+
+  AuthChallenge? _challenge;
+  String _pendingEmail = '';
+  int _attempts = 0;
+  bool _submitting = false;
+  bool _resending = false;
+  String? _codeError;
+  Timer? _resendTimer;
+  int _resendSecondsLeft = _resendCooldownSeconds;
+  bool _canResendNow = false;
+
+  @override
+  void dispose() {
+    _resendTimer?.cancel();
+    _passwordController.dispose();
+    _newEmailController.dispose();
+    for (final c in _controllers) {
+      c.dispose();
+    }
+    for (final f in _focusNodes) {
+      f.dispose();
+    }
+    super.dispose();
+  }
+
+  void _startResendCountdown() {
+    _resendTimer?.cancel();
+    setState(() {
+      _resendSecondsLeft = _resendCooldownSeconds;
+      _canResendNow = false;
+    });
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_resendSecondsLeft <= 1) {
+        timer.cancel();
+        setState(() => _canResendNow = true);
+        return;
+      }
+      setState(() => _resendSecondsLeft--);
+    });
+  }
+
+  String get _enteredCode => _controllers.map((c) => c.text).join();
+
+  void _clearCode() {
+    for (final c in _controllers) {
+      c.clear();
+    }
+    _focusNodes.first.requestFocus();
+  }
+
+  Future<void> _requestCode() async {
+    if (_requesting) return;
+    final password = _passwordController.text;
+    final newEmail = _newEmailController.text.trim();
+    if (password.isEmpty) {
+      setState(() => _requestError = 'Indiquez votre mot de passe actuel.');
+      return;
+    }
+    if (!newEmail.contains('@') || !newEmail.contains('.')) {
+      setState(() => _requestError = 'Adresse e-mail invalide.');
+      return;
+    }
+    if (newEmail.toLowerCase() == widget.currentEmail.toLowerCase()) {
+      setState(() =>
+          _requestError = "C'est déjà votre adresse e-mail actuelle.");
+      return;
+    }
+    setState(() {
+      _requesting = true;
+      _requestError = null;
+    });
+    try {
+      final challenge = await requestEmailChange(
+        currentPassword: password,
+        newEmail: newEmail,
+      );
+      if (!mounted) return;
+      setState(() {
+        _challenge = challenge;
+        _pendingEmail = newEmail;
+        _step = 1;
+        _requesting = false;
+        _attempts = 0;
+      });
+      _clearCode();
+      _startResendCountdown();
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _requesting = false;
+        _requestError = error.statusCode == 429
+            ? 'Trop de demandes. Réessayez dans quelques instants.'
+            : error.message;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _requesting = false;
+        _requestError = "Impossible de joindre l'API Gab'Pharma.";
+      });
+    }
+  }
+
+  Future<void> _resendCode() async {
+    if (_resending || !_canResendNow) return;
+    setState(() {
+      _resending = true;
+      _codeError = null;
+    });
+    try {
+      final challenge = await requestEmailChange(
+        currentPassword: _passwordController.text,
+        newEmail: _pendingEmail,
+      );
+      if (!mounted) return;
+      setState(() {
+        _challenge = challenge;
+        _attempts = 0;
+      });
+      _clearCode();
+      _startResendCountdown();
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _codeError = error.statusCode == 429
+          ? 'Trop de demandes. Réessayez dans quelques instants.'
+          : error.message);
+    } on Object {
+      if (!mounted) return;
+      setState(() =>
+          _codeError = "Impossible de joindre l'API Gab'Pharma.");
+    } finally {
+      if (mounted) setState(() => _resending = false);
+    }
+  }
+
+  Future<void> _verify() async {
+    if (_submitting) return;
+    final challenge = _challenge;
+    if (challenge == null) return;
+    final code = _enteredCode;
+    if (code.length < _codeLength) {
+      setState(() => _codeError = 'Saisissez les 6 chiffres du code.');
+      return;
+    }
+    if (_attempts >= _maxAttempts) {
+      setState(() => _codeError =
+          'Trop de tentatives. Redemandez un code depuis le début.');
+      return;
+    }
+    setState(() {
+      _submitting = true;
+      _codeError = null;
+    });
+    try {
+      final profile = await verifyEmailChange(
+        challengeId: challenge.id,
+        code: code,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Adresse e-mail mise à jour.')),
+      );
+      Navigator.pop(context, profile.email);
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _attempts++;
+        _codeError = _attempts >= _maxAttempts
+            ? 'Trop de tentatives. Redemandez un code depuis le début.'
+            : error.message;
+      });
+      _clearCode();
+    } on Object {
+      if (!mounted) return;
+      setState(
+          () => _codeError = "Impossible de joindre l'API Gab'Pharma.");
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: GabColors.background,
+        body: SafeArea(
+          child: Column(
+            children: [
+              SizedBox(
+                height: 56,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: IconButton(
+                        onPressed: () => _step == 1
+                            ? setState(() => _step = 0)
+                            : Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back,
+                            color: GabColors.primary),
+                      ),
+                    ),
+                    const Text(
+                      "Changer l'e-mail",
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: GabColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1, color: GabColors.outlineVariant),
+              Expanded(
+                child: _step == 0 ? _buildForm() : _buildCodeStep(),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _buildForm() => SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Adresse actuelle : ${widget.currentEmail}',
+                style: const TextStyle(color: GabColors.muted)),
+            const SizedBox(height: 20),
+            const Text('Mot de passe actuel',
+                style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _passwordController,
+              obscureText: _obscurePassword,
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.lock_outline),
+                suffixIcon: IconButton(
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                  icon: Icon(_obscurePassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text('Nouvelle adresse e-mail',
+                style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _newEmailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.mail_outline),
+              ),
+            ),
+            if (_requestError != null) ...[
+              const SizedBox(height: 12),
+              Text(_requestError!,
+                  style: const TextStyle(
+                      color: GabColors.danger, fontWeight: FontWeight.w600)),
+            ],
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _requesting ? null : _requestCode,
+                child: _requesting
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2.4, color: Colors.white),
+                      )
+                    : const Text('Envoyer le code'),
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _buildCodeStep() => SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Column(
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: GabColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: const Icon(Icons.mark_email_read_outlined,
+                  color: GabColors.primary, size: 34),
+            ),
+            const SizedBox(height: 16),
+            RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                style: const TextStyle(color: GabColors.muted, fontSize: 16),
+                children: [
+                  const TextSpan(text: 'Entrez le code à 6 chiffres envoyé à '),
+                  TextSpan(
+                    text: _pendingEmail,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700, color: GabColors.ink),
+                  ),
+                  const TextSpan(text: ' (valable 5 minutes).'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 28),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(_codeLength, (i) {
+                final hasError = _codeError != null;
+                return SizedBox(
+                  width: 44,
+                  height: 56,
+                  child: TextField(
+                    controller: _controllers[i],
+                    focusNode: _focusNodes[i],
+                    textAlign: TextAlign.center,
+                    keyboardType: TextInputType.number,
+                    maxLength: 1,
+                    style:
+                        const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                    decoration: InputDecoration(
+                      counterText: '',
+                      contentPadding: EdgeInsets.zero,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color:
+                              hasError ? GabColors.danger : GabColors.outlineVariant,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                            color: GabColors.primary, width: 1.6),
+                      ),
+                    ),
+                    onChanged: (value) {
+                      setState(() => _codeError = null);
+                      if (value.isNotEmpty && i < _codeLength - 1) {
+                        _focusNodes[i + 1].requestFocus();
+                      } else if (value.isEmpty && i > 0) {
+                        _focusNodes[i - 1].requestFocus();
+                      }
+                    },
+                  ),
+                );
+              }),
+            ),
+            if (_codeError != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _codeError!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    color: GabColors.danger, fontWeight: FontWeight.w600),
+              ),
+            ],
+            const SizedBox(height: 24),
+            Column(
+              children: [
+                const Text("Vous n'avez pas reçu de code ?",
+                    style: TextStyle(color: GabColors.muted)),
+                if (_canResendNow)
+                  TextButton(
+                    onPressed: _resending ? null : _resendCode,
+                    child: Text(
+                        _resending ? 'Envoi en cours...' : 'Renvoyer le code'),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text.rich(
+                      TextSpan(
+                        style: const TextStyle(color: GabColors.muted),
+                        children: [
+                          const TextSpan(text: 'Renvoi possible dans '),
+                          TextSpan(
+                            text:
+                                '0:${_resendSecondsLeft.toString().padLeft(2, '0')}',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: GabColors.primary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: (_submitting || _resending) ? null : _verify,
+                child: _submitting
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2.4, color: Colors.white),
+                      )
+                    : const Text('Vérifier et changer'),
+              ),
+            ),
+          ],
         ),
       );
 }

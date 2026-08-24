@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'core/api_client.dart';
 import 'core/auth_session.dart';
+import 'core/push_notification_service.dart';
 import 'core/theme.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -35,6 +36,7 @@ class _SplashScreenState extends State<SplashScreen>
         (widget.restoreSession ?? AuthSession.instance.restoreSession)();
     await Future<void>.delayed(const Duration(milliseconds: 900));
     final hasSession = await sessionFuture;
+    if (hasSession) await PushNotificationService.registerCurrentDevice();
     if (!mounted) return;
     Navigator.pushReplacementNamed(context, hasSession ? '/home' : '/login');
   }
@@ -225,7 +227,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _identifier = TextEditingController(text: 'patient.demo@gabpharma.ga');
+  final _identifier = TextEditingController(text: 'patient.demo@gmail.com');
   final _password = TextEditingController(text: 'Demo1987.');
   bool _obscure = true;
   bool _rememberMe = false;
@@ -558,6 +560,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
         challenge: challenge,
         code: code,
       );
+      await PushNotificationService.registerCurrentDevice();
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
     } on ApiException catch (error) {
@@ -2280,6 +2283,7 @@ class _RegisterVerifyScreenState extends State<RegisterVerifyScreen> {
         challengeId: challenge.id,
         code: code,
       );
+      await PushNotificationService.registerCurrentDevice();
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
     } on ApiException catch (error) {

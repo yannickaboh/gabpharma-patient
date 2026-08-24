@@ -578,6 +578,110 @@ class PatientPaymentTransaction {
       );
 }
 
+class PatientPaymentHistoryOrder {
+  const PatientPaymentHistoryOrder({
+    required this.id,
+    required this.reference,
+    required this.pharmacyName,
+    required this.totalFcfa,
+    required this.paymentStatus,
+    required this.paymentStatusLabel,
+    required this.refundedAmountFcfa,
+  });
+
+  final int id;
+  final String reference;
+  final String pharmacyName;
+  final int totalFcfa;
+  final String paymentStatus;
+  final String paymentStatusLabel;
+  final int refundedAmountFcfa;
+
+  factory PatientPaymentHistoryOrder.fromJson(Map<String, dynamic> json) =>
+      PatientPaymentHistoryOrder(
+        id: (json['id'] as num).toInt(),
+        reference: json['reference']?.toString() ?? '',
+        pharmacyName: json['pharmacy_name']?.toString() ?? '',
+        totalFcfa: (json['total_fcfa'] as num?)?.toInt() ?? 0,
+        paymentStatus: json['payment_status']?.toString() ?? '',
+        paymentStatusLabel: json['payment_status_label']?.toString() ?? '',
+        refundedAmountFcfa:
+            (json['refunded_amount_fcfa'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class PatientPaymentHistoryEntry {
+  const PatientPaymentHistoryEntry({
+    required this.reference,
+    required this.provider,
+    required this.providerLabel,
+    required this.status,
+    required this.statusLabel,
+    required this.paymentMethodLabel,
+    required this.canResumePayment,
+    required this.createdAt,
+    required this.resolvedAt,
+    required this.order,
+  });
+
+  final String reference;
+  final String provider;
+  final String providerLabel;
+  final String status;
+  final String statusLabel;
+  final String paymentMethodLabel;
+  final bool canResumePayment;
+  final DateTime? createdAt;
+  final DateTime? resolvedAt;
+  final PatientPaymentHistoryOrder order;
+
+  factory PatientPaymentHistoryEntry.fromJson(Map<String, dynamic> json) =>
+      PatientPaymentHistoryEntry(
+        reference: json['reference']?.toString() ?? '',
+        provider: json['provider']?.toString() ?? '',
+        providerLabel: json['provider_label']?.toString() ?? '',
+        status: json['status']?.toString() ?? '',
+        statusLabel: json['status_label']?.toString() ?? '',
+        paymentMethodLabel: json['payment_method'] is Map
+            ? (json['payment_method']['label']?.toString() ?? '')
+            : '',
+        // resolve_url n'est renvoyé (non nul) que pour un paiement simulé
+        // encore en attente — signale qu'un "Reprendre le paiement" est
+        // possible via SimulatedPaymentScreen.
+        canResumePayment: json['resolve_url'] != null,
+        createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
+        resolvedAt: DateTime.tryParse(json['resolved_at']?.toString() ?? ''),
+        order: PatientPaymentHistoryOrder.fromJson(
+          Map<String, dynamic>.from(json['order'] as Map),
+        ),
+      );
+}
+
+class PatientPaymentHistoryPage {
+  const PatientPaymentHistoryPage({
+    required this.count,
+    required this.hasMore,
+    required this.results,
+  });
+
+  final int count;
+  final bool hasMore;
+  final List<PatientPaymentHistoryEntry> results;
+}
+
+Future<PatientPaymentHistoryPage> fetchPaymentsHistory({int page = 1}) async {
+  final json = await AuthSession.instance.api
+      .getJson('mobile/patient/payments/?page=$page');
+  return PatientPaymentHistoryPage(
+    count: (json['count'] as num?)?.toInt() ?? 0,
+    hasMore: json['next'] != null,
+    results: ((json['results'] as List?) ?? [])
+        .map((e) => PatientPaymentHistoryEntry.fromJson(
+            Map<String, dynamic>.from(e as Map)))
+        .toList(),
+  );
+}
+
 class PatientPaymentResolution {
   const PatientPaymentResolution({
     required this.transaction,
@@ -1278,5 +1382,65 @@ Future<void> changePassword({
     'current_password': currentPassword,
     'new_password1': newPassword1,
     'new_password2': newPassword2,
+  });
+}
+
+/// Envoie un code à 6 chiffres à [newEmail] ; rappeler cette même fonction
+/// sert aussi de renvoi (pas d'endpoint de renvoi dédié côté backend).
+/// Peut lever une [ApiException] avec statusCode 429 si le cooldown serveur
+/// n'est pas encore écoulé.
+Future<AuthChallenge> requestEmailChange({
+  required String currentPassword,
+  required String newEmail,
+}) async {
+  final json =
+      await AuthSession.instance.api.postJson('mobile/profile/email-change/', {
+    'current_password': currentPassword,
+    'new_email': newEmail,
+  });
+  return AuthChallenge.fromJson(
+    Map<String, dynamic>.from(json['challenge'] as Map),
+  );
+}
+
+Future<PatientProfile> verifyEmailChange({
+  required String challengeId,
+  required String code,
+}) async {
+  final json =
+      await AuthSession.instance.api.postJson('mobile/profile/email-change/verify/', {
+    'challenge_id': challengeId,
+    'code': code,
+  });
+  return PatientProfile.fromJson(
+      Map<String, dynamic>.from(json['profile'] as Map));
+}
+
+/// Désactivation réversible (conformité App Store/Play Store) : la
+/// réactivation se fait par simple reconnexion + 2FA, aucun endpoint
+/// séparé côté backend.
+Future<void> deactivateAccount({required String currentPassword}) async {
+  await AuthSession.instance.api.postJson('mobile/profile/deactivate/', {
+    'current_password': currentPassword,
+  });
+}
+
+/// Upsert par `push_token` côté backend : réutilisable aussi bien pour un
+/// premier enregistrement que pour signaler qu'un token a été rafraîchi.
+Future<void> registerDevice({
+  required String pushToken,
+  required String platform,
+  String deviceLabel = '',
+}) async {
+  await AuthSession.instance.api.postJson('mobile/devices/', {
+    'push_token': pushToken,
+    'platform': platform,
+    'device_label': deviceLabel,
+  });
+}
+
+Future<void> unregisterDevice({required String pushToken}) async {
+  await AuthSession.instance.api.postJson('mobile/devices/unregister/', {
+    'push_token': pushToken,
   });
 }

@@ -8,6 +8,7 @@ import 'auth_screens.dart' show TermsScreen, PrivacyPolicyScreen;
 import 'core/api_client.dart' show ApiException;
 import 'core/auth_session.dart';
 import 'core/patient_catalog.dart';
+import 'core/push_notification_service.dart';
 import 'core/theme.dart';
 import 'widgets.dart'
     show EmptyState, addToCartWithFeedback, callPhoneNumber, openMapsDirections;
@@ -4237,69 +4238,99 @@ extension on _PaymentStatus {
       };
 }
 
-class _FinancialTransaction {
-  const _FinancialTransaction({
-    required this.pharmacyName,
-    required this.referenceLabel,
-    required this.dateLabel,
-    required this.amount,
-    required this.status,
-  });
-
-  final String pharmacyName;
-  final String referenceLabel;
-  final String dateLabel;
-  final int amount;
-  final _PaymentStatus status;
+/// Le backend ne modélise pas les remboursements comme des
+/// `PaymentTransaction` séparées (voir `propositions_backend.md` §2) : le
+/// statut de remboursement vit uniquement sur `order.payment_status`. On le
+/// fait donc primer sur le statut brut de la transaction pour l'affichage.
+_PaymentStatus _statusFor(PatientPaymentHistoryEntry entry) {
+  switch (entry.order.paymentStatus) {
+    case 'refunded':
+      return _PaymentStatus.refunded;
+    case 'refund_pending':
+    case 'partially_refunded':
+      return _PaymentStatus.refundPending;
+  }
+  switch (entry.status) {
+    case 'succeeded':
+      return _PaymentStatus.paid;
+    case 'failed':
+      return _PaymentStatus.failed;
+    default:
+      return _PaymentStatus.pending;
+  }
 }
 
-const _financialTransactions = <_FinancialTransaction>[
-  _FinancialTransaction(
-    pharmacyName: 'Pharmacie de la Garde',
-    referenceLabel: 'Commande #GP-2607-5102',
-    dateLabel: "Aujourd'hui, 09:05",
-    amount: 6800,
-    status: _PaymentStatus.pending,
-  ),
-  _FinancialTransaction(
-    pharmacyName: 'Pharmacie Akanda',
-    referenceLabel: 'Remboursement #RF-0101',
-    dateLabel: '5 juil. 2026, 16:00',
-    amount: 1700,
-    status: _PaymentStatus.refundPending,
-  ),
-  _FinancialTransaction(
-    pharmacyName: "Pharmacie d'Okala",
-    referenceLabel: 'Commande #GP-2607-5031',
-    dateLabel: '3 juil. 2026, 14:20',
-    amount: 8400,
-    status: _PaymentStatus.paid,
-  ),
-  _FinancialTransaction(
-    pharmacyName: 'Pharmacie du Pont',
-    referenceLabel: 'Remboursement #RF-0092',
-    dateLabel: '1 juil. 2026, 09:15',
-    amount: 2500,
-    status: _PaymentStatus.refunded,
-  ),
-  _FinancialTransaction(
-    pharmacyName: 'Pharmacie Sainte-Marie',
-    referenceLabel: 'Commande #GP-2606-4978',
-    dateLabel: '28 juin 2026, 18:45',
-    amount: 12000,
-    status: _PaymentStatus.failed,
-  ),
-  _FinancialTransaction(
-    pharmacyName: 'Pharmacie Cristal',
-    referenceLabel: 'Commande #GP-2606-4899',
-    dateLabel: '25 juin 2026, 11:30',
-    amount: 15200,
-    status: _PaymentStatus.paid,
-  ),
-];
-
-class PaymentsHistoryScreen extends StatelessWidget {
+class PaymentsHistoryScreen extends StatefulWidget {
   const PaymentsHistoryScreen({super.key});
+
+  @override
+  State<PaymentsHistoryScreen> createState() => _PaymentsHistoryScreenState();
+}
+
+class _PaymentsHistoryScreenState extends State<PaymentsHistoryScreen> {
+  List<PatientPaymentHistoryEntry> _entries = [];
+  int _page = 1;
+  bool _hasMore = false;
+  bool _loading = true;
+  bool _loadingMore = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+      _page = 1;
+    });
+    try {
+      final page = await fetchPaymentsHistory();
+      if (!mounted) return;
+      setState(() {
+        _entries = page.results;
+        _hasMore = page.hasMore;
+        _loading = false;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = error.message;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = "Impossible de joindre l'API Gab'Pharma.";
+      });
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore || !_hasMore) return;
+    setState(() => _loadingMore = true);
+    try {
+      final page = await fetchPaymentsHistory(page: _page + 1);
+      if (!mounted) return;
+      setState(() {
+        _entries = [..._entries, ...page.results];
+        _hasMore = page.hasMore;
+        _page += 1;
+        _loadingMore = false;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() => _loadingMore = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text("Impossible de charger la suite de l'historique.")),
+      );
+    }
+  }
 
   String _formatFcfa(int amount) {
     final s = amount.toString();
@@ -4333,14 +4364,30 @@ class PaymentsHistoryScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _resumePayment(PatientPaymentHistoryEntry entry) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SimulatedPaymentScreen(
+          transactionReference: entry.reference,
+          orderReference: entry.order.reference,
+          pharmacyName: entry.order.pharmacyName,
+          totalFcfa: entry.order.totalFcfa,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    _load();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final paidTotal = _financialTransactions
-        .where((t) => t.status == _PaymentStatus.paid)
-        .fold(0, (sum, t) => sum + t.amount);
-    final refundedTotal = _financialTransactions
-        .where((t) => t.status == _PaymentStatus.refunded)
-        .fold(0, (sum, t) => sum + t.amount);
+    final paidTotal = _entries
+        .where((e) => _statusFor(e) == _PaymentStatus.paid)
+        .fold(0, (sum, e) => sum + e.order.totalFcfa);
+    final refundedTotal = _entries
+        .where((e) => _statusFor(e) == _PaymentStatus.refunded)
+        .fold(0, (sum, e) => sum + e.order.refundedAmountFcfa);
     return Scaffold(
       backgroundColor: GabColors.background,
       appBar: AppBar(
@@ -4352,202 +4399,257 @@ class PaymentsHistoryScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: GabColors.outlineVariant),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'DÉPENSES TOTALES (MOIS)',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: GabColors.muted,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _formatFcfa(paidTotal),
-                        style: const TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w800,
-                          color: GabColors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF9DF6B2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.account_balance_wallet,
-                      color: GabColors.primary),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _StatTile(
-                  label: 'Remboursements',
-                  value: _formatFcfa(refundedTotal),
-                  valueColor: GabColors.secondary,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _StatTile(
-                  label: 'Transactions',
-                  value: '${_financialTransactions.length}',
-                  valueColor: GabColors.ink,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: GabColors.softGreen,
-              borderRadius: BorderRadius.circular(16),
-              border:
-                  Border.all(color: GabColors.secondary.withValues(alpha: 0.2)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.info_outline,
-                    color: GabColors.secondary, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Processus de remboursement',
-                        style: TextStyle(
-                            color: GabColors.secondary,
-                            fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Les remboursements sont traités sous 3 à 5 jours '
-                        "ouvrables après validation par Gab'Pharma. Le "
-                        "montant sera crédité sur votre compte d'origine.",
-                        style: TextStyle(color: GabColors.muted, fontSize: 13),
-                      ),
-                      TextButton(
-                        onPressed: () => _showRefundInfo(context),
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: const Size(0, 32),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          foregroundColor: GabColors.secondary,
-                        ),
-                        child: const Text('En savoir plus'),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Historique financier',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-              TextButton.icon(
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Filtres indisponibles en démonstration.',
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.cloud_off,
+                            size: 52, color: GabColors.secondary),
+                        const SizedBox(height: 16),
+                        Text(_error!, textAlign: TextAlign.center),
+                        const SizedBox(height: 16),
+                        FilledButton(
+                            onPressed: _load, child: const Text('Réessayer')),
+                      ],
                     ),
                   ),
+                )
+              : ListView(
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: GabColors.outlineVariant),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'DÉPENSES TOTALES',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: GabColors.muted,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _formatFcfa(paidTotal),
+                                  style: const TextStyle(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w800,
+                                    color: GabColors.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF9DF6B2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.account_balance_wallet,
+                                color: GabColors.primary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _StatTile(
+                            label: 'Remboursements',
+                            value: _formatFcfa(refundedTotal),
+                            valueColor: GabColors.secondary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _StatTile(
+                            label: 'Transactions',
+                            value: '${_entries.length}',
+                            valueColor: GabColors.ink,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: GabColors.softGreen,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                            color: GabColors.secondary.withValues(alpha: 0.2)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.info_outline,
+                              color: GabColors.secondary, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Processus de remboursement',
+                                  style: TextStyle(
+                                      color: GabColors.secondary,
+                                      fontWeight: FontWeight.w700),
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'Les remboursements sont traités sous 3 à 5 '
+                                  'jours ouvrables après validation par '
+                                  "Gab'Pharma. Le montant sera crédité sur "
+                                  "votre compte d'origine.",
+                                  style: TextStyle(
+                                      color: GabColors.muted, fontSize: 13),
+                                ),
+                                TextButton(
+                                  onPressed: () => _showRefundInfo(context),
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: const Size(0, 32),
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    foregroundColor: GabColors.secondary,
+                                  ),
+                                  child: const Text('En savoir plus'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Historique financier',
+                          style:
+                              TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                        ),
+                        TextButton.icon(
+                          onPressed: () =>
+                              ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Filtres indisponibles : non supportés par '
+                                "l'API pour le moment.",
+                              ),
+                            ),
+                          ),
+                          icon: const Icon(Icons.filter_list, size: 16),
+                          label: const Text('Filtrer'),
+                          style: TextButton.styleFrom(
+                              foregroundColor: GabColors.primary),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    if (_entries.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 24),
+                        child: EmptyState(
+                          icon: Icons.receipt_long_outlined,
+                          title: 'Aucune transaction',
+                          message:
+                              'Vos paiements et remboursements apparaîtront ici.',
+                        ),
+                      )
+                    else ...[
+                      for (final entry in _entries)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _TransactionCard(
+                            entry: entry,
+                            status: _statusFor(entry),
+                            formatFcfa: _formatFcfa,
+                            formatDate: _formatOrderDate,
+                            onResumePayment: () => _resumePayment(entry),
+                          ),
+                        ),
+                      if (_hasMore)
+                        Center(
+                          child: _loadingMore
+                              ? const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 12),
+                                  child: CircularProgressIndicator(),
+                                )
+                              : TextButton(
+                                  onPressed: _loadMore,
+                                  child: const Text('Charger plus'),
+                                ),
+                        ),
+                    ],
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: GabColors.outlineVariant.withValues(alpha: 0.6)),
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 64,
+                            height: 64,
+                            decoration: BoxDecoration(
+                              color: GabColors.primary.withValues(alpha: 0.06),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.contact_support,
+                                color: GabColors.primary, size: 30),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Un problème avec un paiement ?',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w700, fontSize: 16),
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            'Notre service client est disponible 24h/24 pour '
+                            'résoudre vos litiges financiers.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: GabColors.muted),
+                          ),
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton(
+                              onPressed: () =>
+                                  Navigator.pushNamed(context, '/support'),
+                              child: const Text('Contacter le support'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                icon: const Icon(Icons.filter_list, size: 16),
-                label: const Text('Filtrer'),
-                style: TextButton.styleFrom(foregroundColor: GabColors.primary),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          for (final tx in _financialTransactions)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _TransactionCard(
-                tx: tx,
-                formatFcfa: _formatFcfa,
-                onResumePayment: () => Navigator.pushNamed(context, '/payment'),
-              ),
-            ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                  color: GabColors.outlineVariant.withValues(alpha: 0.6)),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: GabColors.primary.withValues(alpha: 0.06),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.contact_support,
-                      color: GabColors.primary, size: 30),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Un problème avec un paiement ?',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Notre service client est disponible 24h/24 pour '
-                  'résoudre vos litiges financiers.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: GabColors.muted),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () => Navigator.pushNamed(context, '/support'),
-                    child: const Text('Contacter le support'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -4592,20 +4694,29 @@ class _StatTile extends StatelessWidget {
 
 class _TransactionCard extends StatelessWidget {
   const _TransactionCard({
-    required this.tx,
+    required this.entry,
+    required this.status,
     required this.formatFcfa,
+    required this.formatDate,
     required this.onResumePayment,
   });
 
-  final _FinancialTransaction tx;
+  final PatientPaymentHistoryEntry entry;
+  final _PaymentStatus status;
   final String Function(int) formatFcfa;
+  final String Function(DateTime?) formatDate;
   final VoidCallback onResumePayment;
 
   @override
   Widget build(BuildContext context) {
-    final isRefund = tx.status == _PaymentStatus.refunded ||
-        tx.status == _PaymentStatus.refundPending;
-    final isFailed = tx.status == _PaymentStatus.failed;
+    final isRefund = status == _PaymentStatus.refunded ||
+        status == _PaymentStatus.refundPending;
+    final isFailed = status == _PaymentStatus.failed;
+    final amount = isRefund
+        ? entry.order.refundedAmountFcfa
+        : entry.order.totalFcfa;
+    final canResume =
+        status == _PaymentStatus.pending && entry.canResumePayment;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -4616,6 +4727,10 @@ class _TransactionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Chaque ligne ne porte qu'un seul bloc de texte variable (nom de
+          // pharmacie OU badge de statut, jamais les deux côte à côte) :
+          // rien ne peut plus se disputer la largeur et se faire couper,
+          // quelle que soit la longueur du nom de pharmacie ou du libellé.
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -4623,81 +4738,89 @@ class _TransactionCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: tx.status.badgeColor,
+                  color: status.badgeColor,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(tx.status.leadingIcon,
-                    color: tx.status.badgeForeground, size: 20),
+                child: Icon(status.leadingIcon,
+                    color: status.badgeForeground, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(tx.pharmacyName,
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
-                    Text(tx.referenceLabel,
+                    Text(
+                      entry.order.pharmacyName,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 15),
+                    ),
+                    const SizedBox(height: 2),
+                    Text('Commande #${entry.order.reference}',
                         style: const TextStyle(
                             color: GabColors.muted, fontSize: 12)),
-                    Text(tx.dateLabel,
-                        style: const TextStyle(
-                            color: GabColors.muted, fontSize: 11)),
                   ],
                 ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    isRefund
-                        ? '+${formatFcfa(tx.amount)}'
-                        : formatFcfa(tx.amount),
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      decoration: isFailed
-                          ? TextDecoration.lineThrough
-                          : TextDecoration.none,
-                      color: isFailed
-                          ? GabColors.muted.withValues(alpha: 0.6)
-                          : isRefund
-                              ? GabColors.secondary
-                              : GabColors.ink,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: tx.status.badgeColor,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(tx.status.badgeIcon,
-                              size: 11, color: tx.status.badgeForeground),
-                          const SizedBox(width: 3),
-                          Text(
-                            tx.status.label,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: tx.status.badgeForeground,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(formatDate(entry.createdAt),
+                  style: const TextStyle(
+                      color: GabColors.muted, fontSize: 12)),
+              Text(
+                isRefund ? '+${formatFcfa(amount)}' : formatFcfa(amount),
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                  decoration: isFailed
+                      ? TextDecoration.lineThrough
+                      : TextDecoration.none,
+                  color: isFailed
+                      ? GabColors.muted.withValues(alpha: 0.6)
+                      : isRefund
+                          ? GabColors.secondary
+                          : GabColors.ink,
+                ),
               ),
             ],
           ),
-          if (tx.status == _PaymentStatus.pending) ...[
-            const SizedBox(height: 12),
-            const Divider(height: 1),
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: status.badgeColor,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(status.badgeIcon,
+                        size: 13, color: status.badgeForeground),
+                    const SizedBox(width: 5),
+                    Text(
+                      status.label,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: status.badgeForeground,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          if (canResume) ...[
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
@@ -6957,6 +7080,111 @@ class _SecurityScreenState extends State<SecurityScreen> {
     }
   }
 
+  Future<void> _deactivateAccount() async {
+    final passwordController = TextEditingController();
+    var obscure = true;
+    var submitting = false;
+    String? error;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          scrollable: true,
+          title: const Text('Désactiver mon compte ?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Votre compte sera désactivé et vous serez déconnecté(e). '
+                'Pour le réactiver, il suffit de vous reconnecter avec '
+                'votre e-mail, votre mot de passe et le code de '
+                'vérification habituel — aucune démarche séparée.',
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: passwordController,
+                obscureText: obscure,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: 'Mot de passe actuel',
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    onPressed: () =>
+                        setDialogState(() => obscure = !obscure),
+                    icon: Icon(obscure
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined),
+                  ),
+                  errorText: error,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed:
+                  submitting ? null : () => Navigator.pop(context, false),
+              child: const Text('Annuler'),
+            ),
+            TextButton(
+              onPressed: submitting
+                  ? null
+                  : () async {
+                      if (passwordController.text.isEmpty) {
+                        setDialogState(
+                            () => error = 'Mot de passe requis.');
+                        return;
+                      }
+                      setDialogState(() {
+                        submitting = true;
+                        error = null;
+                      });
+                      try {
+                        await deactivateAccount(
+                          currentPassword: passwordController.text,
+                        );
+                        if (context.mounted) Navigator.pop(context, true);
+                      } on ApiException catch (e) {
+                        setDialogState(() {
+                          submitting = false;
+                          error = e.message;
+                        });
+                      } on Object {
+                        setDialogState(() {
+                          submitting = false;
+                          error = "Impossible de joindre l'API Gab'Pharma.";
+                        });
+                      }
+                    },
+              style: TextButton.styleFrom(foregroundColor: GabColors.danger),
+              child: submitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Désactiver'),
+            ),
+          ],
+        ),
+      ),
+    );
+    passwordController.dispose();
+    if ((confirmed ?? false)) {
+      await PushNotificationService.unregisterCurrentDevice();
+      await AuthSession.instance.clear();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text(
+          'Compte désactivé. Reconnectez-vous pour le réactiver.',
+        ),
+      ));
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    }
+  }
+
   Future<void> _logout() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -6980,6 +7208,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
       ),
     );
     if (confirmed ?? false) {
+      await PushNotificationService.unregisterCurrentDevice();
       await AuthSession.instance.clear();
     }
     if ((confirmed ?? false) && mounted) {
@@ -7115,6 +7344,18 @@ class _SecurityScreenState extends State<SecurityScreen> {
                   label: 'Alertes de sécurité',
                   value: _securityNotifs,
                   onChanged: (v) => setState(() => _securityNotifs = v),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _SettingsGroup(
+              title: 'Zone sensible',
+              children: [
+                _SettingsRow(
+                  icon: Icons.person_off_outlined,
+                  label: 'Désactiver mon compte',
+                  subtitle: 'Réversible : reconnectez-vous pour réactiver.',
+                  onTap: _deactivateAccount,
                 ),
               ],
             ),
