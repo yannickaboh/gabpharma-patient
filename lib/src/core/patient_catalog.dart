@@ -81,17 +81,20 @@ class CatalogPharmacy {
     required this.id,
     required this.name,
     required this.zoneLabel,
+    this.distanceKm,
   });
 
   final int id;
   final String name;
   final String zoneLabel;
+  final double? distanceKm;
 
   factory CatalogPharmacy.fromJson(Map<String, dynamic> json) =>
       CatalogPharmacy(
         id: (json['id'] as num).toInt(),
         name: json['name']?.toString() ?? '',
         zoneLabel: json['zone_label']?.toString() ?? '',
+        distanceKm: (json['distance_km'] as num?)?.toDouble(),
       );
 }
 
@@ -161,6 +164,7 @@ class PharmacyDetail {
     required this.acceptsCashOnDelivery,
     required this.services,
     required this.acceptedPlanCount,
+    this.distanceKm,
   });
 
   final int id;
@@ -176,6 +180,7 @@ class PharmacyDetail {
   final bool acceptsCashOnDelivery;
   final List<PharmacyService> services;
   final int acceptedPlanCount;
+  final double? distanceKm;
 
   factory PharmacyDetail.fromJson(Map<String, dynamic> json) =>
       PharmacyDetail(
@@ -196,6 +201,7 @@ class PharmacyDetail {
             .toList(),
         acceptedPlanCount:
             ((json['accepted_plan_ids'] as List?) ?? []).length,
+        distanceKm: (json['distance_km'] as num?)?.toDouble(),
       );
 }
 
@@ -234,18 +240,29 @@ Future<List<PatientForm>> fetchPatientForms() async {
       .toList();
 }
 
+/// Ajoute `lat`/`lng` aux paramètres de requête si [position] est fourni —
+/// helper partagé par tous les endpoints qui acceptent la position patient
+/// pour calculer `distance_km` côté serveur.
+void _addPosition(Map<String, String> params, (double, double)? position) {
+  if (position == null) return;
+  params['lat'] = '${position.$1}';
+  params['lng'] = '${position.$2}';
+}
+
 Future<CatalogPage> fetchCatalog({
   String query = '',
   int? categoryId,
   String? zoneCode,
   String? formCode,
   int page = 1,
+  (double, double)? position,
 }) async {
   final params = <String, String>{'page': '$page'};
   if (query.isNotEmpty) params['q'] = query;
   if (categoryId != null) params['category'] = '$categoryId';
   if (zoneCode != null && zoneCode.isNotEmpty) params['zone'] = zoneCode;
   if (formCode != null && formCode.isNotEmpty) params['form'] = formCode;
+  _addPosition(params, position);
   final qs = params.entries
       .map((e) => '${e.key}=${Uri.encodeQueryComponent(e.value)}')
       .join('&');
@@ -260,16 +277,71 @@ Future<CatalogPage> fetchCatalog({
   );
 }
 
-Future<CatalogStock> fetchStockDetail(int stockId) async {
+Future<CatalogStock> fetchStockDetail(
+  int stockId, {
+  (double, double)? position,
+}) async {
+  final params = <String, String>{};
+  _addPosition(params, position);
+  final qs = params.entries
+      .map((e) => '${e.key}=${Uri.encodeQueryComponent(e.value)}')
+      .join('&');
   final json = await AuthSession.instance.api
-      .getJson('mobile/patient/catalog/stocks/$stockId/');
+      .getJson('mobile/patient/catalog/stocks/$stockId/${qs.isEmpty ? '' : '?$qs'}');
   return CatalogStock.fromJson(json);
 }
 
-Future<PharmacyDetail> fetchPharmacyDetail(int pharmacyId) async {
+Future<PharmacyDetail> fetchPharmacyDetail(
+  int pharmacyId, {
+  (double, double)? position,
+}) async {
+  final params = <String, String>{};
+  _addPosition(params, position);
+  final qs = params.entries
+      .map((e) => '${e.key}=${Uri.encodeQueryComponent(e.value)}')
+      .join('&');
   final json = await AuthSession.instance.api
-      .getJson('mobile/patient/pharmacies/$pharmacyId/');
+      .getJson('mobile/patient/pharmacies/$pharmacyId/${qs.isEmpty ? '' : '?$qs'}');
   return PharmacyDetail.fromJson(json);
+}
+
+class PharmacyListPage {
+  const PharmacyListPage({
+    required this.count,
+    required this.hasMore,
+    required this.results,
+  });
+
+  final int count;
+  final bool hasMore;
+  final List<PharmacyDetail> results;
+}
+
+Future<PharmacyListPage> fetchPharmacies({
+  String query = '',
+  String? zoneCode,
+  bool onDutyOnly = false,
+  int page = 1,
+  (double, double)? position,
+}) async {
+  final params = <String, String>{'page': '$page'};
+  if (query.isNotEmpty) params['q'] = query;
+  if (zoneCode != null && zoneCode.isNotEmpty) params['zone'] = zoneCode;
+  if (onDutyOnly) params['on_duty'] = 'true';
+  _addPosition(params, position);
+  final qs = params.entries
+      .map((e) => '${e.key}=${Uri.encodeQueryComponent(e.value)}')
+      .join('&');
+  final json = await AuthSession.instance.api
+      .getJson('mobile/patient/pharmacies/?$qs');
+  return PharmacyListPage(
+    count: (json['count'] as num?)?.toInt() ?? 0,
+    hasMore: json['next'] != null,
+    results: ((json['results'] as List?) ?? [])
+        .map(
+            (e) => PharmacyDetail.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList(),
+  );
 }
 
 Future<CatalogPage> fetchPharmacyCatalog(int pharmacyId, {int page = 1}) async {

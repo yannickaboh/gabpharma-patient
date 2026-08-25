@@ -26,6 +26,7 @@ class GabPharmaPatientApp extends StatelessWidget {
           '/password-reset': (_) => const PasswordResetScreen(),
           '/medication': (_) => const MedicationDetailScreen(),
           '/pharmacy': (_) => const PharmacyDetailScreen(),
+          '/pharmacies': (_) => const PharmacyBrowseScreen(),
           '/favorites': (_) => const FavoritesScreen(),
           '/checkout': (_) => const CheckoutScreen(),
           '/payment': (_) => const PaymentScreen(

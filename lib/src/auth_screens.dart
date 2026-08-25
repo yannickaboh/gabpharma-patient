@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'core/api_client.dart';
 import 'core/auth_session.dart';
+import 'core/biometric_lock_service.dart';
 import 'core/push_notification_service.dart';
 import 'core/theme.dart';
 
@@ -20,6 +21,8 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _loopController;
+  bool _needsBiometricUnlock = false;
+  bool _biometricFailed = false;
 
   @override
   void initState() {
@@ -38,7 +41,32 @@ class _SplashScreenState extends State<SplashScreen>
     final hasSession = await sessionFuture;
     if (hasSession) await PushNotificationService.registerCurrentDevice();
     if (!mounted) return;
-    Navigator.pushReplacementNamed(context, hasSession ? '/home' : '/login');
+    if (!hasSession) {
+      Navigator.pushReplacementNamed(context, '/login');
+      return;
+    }
+    final biometricRequired = await BiometricLockService.isEnabled() &&
+        await BiometricLockService.isDeviceSupported();
+    if (!mounted) return;
+    if (!biometricRequired) {
+      Navigator.pushReplacementNamed(context, '/home');
+      return;
+    }
+    setState(() => _needsBiometricUnlock = true);
+    _attemptBiometricUnlock();
+  }
+
+  Future<void> _attemptBiometricUnlock() async {
+    setState(() => _biometricFailed = false);
+    final unlocked = await BiometricLockService.authenticate(
+      "Déverrouillez Gab'Pharma pour continuer.",
+    );
+    if (!mounted) return;
+    if (unlocked) {
+      Navigator.pushReplacementNamed(context, '/home');
+    } else {
+      setState(() => _biometricFailed = true);
+    }
   }
 
   @override
@@ -60,34 +88,66 @@ class _SplashScreenState extends State<SplashScreen>
                     children: [
                       const _GabPharmaLogoBadge(),
                       const SizedBox(height: 32),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          RotationTransition(
-                            turns: _loopController,
-                            child: const Icon(
-                              Icons.autorenew,
-                              size: 20,
-                              color: GabColors.primary,
-                            ),
+                      if (_needsBiometricUnlock) ...[
+                        Icon(
+                          _biometricFailed
+                              ? Icons.fingerprint
+                              : Icons.lock_outline,
+                          size: 40,
+                          color: GabColors.primary,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _biometricFailed
+                              ? 'Déverrouillage annulé ou échoué.'
+                              : 'DÉVERROUILLAGE BIOMÉTRIQUE...',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 1.1,
+                            color: GabColors.primary.withValues(alpha: 0.8),
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'VÉRIFICATION DE LA SESSION...',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 1.1,
-                              color: GabColors.primary.withValues(alpha: 0.8),
-                            ),
+                        ),
+                        if (_biometricFailed) ...[
+                          const SizedBox(height: 16),
+                          FilledButton.icon(
+                            onPressed: _attemptBiometricUnlock,
+                            icon: const Icon(Icons.fingerprint),
+                            label: const Text('Réessayer'),
                           ),
                         ],
-                      ),
-                      const SizedBox(height: 4),
-                      SizedBox(
-                        height: 16,
-                        child: _SessionLoaderDots(controller: _loopController),
-                      ),
+                      ] else ...[
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            RotationTransition(
+                              turns: _loopController,
+                              child: const Icon(
+                                Icons.autorenew,
+                                size: 20,
+                                color: GabColors.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'VÉRIFICATION DE LA SESSION...',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 1.1,
+                                color:
+                                    GabColors.primary.withValues(alpha: 0.8),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        SizedBox(
+                          height: 16,
+                          child:
+                              _SessionLoaderDots(controller: _loopController),
+                        ),
+                      ],
                     ],
                   ),
                 ),

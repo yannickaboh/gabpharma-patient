@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'auth_screens.dart' show TermsScreen, PrivacyPolicyScreen;
 import 'core/api_client.dart' show ApiException;
 import 'core/auth_session.dart';
+import 'core/biometric_lock_service.dart';
+import 'core/location_service.dart';
 import 'core/patient_catalog.dart';
 import 'core/push_notification_service.dart';
 import 'core/theme.dart';
@@ -23,6 +26,7 @@ class _MedicationPharmacy {
     required this.inStock,
     required this.stockLabel,
     required this.stockLow,
+    this.distanceKm,
   });
 
   final int stockId;
@@ -33,6 +37,7 @@ class _MedicationPharmacy {
   final bool inStock;
   final String stockLabel;
   final bool stockLow;
+  final double? distanceKm;
 }
 
 class MedicationDetailScreen extends StatefulWidget {
@@ -67,13 +72,16 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
         stockId: stock.id,
         pharmacyId: stock.pharmacy.id,
         name: stock.pharmacy.name,
-        location: stock.pharmacy.zoneLabel,
+        location: stock.pharmacy.distanceKm != null
+            ? '${stock.pharmacy.zoneLabel} • ${formatDistanceKm(stock.pharmacy.distanceKm!)}'
+            : stock.pharmacy.zoneLabel,
         price: stock.priceFcfa,
         inStock: stock.inStock,
         stockLabel: stock.isLowStock
             ? 'Stock limité (${stock.quantity})'
             : 'Stock: ${stock.quantity}',
         stockLow: stock.isLowStock,
+        distanceKm: stock.pharmacy.distanceKm,
       );
 
   Future<void> _load() async {
@@ -90,8 +98,12 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
       _error = null;
     });
     try {
-      final stock = await fetchStockDetail(stockId);
-      final page = await fetchCatalog(query: stock.medication.name);
+      final position = PatientLocationService.cachedPosition;
+      final stock = await fetchStockDetail(stockId, position: position);
+      final page = await fetchCatalog(
+        query: stock.medication.name,
+        position: position,
+      );
       if (!mounted) return;
       final pharmacies = page.results.map(_toOption).toList();
       final selectedIndex =
@@ -6897,10 +6909,60 @@ class SecurityScreen extends StatefulWidget {
 }
 
 class _SecurityScreenState extends State<SecurityScreen> {
-  bool _biometrics = true;
+  bool _biometrics = false;
+  bool _biometricsSupported = false;
+  bool _biometricsLoading = true;
+  bool _biometricsBusy = false;
   bool _orderNotifs = true;
   bool _promoNotifs = false;
   bool _securityNotifs = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBiometricState();
+  }
+
+  Future<void> _loadBiometricState() async {
+    final supported = await BiometricLockService.isDeviceSupported();
+    final enabled = await BiometricLockService.isEnabled();
+    if (!mounted) return;
+    setState(() {
+      _biometricsSupported = supported;
+      _biometrics = supported && enabled;
+      _biometricsLoading = false;
+    });
+  }
+
+  Future<void> _toggleBiometrics(bool value) async {
+    if (_biometricsBusy) return;
+    setState(() => _biometricsBusy = true);
+    if (value) {
+      final confirmed = await BiometricLockService.authenticate(
+        'Confirmez votre identité pour activer le verrouillage biométrique.',
+      );
+      if (!mounted) return;
+      if (!confirmed) {
+        setState(() => _biometricsBusy = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Authentification échouée ou annulée — verrouillage non activé.',
+            ),
+          ),
+        );
+        return;
+      }
+      await BiometricLockService.setEnabled(true);
+    } else {
+      await BiometricLockService.setEnabled(false);
+    }
+    if (!mounted) return;
+    setState(() {
+      _biometrics = value;
+      _biometricsBusy = false;
+    });
+  }
 
   Future<void> _changePassword() async {
     final currentController = TextEditingController();
@@ -7279,10 +7341,19 @@ class _SecurityScreenState extends State<SecurityScreen> {
                 _SettingsToggleRow(
                   icon: Icons.fingerprint,
                   label: 'Touch ID / Face ID',
-                  subtitle: 'Sera activé une fois le capteur biométrique '
-                      "connecté à l'application.",
+                  subtitle: _biometricsLoading
+                      ? 'Vérification du capteur...'
+                      : _biometricsSupported
+                          ? 'Verrouille l\'accès à l\'application avec votre '
+                              'empreinte ou votre visage.'
+                          : 'Aucun capteur biométrique détecté sur cet '
+                              'appareil.',
                   value: _biometrics,
-                  onChanged: (v) => setState(() => _biometrics = v),
+                  onChanged: (_biometricsLoading ||
+                          _biometricsBusy ||
+                          !_biometricsSupported)
+                      ? null
+                      : _toggleBiometrics,
                 ),
                 _SettingsRow(
                   icon: Icons.smartphone,
@@ -7507,7 +7578,7 @@ class _SettingsToggleRow extends StatelessWidget {
   final String label;
   final String? subtitle;
   final bool value;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -7563,6 +7634,423 @@ class _PharmacyProduct {
   final int price;
 }
 
+class PharmacyBrowseScreen extends StatefulWidget {
+  const PharmacyBrowseScreen({super.key});
+
+  @override
+  State<PharmacyBrowseScreen> createState() => _PharmacyBrowseScreenState();
+}
+
+class _PharmacyBrowseScreenState extends State<PharmacyBrowseScreen> {
+  final _queryController = TextEditingController();
+  Timer? _debounce;
+  List<PatientZone> _zones = [];
+  String? _selectedZoneCode;
+  bool _onDutyOnly = false;
+  (double, double)? _position;
+  bool _locating = false;
+
+  List<PharmacyDetail> _results = [];
+  int _resultCount = 0;
+  int _page = 1;
+  bool _hasMore = false;
+  bool _loading = true;
+  bool _loadingMore = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _position = PatientLocationService.cachedPosition;
+    _loadZones();
+    _loadResults();
+    _queryController.addListener(_onQueryChanged);
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _queryController.dispose();
+    super.dispose();
+  }
+
+  void _onQueryChanged() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), _loadResults);
+  }
+
+  Future<void> _loadZones() async {
+    try {
+      final zones = await fetchPatientZones();
+      if (!mounted) return;
+      setState(() => _zones = zones);
+    } on Object {
+      // Filtres indisponibles : les chips resteront simplement vides.
+    }
+  }
+
+  Future<void> _loadResults() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+      _page = 1;
+    });
+    try {
+      final page = await fetchPharmacies(
+        query: _queryController.text.trim(),
+        zoneCode: _selectedZoneCode,
+        onDutyOnly: _onDutyOnly,
+        position: _position,
+      );
+      if (!mounted) return;
+      setState(() {
+        _results = page.results;
+        _resultCount = page.count;
+        _hasMore = page.hasMore;
+        _loading = false;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = error.message;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = "Impossible de joindre l'API Gab'Pharma.";
+      });
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore || !_hasMore) return;
+    setState(() => _loadingMore = true);
+    try {
+      final page = await fetchPharmacies(
+        query: _queryController.text.trim(),
+        zoneCode: _selectedZoneCode,
+        onDutyOnly: _onDutyOnly,
+        position: _position,
+        page: _page + 1,
+      );
+      if (!mounted) return;
+      setState(() {
+        _results = [..._results, ...page.results];
+        _hasMore = page.hasMore;
+        _page += 1;
+        _loadingMore = false;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() => _loadingMore = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Impossible de charger la suite des résultats.'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _requestProximitySort() async {
+    setState(() => _locating = true);
+    final position = await PatientLocationService.currentPosition();
+    if (!mounted) return;
+    setState(() => _locating = false);
+    if (position == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Position indisponible — vérifiez que la localisation est '
+            "activée et autorisée pour l'application.",
+          ),
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+    setState(() => _position = position);
+    _loadResults();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: GabColors.background,
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              SizedBox(
+                height: 56,
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back,
+                          color: GabColors.primary),
+                    ),
+                    const Text(
+                      'Parcourir les pharmacies',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: GabColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  children: [
+                    TextField(
+                      controller: _queryController,
+                      decoration: InputDecoration(
+                        hintText: 'Rechercher une pharmacie...',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => _queryController.clear(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 40,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        children: [
+                          for (final zone in _zones) ...[
+                            _BrowseFilterChip(
+                              label: zone.label,
+                              selected: _selectedZoneCode == zone.code,
+                              onTap: () {
+                                setState(() => _selectedZoneCode =
+                                    _selectedZoneCode == zone.code
+                                        ? null
+                                        : zone.code);
+                                _loadResults();
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                          _BrowseFilterChip(
+                            label: 'De garde maintenant',
+                            selected: _onDutyOnly,
+                            icon: Icons.nights_stay_outlined,
+                            onTap: () {
+                              setState(() => _onDutyOnly = !_onDutyOnly);
+                              _loadResults();
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          _BrowseFilterChip(
+                            label: 'Proximité',
+                            selected: _position != null,
+                            icon: Icons.near_me,
+                            loading: _locating,
+                            onTap: _locating ? null : _requestProximitySort,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text('Résultats ($_resultCount)',
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 8),
+                    if (_loading)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 32),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (_error != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 32),
+                        child: EmptyState(
+                          icon: Icons.cloud_off,
+                          title: 'Impossible de charger les pharmacies',
+                          message: _error!,
+                        ),
+                      )
+                    else if (_results.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 32),
+                        child: EmptyState(
+                          icon: Icons.local_pharmacy_outlined,
+                          title: 'Aucune pharmacie trouvée',
+                          message: 'Essayez une autre recherche ou zone.',
+                        ),
+                      )
+                    else ...[
+                      for (final pharmacy in _results) ...[
+                        _PharmacyListCard(
+                          pharmacy: pharmacy,
+                          onTap: () => Navigator.pushNamed(
+                              context, '/pharmacy',
+                              arguments: pharmacy.id),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      if (_hasMore)
+                        Center(
+                          child: _loadingMore
+                              ? const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 12),
+                                  child: CircularProgressIndicator(),
+                                )
+                              : TextButton(
+                                  onPressed: _loadMore,
+                                  child: const Text('Charger plus'),
+                                ),
+                        ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _BrowseFilterChip extends StatelessWidget {
+  const _BrowseFilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.icon,
+    this.loading = false,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+  final IconData? icon;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: selected ? GabColors.primary : GabColors.softGreen,
+        borderRadius: BorderRadius.circular(999),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (loading)
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: selected ? Colors.white : GabColors.primary,
+                    ),
+                  )
+                else if (icon != null)
+                  Icon(icon,
+                      size: 16,
+                      color: selected ? Colors.white : GabColors.primary),
+                if (loading || icon != null) const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: selected ? Colors.white : GabColors.ink,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
+class _PharmacyListCard extends StatelessWidget {
+  const _PharmacyListCard({required this.pharmacy, required this.onTap});
+
+  final PharmacyDetail pharmacy;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final String statusLabel;
+    final Color statusColor;
+    if (pharmacy.is24h) {
+      statusLabel = 'Ouvert 24h/24';
+      statusColor = GabColors.primary;
+    } else if (pharmacy.isOnDuty) {
+      statusLabel = 'De garde';
+      statusColor = GabColors.secondary;
+    } else {
+      statusLabel = 'Fermé';
+      statusColor = GabColors.muted;
+    }
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: GabColors.outlineVariant),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: GabColors.softGreen,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.local_pharmacy,
+                    color: GabColors.primary),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(pharmacy.name,
+                        style: const TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 2),
+                    Text(
+                      pharmacy.distanceKm != null
+                          ? '${pharmacy.zoneLabel} • ${formatDistanceKm(pharmacy.distanceKm!)}'
+                          : pharmacy.zoneLabel,
+                      style: const TextStyle(color: GabColors.muted),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      statusLabel,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: statusColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: GabColors.muted),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class PharmacyDetailScreen extends StatefulWidget {
   const PharmacyDetailScreen({super.key});
 
@@ -7601,7 +8089,10 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
       _error = null;
     });
     try {
-      final pharmacy = await fetchPharmacyDetail(pharmacyId);
+      final pharmacy = await fetchPharmacyDetail(
+        pharmacyId,
+        position: PatientLocationService.cachedPosition,
+      );
       final page = await fetchPharmacyCatalog(pharmacyId);
       if (!mounted) return;
       setState(() {
@@ -7842,9 +8333,13 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> {
                     _InfoRow(
                       icon: Icons.location_on_outlined,
                       title: 'Adresse',
-                      value: pharmacy.address.isNotEmpty
-                          ? '${pharmacy.address}, ${pharmacy.zoneLabel}'
-                          : '${pharmacy.zoneLabel} (adresse non renseignée)',
+                      value: [
+                        pharmacy.address.isNotEmpty
+                            ? '${pharmacy.address}, ${pharmacy.zoneLabel}'
+                            : '${pharmacy.zoneLabel} (adresse non renseignée)',
+                        if (pharmacy.distanceKm != null)
+                          formatDistanceKm(pharmacy.distanceKm!),
+                      ].join(' • '),
                     ),
                     const SizedBox(height: 14),
                     _InfoRow(

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'auth_screens.dart' show TermsScreen, PrivacyPolicyScreen;
 import 'core/api_client.dart' show ApiException;
 import 'core/auth_session.dart';
+import 'core/location_service.dart';
 import 'core/patient_catalog.dart';
 import 'core/patient_summary.dart';
 import 'core/push_notification_service.dart';
@@ -371,7 +372,8 @@ class PatientHomeScreen extends StatelessWidget {
                   SectionTitle(
                     'Pharmacies à proximité',
                     action: TextButton(
-                      onPressed: () => onSwitchTab(1),
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/pharmacies'),
                       child: const Text('Voir tout'),
                     ),
                   ),
@@ -758,6 +760,7 @@ class _SearchResult {
     required this.pharmacy,
     required this.price,
     required this.inStock,
+    this.distanceKm,
   });
 
   final int stockId;
@@ -766,6 +769,7 @@ class _SearchResult {
   final String pharmacy;
   final int price;
   final bool inStock;
+  final double? distanceKm;
 }
 
 class SearchScreen extends StatefulWidget {
@@ -791,6 +795,8 @@ class _SearchScreenState extends State<SearchScreen> {
   int? _selectedCategoryId;
   String? _selectedFormCode;
   _SortMode _sort = _SortMode.price;
+  (double, double)? _position;
+  bool _locatingProximity = false;
 
   List<CatalogStock> _results = [];
   int _resultCount = 0;
@@ -848,6 +854,7 @@ class _SearchScreenState extends State<SearchScreen> {
         categoryId: _selectedCategoryId,
         zoneCode: _selectedZoneCode,
         formCode: _selectedFormCode,
+        position: _sort == _SortMode.proximity ? _position : null,
       );
       if (!mounted) return;
       setState(() {
@@ -881,6 +888,7 @@ class _SearchScreenState extends State<SearchScreen> {
         zoneCode: _selectedZoneCode,
         formCode: _selectedFormCode,
         page: _page + 1,
+        position: _sort == _SortMode.proximity ? _position : null,
       );
       if (!mounted) return;
       setState(() {
@@ -898,6 +906,30 @@ class _SearchScreenState extends State<SearchScreen> {
         ),
       );
     }
+  }
+
+  Future<void> _requestProximitySort() async {
+    setState(() => _locatingProximity = true);
+    final position = await PatientLocationService.currentPosition();
+    if (!mounted) return;
+    setState(() => _locatingProximity = false);
+    if (position == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Position indisponible — vérifiez que la localisation est '
+            "activée et autorisée pour l'application.",
+          ),
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+    setState(() {
+      _position = position;
+      _sort = _SortMode.proximity;
+    });
+    _loadResults();
   }
 
   String _formatFcfa(int amount) {
@@ -924,10 +956,18 @@ class _SearchScreenState extends State<SearchScreen> {
               pharmacy: '${stock.pharmacy.name}, ${stock.pharmacy.zoneLabel}',
               price: stock.priceFcfa,
               inStock: stock.inStock,
+              distanceKm: stock.pharmacy.distanceKm,
             ))
         .toList();
     if (_sort == _SortMode.price) {
       list.sort((a, b) => a.price.compareTo(b.price));
+    } else if (_sort == _SortMode.proximity) {
+      list.sort((a, b) {
+        if (a.distanceKm == null && b.distanceKm == null) return 0;
+        if (a.distanceKm == null) return 1;
+        if (b.distanceKm == null) return -1;
+        return a.distanceKm!.compareTo(b.distanceKm!);
+      });
     }
     return list;
   }
@@ -1120,17 +1160,16 @@ class _SearchScreenState extends State<SearchScreen> {
                         ),
                       ),
                       TextButton.icon(
-                        onPressed: () {
-                          setState(() => _sort = _SortMode.proximity);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                  'Le tri par proximité nécessite la géolocalisation (à venir).'),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.near_me, size: 18),
+                        onPressed:
+                            _locatingProximity ? null : _requestProximitySort,
+                        icon: _locatingProximity
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2),
+                              )
+                            : const Icon(Icons.near_me, size: 18),
                         label: const Text('Proximité'),
                         style: TextButton.styleFrom(
                           foregroundColor: _sort == _SortMode.proximity
@@ -1353,10 +1392,14 @@ class _SearchResultCard extends StatelessWidget {
                                   size: 16, color: GabColors.muted),
                               const SizedBox(width: 6),
                               Expanded(
-                                child: Text(result.pharmacy,
-                                    style: const TextStyle(
-                                        color: GabColors.muted,
-                                        fontWeight: FontWeight.w600)),
+                                child: Text(
+                                  result.distanceKm != null
+                                      ? '${result.pharmacy} • ${formatDistanceKm(result.distanceKm!)}'
+                                      : result.pharmacy,
+                                  style: const TextStyle(
+                                      color: GabColors.muted,
+                                      fontWeight: FontWeight.w600),
+                                ),
                               ),
                             ],
                           ),
