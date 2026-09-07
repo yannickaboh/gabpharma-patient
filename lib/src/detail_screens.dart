@@ -2661,7 +2661,14 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
                           height: 52,
                           child: FilledButton.icon(
                             onPressed: () =>
-                                Navigator.pushNamed(context, '/delivery'),
+                                ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Suivi disponible depuis le détail de la '
+                                  'commande, une fois un livreur affecté.',
+                                ),
+                              ),
+                            ),
                             icon: const Icon(Icons.map_outlined),
                             label: const Text('Suivre ma commande'),
                           ),
@@ -2886,6 +2893,33 @@ class OrderDetailScreen extends StatefulWidget {
 const _inDeliveryStatuses = {'awaiting_courier', 'in_delivery'};
 const _orderDetailCancelledStatuses = {'cancelled', 'rejected', 'expired'};
 
+List<_TimelineStep> _orderTimelineSteps(PatientOrder order) {
+  final history = order.statusHistory;
+  if (history.isEmpty) {
+    return [
+      _TimelineStep(
+        title: order.statusLabel,
+        time: _formatOrderDate(order.createdAt),
+        state: _StepState.active,
+      ),
+    ];
+  }
+  final terminalCancelled = _orderDetailCancelledStatuses.contains(order.status);
+  return [
+    for (var i = 0; i < history.length; i++)
+      _TimelineStep(
+        title: history[i].toStatusLabel,
+        time: _formatOrderDate(history[i].createdAt),
+        note: history[i].reason.isNotEmpty ? history[i].reason : null,
+        state: i < history.length - 1
+            ? _StepState.done
+            : terminalCancelled
+                ? _StepState.cancelled
+                : _StepState.done,
+      ),
+  ];
+}
+
 IconData _orderBannerIcon(String status) {
   if (_orderDetailCancelledStatuses.contains(status)) return Icons.cancel;
   if (status == 'completed') return Icons.check_circle;
@@ -3090,34 +3124,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
-  List<_TimelineStep> _timelineSteps(PatientOrder order) {
-    final history = order.statusHistory;
-    if (history.isEmpty) {
-      return [
-        _TimelineStep(
-          title: order.statusLabel,
-          time: _formatOrderDate(order.createdAt),
-          state: _StepState.active,
-        ),
-      ];
-    }
-    final terminalCancelled =
-        _orderDetailCancelledStatuses.contains(order.status);
-    return [
-      for (var i = 0; i < history.length; i++)
-        _TimelineStep(
-          title: history[i].toStatusLabel,
-          time: _formatOrderDate(history[i].createdAt),
-          note: history[i].reason.isNotEmpty ? history[i].reason : null,
-          state: i < history.length - 1
-              ? _StepState.done
-              : terminalCancelled
-                  ? _StepState.cancelled
-                  : _StepState.done,
-        ),
-    ];
-  }
-
   @override
   Widget build(BuildContext context) => Scaffold(
         backgroundColor: GabColors.background,
@@ -3158,7 +3164,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         'Ouvert',
     ];
     final actions = order.actions;
-    final steps = _timelineSteps(order);
+    final steps = _orderTimelineSteps(order);
     final showProposalActions = actions.canAcceptChanges;
     final showCancelOnly = actions.canCancel && !showProposalActions;
 
@@ -3546,10 +3552,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ],
         if (_inDeliveryStatuses.contains(order.status)) ...[
           const SizedBox(height: 12),
-          const Text(
-            'Suivi de livraison en temps réel pas encore branché à l\'API — disponible prochainement.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: GabColors.muted, fontSize: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      DeliveryTrackingScreen(orderId: widget.orderId),
+                ),
+              ),
+              icon: const Icon(Icons.map_outlined),
+              label: const Text('Suivre la livraison en temps réel'),
+            ),
           ),
         ],
       ],
@@ -3660,457 +3675,510 @@ class _TimelineTile extends StatelessWidget {
   }
 }
 
-class _DeliveryCourier {
-  const _DeliveryCourier({
-    required this.name,
-    required this.rating,
-    required this.tripsLabel,
-  });
+/// Suivi de livraison temps réel (écran 17). La position du livreur
+/// (`order.delivery.courierLatitude`/`courierLongitude`) vient de
+/// `GET /mobile/patient/orders/<id>/` et est déjà filtrée côté backend :
+/// jamais de position vieille de plus de 5 minutes affichée comme "en
+/// direct" — dans ce cas les champs sont `null` et on garde le fond
+/// illustratif avec un message honnête plutôt qu'un faux marker.
+class DeliveryTrackingScreen extends StatefulWidget {
+  const DeliveryTrackingScreen({required this.orderId, super.key});
 
-  final String name;
-  final double rating;
-  final String tripsLabel;
-}
-
-class _DeliveryTrackingData {
-  const _DeliveryTrackingData({
-    required this.pharmacyName,
-    required this.pharmacyAddress,
-    required this.destinationLabel,
-    required this.destinationDetail,
-    required this.etaLabel,
-    required this.courier,
-    required this.steps,
-  });
-
-  final String pharmacyName;
-  final String pharmacyAddress;
-  final String destinationLabel;
-  final String destinationDetail;
-  final String etaLabel;
-  final _DeliveryCourier courier;
-  final List<_TimelineStep> steps;
-}
-
-const _deliveryTrackingDefault = _DeliveryTrackingData(
-  pharmacyName: "Grande Pharmacie d'Okala",
-  pharmacyAddress: 'Libreville, Carrefour Okala',
-  destinationLabel: 'Résidence Orchidée, Appt 4B',
-  destinationDetail: 'Quartier Louis, Libreville',
-  etaLabel: '15:50 (12 min)',
-  courier: _DeliveryCourier(
-    name: 'Jean M.',
-    rating: 4.9,
-    tripsLabel: '850+ courses',
-  ),
-  steps: [
-    _TimelineStep(
-      title: 'Commande confirmée',
-      time: 'Hier, 15:05',
-      state: _StepState.done,
-    ),
-    _TimelineStep(
-      title: "Préparée par Grande Pharmacie d'Okala",
-      time: 'Hier, 15:20',
-      state: _StepState.done,
-    ),
-    _TimelineStep(
-      title: 'En cours de livraison',
-      time: 'Hier, 15:35',
-      state: _StepState.active,
-      note: 'Jean a récupéré votre colis. Code de remise envoyé par SMS '
-          '(canal sécurisé).',
-    ),
-    _TimelineStep(
-      title: 'Livrée',
-      time: 'Prévu vers 15:50',
-      state: _StepState.pending,
-    ),
-  ],
-);
-
-class DeliveryTrackingScreen extends StatelessWidget {
-  const DeliveryTrackingScreen({this.reference = 'GP-2607-4190', super.key});
-
-  final String reference;
+  final int orderId;
 
   @override
-  Widget build(BuildContext context) {
-    const data = _deliveryTrackingDefault;
-    return Scaffold(
-      backgroundColor: GabColors.background,
-      appBar: AppBar(
-        title: const Text('Suivi de Commande'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: TextButton(
-              onPressed: () => Navigator.pushNamed(context, '/support'),
-              style: TextButton.styleFrom(
-                backgroundColor: GabColors.softGreen,
-                foregroundColor: GabColors.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              child: const Text('Support'),
-            ),
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          Stack(
-            children: [
-              Container(
-                height: 240,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      GabColors.softGreen,
-                      GabColors.primary.withValues(alpha: 0.18),
-                    ],
+  State<DeliveryTrackingScreen> createState() =>
+      _DeliveryTrackingScreenState();
+}
+
+class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
+  PatientOrder? _order;
+  bool _loading = true;
+  String? _error;
+  Timer? _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+    // Le livreur transmet sa position toutes les ~45s pendant une course
+    // active (app Livreur) : on rafraîchit un peu plus vite pour rester
+    // réactif sans matraquer l'API.
+    _refreshTimer = Timer.periodic(
+        const Duration(seconds: 20), (_) => _load(silent: true));
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
+    try {
+      final order = await fetchOrderDetail(widget.orderId);
+      if (!mounted) return;
+      setState(() {
+        _order = order;
+        _loading = false;
+        _error = null;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        if (!silent) _error = error.message;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        if (!silent) _error = "Impossible de joindre l'API Gab'Pharma.";
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: GabColors.background,
+        appBar: AppBar(
+          title: const Text('Suivi de Commande'),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: TextButton(
+                onPressed: () => Navigator.pushNamed(context, '/support'),
+                style: TextButton.styleFrom(
+                  backgroundColor: GabColors.softGreen,
+                  foregroundColor: GabColors.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(999),
                   ),
                 ),
-                child: Stack(
-                  children: [
-                    Center(
-                      child: Icon(Icons.map_outlined,
-                          size: 120,
-                          color: GabColors.primary.withValues(alpha: 0.12)),
-                    ),
-                    Positioned(
-                      left: 32,
-                      top: 40,
-                      child: _MapPin(
-                        icon: Icons.local_pharmacy,
-                        background: Colors.white,
-                        foreground: GabColors.primary,
-                      ),
-                    ),
-                    const Positioned(
-                      right: 40,
-                      bottom: 76,
-                      child: _MapPin(
-                        icon: Icons.electric_moped,
-                        background: GabColors.primary,
-                        foreground: Colors.white,
-                      ),
-                    ),
-                    Positioned(
-                      right: 32,
-                      bottom: 20,
-                      child: _MapPin(
-                        icon: Icons.location_on,
-                        background: GabColors.primary,
-                        foreground: Colors.white,
-                      ),
-                    ),
-                    Positioned(
-                      left: 8,
-                      right: 8,
-                      bottom: 8,
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.08),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 10),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'ARRIVÉE ESTIMÉE',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    color: GabColors.muted,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                                Text(
-                                  data.etaLabel,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                    color: GabColors.primary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                child: const Text('Support'),
               ),
+            ),
+          ],
+        ),
+        body: _buildBody(),
+      );
+
+  Widget _buildBody() {
+    final order = _order;
+    if (_loading && order == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null && order == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off, size: 52, color: GabColors.secondary),
+              const SizedBox(height: 16),
+              Text(_error!, textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              FilledButton(onPressed: _load, child: const Text('Réessayer')),
             ],
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
-            child: Text(
-              'Carte simplifiée, à titre illustratif — position en temps '
-              'réel indisponible en démonstration.',
-              style: TextStyle(
-                fontSize: 11,
-                color: GabColors.muted.withValues(alpha: 0.9),
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: Column(
-              children: [
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: GabColors.outlineVariant),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+      );
+    }
+    if (order == null) return const SizedBox.shrink();
+
+    final delivery = order.delivery;
+    final hasFreshPosition = delivery?.hasFreshPosition ?? false;
+    final steps = _orderTimelineSteps(order);
+    final courierName = (delivery?.courierName.isNotEmpty ?? false)
+        ? delivery!.courierName
+        : "Livreur en cours d'affectation";
+    final etaLabel =
+        delivery?.eta != null ? _formatOrderDate(delivery!.eta) : 'Non communiquée';
+
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        Stack(
+          children: [
+            SizedBox(
+              height: 240,
+              width: double.infinity,
+              child: hasFreshPosition
+                  ? GoogleMap(
+                      initialCameraPosition: CameraPosition(
+                        target: LatLng(
+                            delivery!.courierLatitude!, delivery.courierLongitude!),
+                        zoom: 15,
+                      ),
+                      markers: {
+                        Marker(
+                          markerId: const MarkerId('courier'),
+                          position: LatLng(
+                              delivery.courierLatitude!, delivery.courierLongitude!),
+                        ),
+                      },
+                      // Aperçu statique, non interactif : évite les
+                      // conflits de gestes avec le scroll de l'écran.
+                      liteModeEnabled: true,
+                      zoomControlsEnabled: false,
+                      myLocationButtonEnabled: false,
+                    )
+                  : Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            GabColors.softGreen,
+                            GabColors.primary.withValues(alpha: 0.18),
+                          ],
+                        ),
+                      ),
+                      child: Stack(
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'En route vers vous',
-                                  style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700),
-                                ),
-                                Text(
-                                  'Commande #$reference',
-                                  style: const TextStyle(
-                                      color: GabColors.muted, fontSize: 13),
-                                ),
-                              ],
+                          Center(
+                            child: Icon(Icons.map_outlined,
+                                size: 120,
+                                color: GabColors.primary.withValues(alpha: 0.12)),
+                          ),
+                          Positioned(
+                            left: 32,
+                            top: 40,
+                            child: _MapPin(
+                              icon: Icons.local_pharmacy,
+                              background: Colors.white,
+                              foreground: GabColors.primary,
                             ),
                           ),
-                          DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: GabColors.primary,
-                              borderRadius: BorderRadius.circular(999),
+                          const Positioned(
+                            right: 40,
+                            bottom: 76,
+                            child: _MapPin(
+                              icon: Icons.electric_moped,
+                              background: GabColors.primary,
+                              foreground: Colors.white,
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 6),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: const [
-                                  Icon(Icons.electric_moped,
-                                      size: 14, color: Colors.white),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    'LIVRAISON EXPRESS',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                          ),
+                          Positioned(
+                            right: 32,
+                            bottom: 20,
+                            child: _MapPin(
+                              icon: Icons.location_on,
+                              background: GabColors.primary,
+                              foreground: Colors.white,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 14),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: GabColors.background,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: GabColors.softGreen,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                    color: GabColors.primary, width: 2),
-                              ),
-                              child: const Icon(Icons.person,
-                                  color: GabColors.primary),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    data.courier.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w700),
-                                  ),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.star,
-                                          size: 14, color: Color(0xFFFFBB18)),
-                                      const SizedBox(width: 2),
-                                      Text('${data.courier.rating}',
-                                          style: const TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600)),
-                                      const Text(' • ',
-                                          style: TextStyle(
-                                              color: GabColors.muted)),
-                                      Flexible(
-                                        child: Text(
-                                          data.courier.tripsLabel,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                              fontSize: 12,
-                                              color: GabColors.muted),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () =>
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Appel avec le livreur indisponible en '
-                                    'démonstration.',
-                                  ),
-                                ),
-                              ),
-                              icon: const Icon(Icons.call,
-                                  color: Colors.white, size: 18),
-                              iconSize: 18,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(
-                                  minWidth: 34, minHeight: 34),
-                              visualDensity: VisualDensity.compact,
-                              style: IconButton.styleFrom(
-                                backgroundColor: GabColors.secondary,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            IconButton(
-                              onPressed: () =>
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Messagerie avec le livreur indisponible '
-                                    'pour le moment — utilisez le Centre '
-                                    "d'aide pour contacter le support.",
-                                  ),
-                                ),
-                              ),
-                              icon: const Icon(Icons.chat_bubble_outline,
-                                  color: GabColors.muted, size: 18),
-                              iconSize: 18,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(
-                                  minWidth: 34, minHeight: 34),
-                              visualDensity: VisualDensity.compact,
-                              style: IconButton.styleFrom(
-                                backgroundColor: GabColors.background,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
+                    ),
+            ),
+            Positioned(
+              left: 8,
+              right: 8,
+              bottom: 8,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: DecoratedBox(
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: GabColors.outlineVariant),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'PROGRESSION',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: GabColors.muted,
-                          letterSpacing: 0.8,
-                        ),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
                       ),
-                      const SizedBox(height: 16),
-                      for (var i = 0; i < data.steps.length; i++)
-                        _TimelineTile(
-                          step: data.steps[i],
-                          isLast: i == data.steps.length - 1,
-                        ),
                     ],
                   ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'ARRIVÉE ESTIMÉE',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: GabColors.muted,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        Text(
+                          etaLabel,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: GabColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 16),
-                Row(
+              ),
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+          child: Text(
+            hasFreshPosition
+                ? 'Position du livreur en direct.'
+                : 'Position du livreur non disponible pour le moment — elle '
+                    "apparaît automatiquement dès qu'il est en route.",
+            style: TextStyle(
+              fontSize: 11,
+              color: GabColors.muted.withValues(alpha: 0.9),
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: GabColors.outlineVariant),
+                ),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: _AddressCard(
-                        icon: Icons.medication_outlined,
-                        iconBackground: Colors.white,
-                        iconColor: GabColors.primary,
-                        label: "Pharmacie d'origine",
-                        title: data.pharmacyName,
-                        subtitle: data.pharmacyAddress,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'En route vers vous',
+                                style: TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.w700),
+                              ),
+                              Text(
+                                'Commande #${order.reference}',
+                                style: const TextStyle(
+                                    color: GabColors.muted, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        ),
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: GabColors.primary,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.electric_moped,
+                                    size: 14, color: Colors.white),
+                                const SizedBox(width: 4),
+                                Text(
+                                  order.deliveryModeLabel.isNotEmpty
+                                      ? order.deliveryModeLabel.toUpperCase()
+                                      : 'LIVRAISON',
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _AddressCard(
-                        icon: Icons.location_on,
-                        iconBackground: GabColors.primary,
-                        iconColor: Colors.white,
-                        label: 'Destination',
-                        title: data.destinationLabel,
-                        subtitle: data.destinationDetail,
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: GabColors.background,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: GabColors.softGreen,
+                              shape: BoxShape.circle,
+                              border:
+                                  Border.all(color: GabColors.primary, width: 2),
+                            ),
+                            child: const Icon(Icons.person,
+                                color: GabColors.primary),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  courierName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style:
+                                      const TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                                Text(
+                                  delivery != null && delivery.statusLabel.isNotEmpty
+                                      ? (delivery.isLate
+                                          ? '${delivery.statusLabel} • En retard'
+                                          : delivery.statusLabel)
+                                      : "En attente d'affectation",
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: delivery?.isLate == true
+                                        ? GabColors.danger
+                                        : GabColors.muted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () {
+                              final phone = delivery?.courierPhone ?? '';
+                              if (phone.trim().isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                        'Numéro du livreur non disponible pour le moment.'),
+                                  ),
+                                );
+                                return;
+                              }
+                              callPhoneNumber(context, phone);
+                            },
+                            icon: const Icon(Icons.call,
+                                color: Colors.white, size: 18),
+                            iconSize: 18,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                                minWidth: 34, minHeight: 34),
+                            visualDensity: VisualDensity.compact,
+                            style: IconButton.styleFrom(
+                              backgroundColor: GabColors.secondary,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          IconButton(
+                            onPressed: () =>
+                                ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Messagerie avec le livreur indisponible '
+                                  'pour le moment — utilisez le Centre '
+                                  "d'aide pour contacter le support.",
+                                ),
+                              ),
+                            ),
+                            icon: const Icon(Icons.chat_bubble_outline,
+                                color: GabColors.muted, size: 18),
+                            iconSize: 18,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                                minWidth: 34, minHeight: 34),
+                            visualDensity: VisualDensity.compact,
+                            style: IconButton.styleFrom(
+                              backgroundColor: GabColors.background,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
-              ],
-            ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: GabColors.outlineVariant),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'PROGRESSION',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: GabColors.muted,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    for (var i = 0; i < steps.length; i++)
+                      _TimelineTile(
+                        step: steps[i],
+                        isLast: i == steps.length - 1,
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _AddressCard(
+                      icon: Icons.medication_outlined,
+                      iconBackground: Colors.white,
+                      iconColor: GabColors.primary,
+                      label: "Pharmacie d'origine",
+                      title: order.pharmacyName,
+                      subtitle: order.pharmacyAddress.isEmpty
+                          ? 'Adresse non renseignée'
+                          : order.pharmacyAddress,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _AddressCard(
+                      icon: Icons.location_on,
+                      iconBackground: GabColors.primary,
+                      iconColor: Colors.white,
+                      label: 'Destination',
+                      title: order.deliveryAddress.isEmpty
+                          ? 'Adresse non renseignée'
+                          : order.deliveryAddress,
+                      subtitle: order.deliveryModeLabel,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

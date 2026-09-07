@@ -864,6 +864,51 @@ class PatientOrderActions {
       );
 }
 
+/// Livraison liée à une commande (`order.delivery`), `null` tant qu'aucun
+/// livreur n'a été affecté. La position du livreur (`courierLatitude` /
+/// `courierLongitude` / `courierPositionUpdatedAt`) est déjà filtrée côté
+/// backend : `null` si la dernière transmission GPS a plus de 5 minutes,
+/// pour ne jamais afficher une position périmée comme "en direct".
+class PatientDelivery {
+  const PatientDelivery({
+    required this.status,
+    required this.statusLabel,
+    required this.courierName,
+    required this.courierPhone,
+    required this.isLate,
+    required this.eta,
+    required this.courierLatitude,
+    required this.courierLongitude,
+    required this.courierPositionUpdatedAt,
+  });
+
+  final String status;
+  final String statusLabel;
+  final String courierName;
+  final String courierPhone;
+  final bool isLate;
+  final DateTime? eta;
+  final double? courierLatitude;
+  final double? courierLongitude;
+  final DateTime? courierPositionUpdatedAt;
+
+  bool get hasFreshPosition => courierLatitude != null && courierLongitude != null;
+
+  factory PatientDelivery.fromJson(Map<String, dynamic> json) =>
+      PatientDelivery(
+        status: json['status']?.toString() ?? '',
+        statusLabel: json['status_label']?.toString() ?? '',
+        courierName: json['courier_name']?.toString() ?? '',
+        courierPhone: json['courier_phone']?.toString() ?? '',
+        isLate: json['is_late'] == true,
+        eta: DateTime.tryParse(json['eta']?.toString() ?? ''),
+        courierLatitude: (json['courier_latitude'] as num?)?.toDouble(),
+        courierLongitude: (json['courier_longitude'] as num?)?.toDouble(),
+        courierPositionUpdatedAt:
+            DateTime.tryParse(json['courier_position_updated_at']?.toString() ?? ''),
+      );
+}
+
 /// Représente une commande, en version resumée (liste, `items`/`statusHistory`
 /// vides et `actions` à `PatientOrderActions.none`) ou complète (détail,
 /// `include_detail=True` côté API) selon l'endpoint appelé.
@@ -880,6 +925,7 @@ class PatientOrder {
     required this.statusLabel,
     required this.paymentStatusLabel,
     required this.deliveryModeLabel,
+    required this.deliveryAddress,
     required this.subtotalFcfa,
     required this.deliveryFeeFcfa,
     required this.insuranceDiscountFcfa,
@@ -888,6 +934,7 @@ class PatientOrder {
     required this.items,
     required this.statusHistory,
     required this.actions,
+    required this.delivery,
   });
 
   final int id;
@@ -901,6 +948,7 @@ class PatientOrder {
   final String statusLabel;
   final String paymentStatusLabel;
   final String deliveryModeLabel;
+  final String deliveryAddress;
   final int subtotalFcfa;
   final int deliveryFeeFcfa;
   final int insuranceDiscountFcfa;
@@ -909,6 +957,7 @@ class PatientOrder {
   final List<PatientOrderItem> items;
   final List<PatientOrderStatusEvent> statusHistory;
   final PatientOrderActions actions;
+  final PatientDelivery? delivery;
 
   factory PatientOrder.fromJson(Map<String, dynamic> json) {
     final pharmacy = (json['pharmacy'] as Map?) ?? const {};
@@ -924,6 +973,7 @@ class PatientOrder {
       statusLabel: json['status_label']?.toString() ?? '',
       paymentStatusLabel: json['payment_status_label']?.toString() ?? '',
       deliveryModeLabel: json['delivery_mode_label']?.toString() ?? '',
+      deliveryAddress: json['delivery_address']?.toString() ?? '',
       subtotalFcfa: (json['subtotal_fcfa'] as num?)?.toInt() ?? 0,
       deliveryFeeFcfa: (json['delivery_fee_fcfa'] as num?)?.toInt() ?? 0,
       insuranceDiscountFcfa:
@@ -942,6 +992,10 @@ class PatientOrder {
           ? PatientOrderActions.fromJson(
               Map<String, dynamic>.from(json['actions'] as Map))
           : PatientOrderActions.none,
+      delivery: json['delivery'] is Map
+          ? PatientDelivery.fromJson(
+              Map<String, dynamic>.from(json['delivery'] as Map))
+          : null,
     );
   }
 }
